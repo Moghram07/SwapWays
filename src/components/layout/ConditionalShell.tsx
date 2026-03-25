@@ -6,7 +6,7 @@ import { Footer } from "./Footer";
 
 export function ConditionalShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const isLandingPage = path === "/4";
+  const isLandingPage = path === "/";
   const isDashboard = path?.startsWith("/dashboard");
   const showGlobalNav = !isLandingPage && !isDashboard;
 

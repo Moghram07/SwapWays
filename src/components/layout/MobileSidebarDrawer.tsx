@@ -116,7 +116,7 @@ export function MobileSidebarDrawer({ open, onClose, unreadMessages = 0, isAdmin
         </nav>
         <div className="border-t border-slate-100 p-4">
           <Link
-            href="/4"
+            href="/"
             onClick={onClose}
             className="flex min-h-[44px] items-center gap-4 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >

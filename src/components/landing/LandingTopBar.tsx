@@ -113,14 +113,14 @@ export function LandingTopBar({ variant }: { variant: Variant }) {
 
   if (variant === "4") {
     const landingLinks = [
-      { label: "How It Works", href: "/4#how-it-works" },
-      { label: "Features", href: "/4#features" },
-      { label: "For Airlines", href: "/4#for-airlines" },
+      { label: "How It Works", href: "/#how-it-works" },
+      { label: "Features", href: "/#features" },
+      { label: "For Airlines", href: "/#for-airlines" },
     ];
     return (
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-          <Link href="/4" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <BrandIcon className="h-9 w-9 object-contain" />
             <span className="text-lg font-bold">
               <span style={{ color: LOGO_BLUE }}>Swap</span>

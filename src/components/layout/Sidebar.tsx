@@ -130,7 +130,7 @@ export function Sidebar({ unreadMessages, isAdmin }: { unreadMessages: number; i
       </nav>
       <div className="border-t border-slate-100 p-4">
         <Link
-          href="/4"
+          href="/"
           className="flex items-center gap-4 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
           <ArrowLeft className="h-5 w-5 shrink-0" strokeWidth={2} />

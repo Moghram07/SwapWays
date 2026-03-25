@@ -12,9 +12,9 @@ const LOGO_BLUE = "#045FA6";
 const LOGO_GREEN = "#299B4F";
 
 const navLinks = [
-  { label: "How It Works", href: "/4#how-it-works" },
-  { label: "Features", href: "/4#features" },
-  { label: "For Airlines", href: "/4#for-airlines" },
+  { label: "How It Works", href: "/#how-it-works" },
+  { label: "Features", href: "/#features" },
+  { label: "For Airlines", href: "/#for-airlines" },
 ];
 
 function getInitials(name: string | null | undefined, email: string | null | undefined): string {
@@ -37,7 +37,7 @@ export function Navbar() {
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <div className="flex items-center gap-3">
-          <Link href={isDashboard ? "/dashboard" : "/4"} className="flex items-center gap-2">
+          <Link href={isDashboard ? "/dashboard" : "/"} className="flex items-center gap-2">
             <Image
               src="/images/swapways-logo.png"
               alt=""

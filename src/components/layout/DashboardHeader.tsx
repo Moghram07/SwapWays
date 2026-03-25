@@ -51,7 +51,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
             </span>
             <button
               type="button"
-              onClick={() => signOut({ callbackUrl: "/4" })}
+              onClick={() => signOut({ callbackUrl: "/" })}
               className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
             >
               Sign out

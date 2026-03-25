@@ -1,0 +1,24 @@
+alerts:
+  - name: api_5xx_rate_high
+    expression: api_5xx_rate > 0.02
+    window: 5m
+    severity: p1
+    owner: backend-oncall
+
+  - name: api_p95_latency_high
+    expression: api_latency_p95_ms > 1500
+    window: 10m
+    severity: p1
+    owner: backend-oncall
+
+  - name: db_connections_high
+    expression: db_connections_utilization > 0.8
+    window: 5m
+    severity: p1
+    owner: platform-oncall
+
+  - name: auth_failures_spike
+    expression: auth_failures_rate > 3 * baseline_auth_failures_rate
+    window: 10m
+    severity: p2
+    owner: backend-oncall

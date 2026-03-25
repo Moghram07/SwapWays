@@ -2,13 +2,37 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a365d;
+  --navy: #1a365d;
+  --sky: #3182ce;
+  --gold: #d69e2e;
+  /* SwapWays dashboard brand */
+  --primary: #1E6FB9;
+  --primary-cta: #2668B0;
+  --primary-hover: #1a63a3;
+  --accent: #2DAF66;
+  --dashboard-bg: #F7F9FC;
+  --border-default: #e2e8f0;
+  --border-muted: #f1f5f9;
+  /* Hero (landing /4) */
+  --hero-from: #0C3E7C;
+  --hero-to: #1E6B7A;
+  --primary-foreground: #ffffff;
+  --card: rgba(255, 255, 255, 0.15);
+  --secondary: #86efac;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-primary: var(--primary);
+  --color-primary-cta: var(--primary-cta);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent: var(--accent);
+  --color-dashboard-bg: var(--dashboard-bg);
+  --color-border-default: var(--border-default);
+  --color-border-muted: var(--border-muted);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -23,4 +47,98 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Landing top bar /1: nav links green, blue on hover */
+.landing-nav-v1 .nav-link a,
+.landing-nav-v1 .nav-link span,
+.landing-nav-v1 .nav-link button {
+  color: #299B4F !important;
+}
+.landing-nav-v1 .nav-link a:hover,
+.landing-nav-v1 .nav-link button:hover {
+  color: #045FA6 !important;
+}
+
+/* Hero section background (landing /4) */
+.bg-hero {
+  background: linear-gradient(to right, var(--hero-from) 0%, var(--hero-to) 100%);
+}
+
+/* Gradient text (e.g. How It Works) */
+.text-gradient {
+  background: linear-gradient(135deg, #045FA6 0%, #299B4F 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Dashboard: modern form controls — 44px height, 8px radius, soft border, brand focus */
+.dashboard-input,
+.dashboard-input input,
+.dashboard-input select,
+.dashboard-input textarea,
+form .form-input-modern,
+form .form-input-modern input,
+form input:not([type="checkbox"]):not([type="radio"]),
+form select.form-select-modern,
+form textarea.form-input-modern {
+  min-height: 44px;
+  border-radius: 8px;
+  border-color: #e2e8f0;
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+}
+form .form-select option,
+form select option {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+}
+
+/* Aircraft qualification labels: always high-contrast dark text */
+.qualification-label,
+.qualification-label span {
+  color: #0a0a0a !important;
+}
+
+/* Global form and dropdown readability */
+input,
+textarea,
+select {
+  color: #111827; /* text-gray-900 */
+}
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af; /* placeholder:text-gray-400 */
+}
+select option,
+[role="option"].dropdown-item {
+  color: #1f2937; /* text-gray-800 */
+}
+select:invalid,
+select option[value=""] {
+  color: #6b7280; /* placeholder text-gray-500 */
+}
+
+/* Dashboard page title hierarchy – use a visible dark color on dashboard (light bg) */
+.dashboard-page-title {
+  color: #0f172a;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/* Modal enter animation */
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.modal-panel {
+  animation: modal-enter 0.15s ease-out;
 }

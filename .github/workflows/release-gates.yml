@@ -1,0 +1,68 @@
+name: Release Gates
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: "Target environment gate"
+        required: true
+        type: choice
+        default: staging
+        options:
+          - staging
+          - production
+      run_migrations:
+        description: "Run prisma migrate deploy in target environment"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  release-gate:
+    name: Release readiness checks
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target_environment }}
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+      NEXTAUTH_URL: ${{ vars.NEXTAUTH_URL }}
+      MATCH_REFRESH_SECRET: ${{ secrets.MATCH_REFRESH_SECRET }}
+      ADMIN_EMAIL: ${{ vars.ADMIN_EMAIL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Validate required release variables
+        run: |
+          node -e "const required=['DATABASE_URL','NEXTAUTH_SECRET','NEXTAUTH_URL','MATCH_REFRESH_SECRET','ADMIN_EMAIL']; const missing=required.filter((k)=>!process.env[k]); if(missing.length){console.error('Missing required env vars: '+missing.join(', ')); process.exit(1)}"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma validate
+        run: npx prisma validate
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Prisma migrate status
+        run: npx prisma migrate status
+
+      - name: Prisma migrate deploy
+        if: ${{ inputs.run_migrations }}
+        run: npx prisma migrate deploy
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build

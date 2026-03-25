@@ -1,0 +1,658 @@
+// Swap Ways - Database Schema
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// AIRLINE CONFIGURATION (Multi-airline ready)
+// ============================================
+
+model Airline {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  code          String   @unique
+  emailDomain   String   @unique
+  createdAt     DateTime @default(now())
+
+  ranks         Rank[]
+  aircraftTypes AircraftType[]
+  bases         Base[]
+  swapRules     SwapRule[]
+  users         User[]
+}
+
+model Rank {
+  id          String       @id @default(cuid())
+  name        String
+  code        String
+  category    CrewCategory
+  sortOrder   Int
+  airlineId   String
+  airline     Airline     @relation(fields: [airlineId], references: [id])
+  users       User[]
+
+  @@unique([airlineId, code])
+}
+
+model AircraftType {
+  id           String    @id @default(cuid())
+  name         String
+  code         String
+  scheduleCode String?
+  airlineId    String
+  airline      Airline   @relation(fields: [airlineId], references: [id])
+  qualifiedUsers UserQualification[]
+
+  @@unique([airlineId, code])
+}
+
+model Base {
+  id          String   @id @default(cuid())
+  name        String
+  airportCode String
+  airlineId   String
+  airline     Airline  @relation(fields: [airlineId], references: [id])
+  users       User[]
+
+  @@unique([airlineId, airportCode])
+}
+
+model SwapRule {
+  id          String       @id @default(cuid())
+  ruleType    SwapRuleType
+  description String
+  isActive    Boolean      @default(true)
+  airlineId   String
+  airline     Airline     @relation(fields: [airlineId], references: [id])
+}
+
+// ============================================
+// USER / CREW MEMBER
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String
+  firstName     String
+  lastName      String
+  crewId        String
+  airlineId     String
+  airline       Airline  @relation(fields: [airlineId], references: [id])
+  rankId        String
+  rank          Rank     @relation(fields: [rankId], references: [id])
+  baseId        String
+  base          Base     @relation(fields: [baseId], references: [id])
+  phone         String?
+  avatarUrl     String?
+  hasUsVisa     Boolean  @default(false)
+  hasChinaVisa  Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  isAdmin       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  qualifications UserQualification[]
+  trades         Trade[]
+  swapPosts      SwapPost[]
+  lineSwapPosts  LineSwapPost[]
+  matchesOffered Match[]  @relation("matchOfferer")
+  matchesReceived Match[]  @relation("matchReceiver")
+  schedules      Schedule[]
+  notifications  Notification[]
+  conversationsInitiated Conversation[] @relation("conversationInitiator")
+  conversationsReceived  Conversation[] @relation("conversationTradeOwner")
+  conversationsAsPostOwner Conversation[] @relation("conversationPostOwner")
+  messages               Message[]
+  feedbackItems          Feedback[]
+  assignedFeedback       Feedback[] @relation("feedbackAssignee")
+  appEvents              AppEvent[]
+
+  @@unique([airlineId, crewId])
+}
+
+model UserQualification {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  aircraftTypeId String
+  aircraftType   AircraftType @relation(fields: [aircraftTypeId], references: [id])
+
+  @@unique([userId, aircraftTypeId])
+}
+
+// ============================================
+// TRADES
+// ============================================
+
+model Trade {
+  id               String        @id @default(cuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id])
+  scheduleTripId   String?       @unique
+  scheduleTrip     ScheduleTrip? @relation(fields: [scheduleTripId], references: [id])
+  tradeType        TradeType
+  status           TradeStatus @default(OPEN)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  expiresAt        DateTime?
+
+  tripNumber       String?
+  flightNumber     String?
+  aircraftTypeCode String?
+  destination      String?
+  departureDate    DateTime?
+  reportTime       String?
+  departureTime    String?
+  arrivalTime      String?
+  flyingTime       Float?
+  layoverDuration  Float?
+  creditHours      Float?
+  blockHours       Float?
+  tafb             Float?
+
+  desiredDestinations String[]
+  wtfDays             Int[]
+  preferMinCredit     Float?
+  preferMaxCredit     Float?
+  notes               String?
+
+  vacationStartDate   DateTime?
+  vacationEndDate     DateTime?
+  desiredVacationStart DateTime?
+  desiredVacationEnd   DateTime?
+
+  matches Match[]
+  conversations Conversation[]
+
+  @@index([userId, status, createdAt])
+  @@index([tradeType, status, departureDate])
+  @@index([status, departureDate])
+  @@index([userId, tradeType, status])
+}
+
+// ============================================
+// SWAP POSTS (Marketplace)
+// ============================================
+
+model SwapPost {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  postType         SwapPostType
+  status           SwapPostStatus @default(OPEN)
+  offeringDaysOff  Boolean        @default(false)
+  offeredDaysOff   Int[]
+  wantType         WantType
+  wantTripTypes    TripType[]
+  wantMinLayover   Float?
+  wantMinCredit    Float?
+  wantMaxCredit    Float?
+  wantEqualHours   Boolean        @default(false)
+  wantSameDate     Boolean        @default(false)
+  wantDestinations String[]
+  wantExclude      String[]
+  wtfDays          Int[]
+  wantDaysOff      Boolean        @default(false)
+  notes            String?
+  vacationStartDate    DateTime?
+  vacationEndDate      DateTime?
+  desiredVacationStart DateTime?
+  desiredVacationEnd   DateTime?
+  vacationYear         Int?
+  vacationMonth        Int?
+  vacationStartDay     Int?
+  vacationEndDay       Int?
+  desiredVacationMonths Int[]      @default([])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  expiresAt        DateTime?
+
+  offeredTrips   SwapPostTrip[]
+  conversations  Conversation[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([postType])
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model SwapPostTrip {
+  id             String       @id @default(cuid())
+  swapPostId     String
+  swapPost       SwapPost     @relation(fields: [swapPostId], references: [id], onDelete: Cascade)
+  scheduleTripId String
+  scheduleTrip   ScheduleTrip @relation(fields: [scheduleTripId], references: [id])
+  flightNumber   String
+  destination    String
+  departureDate  DateTime
+  tripType       TripType
+  creditHours    Float
+  tafb           Float
+  hasLayover     Boolean
+  layoverCity    String?
+  layoverHours   Float?
+
+  @@index([swapPostId])
+}
+
+// ============================================
+// MATCHES
+// ============================================
+
+model Match {
+  id             String     @id @default(cuid())
+  tradeId        String
+  trade          Trade      @relation(fields: [tradeId], references: [id])
+  offererId      String
+  offerer        User       @relation("matchOfferer", fields: [offererId], references: [id])
+  receiverId     String
+  receiver       User       @relation("matchReceiver", fields: [receiverId], references: [id])
+  matchScore     Float
+  status         MatchStatus @default(PENDING)
+  rejectionReason String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  confirmedAt    DateTime?
+}
+
+// ============================================
+// SCHEDULE (Phase 2)
+// ============================================
+
+model Schedule {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  lineNumber   String
+  month        Int
+  year         Int
+  totalCredit  Float?
+  totalBlock   Float?
+  daysOff      Int?
+  dutyPeriods  Int?
+  rawText      String?
+  isConfirmed  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  trips ScheduleTrip[]
+  lineSwapPosts LineSwapPost[]
+
+  @@unique([userId, month, year])
+}
+
+model ScheduleTrip {
+  id           String     @id @default(cuid())
+  scheduleId   String
+  schedule     Schedule   @relation(fields: [scheduleId], references: [id])
+  tripNumber   String
+  instanceId   String
+  reportTime   String
+  startDate    DateTime
+  endDate      DateTime
+  tripType     TripType
+  creditHours  Float
+  blockHours   Float
+  tafb         Float
+  routeType    RouteType
+
+  legs               ScheduleTripLeg[]
+  layovers           ScheduleTripLayover[]
+  trade              Trade?
+  offeredInConversations Conversation[]
+  swapPostTrips      SwapPostTrip[]
+  conversationOffers ConversationOffer[]
+
+  @@unique([scheduleId, instanceId])
+}
+
+model ScheduleTripLayover {
+  id              String       @id @default(cuid())
+  scheduleTripId  String
+  scheduleTrip    ScheduleTrip @relation(fields: [scheduleTripId], references: [id])
+  airport         String
+  durationRaw     String
+  durationDecimal Float
+  afterLegOrder   Int
+}
+
+model ScheduleTripLeg {
+  id               String       @id @default(cuid())
+  scheduleTripId   String
+  scheduleTrip     ScheduleTrip @relation(fields: [scheduleTripId], references: [id])
+  legOrder         Int
+  dayOfWeek        String?
+  flightNumber     String
+  aircraftTypeCode String
+  departureDate    DateTime
+  departureTime    String
+  departureAirport String
+  arrivalDate      DateTime
+  arrivalTime      String
+  arrivalAirport   String
+  flyingTimeRaw    String?
+  flyingTime       Float
+  layoverDuration  Float?
+  layoverAirport   String?
+}
+
+// ============================================
+// CHAT / CONVERSATIONS
+// ============================================
+
+model Conversation {
+  id              String             @id @default(cuid())
+  tradeId         String?
+  trade           Trade?             @relation(fields: [tradeId], references: [id])
+  initiatorId     String
+  initiator       User               @relation("conversationInitiator", fields: [initiatorId], references: [id])
+  tradeOwnerId    String?
+  tradeOwner      User?              @relation("conversationTradeOwner", fields: [tradeOwnerId], references: [id])
+  offeredTripId   String?
+  offeredTrip     ScheduleTrip?      @relation(fields: [offeredTripId], references: [id])
+  swapPostId      String?
+  swapPost        SwapPost?          @relation(fields: [swapPostId], references: [id])
+  lineSwapPostId  String?
+  lineSwapPost    LineSwapPost?      @relation(fields: [lineSwapPostId], references: [id])
+  postOwnerId     String?
+  postOwner       User?              @relation("conversationPostOwner", fields: [postOwnerId], references: [id])
+  status          ConversationStatus @default(ACTIVE)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  lastMessageAt   DateTime          @default(now())
+  messages        Message[]
+  offeredTrips    ConversationOffer[]
+
+  @@unique([tradeId, initiatorId])
+  @@unique([swapPostId, initiatorId])
+  @@unique([lineSwapPostId, initiatorId])
+  @@index([lastMessageAt])
+  @@index([initiatorId, lastMessageAt])
+  @@index([tradeOwnerId, lastMessageAt])
+  @@index([postOwnerId, lastMessageAt])
+}
+
+model LineSwapPost {
+  id               String         @id @default(cuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+
+  lineNumber       String
+  lineType         LineType       @default(NORMAL)
+  month            String
+  year             Int
+
+  totalBlock       Float?
+  daysOffStart     Int
+  daysOffEnd       Int
+  hasReserve       Boolean        @default(false)
+  reserveDays      Int[]          @default([])
+
+  wantDaysOffStart Int?
+  wantDaysOffEnd   Int?
+  wantDestination  String?
+  wantLineType     LineType?
+  wantNoReserve    Boolean        @default(false)
+  notes            String?
+
+  scheduleId       String?
+  schedule         Schedule?      @relation(fields: [scheduleId], references: [id])
+
+  status           SwapPostStatus @default(OPEN)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  layovers         LineSwapLayover[]
+  conversations    Conversation[]
+
+  @@index([userId])
+  @@index([status, createdAt])
+}
+
+model LineSwapLayover {
+  id             String       @id @default(cuid())
+  lineSwapPostId String
+  lineSwapPost   LineSwapPost @relation(fields: [lineSwapPostId], references: [id], onDelete: Cascade)
+  destination    String
+  durationHours  Float
+  durationRaw    String
+
+  @@index([lineSwapPostId])
+}
+
+model ConversationOffer {
+  id              String       @id @default(cuid())
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  scheduleTripId  String
+  scheduleTrip    ScheduleTrip @relation(fields: [scheduleTripId], references: [id])
+
+  @@unique([conversationId, scheduleTripId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
+  content        String
+  messageType    MessageType  @default(TEXT)
+  systemAction   SystemAction?
+  isRead         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  data      Json?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead, createdAt])
+}
+
+model Feedback {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id])
+  type       FeedbackType
+  status     FeedbackStatus   @default(OPEN)
+  priority   FeedbackPriority @default(NORMAL)
+  subject    String?
+  message    String
+  adminNote  String?
+  assigneeId String?
+  assignee   User?            @relation("feedbackAssignee", fields: [assigneeId], references: [id])
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  resolvedAt DateTime?
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([type, createdAt])
+  @@index([assigneeId, status])
+}
+
+model AppEvent {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  anonymousId String?
+  eventName   String
+  path        String?
+  properties  Json?
+  createdAt   DateTime @default(now())
+
+  @@index([eventName, createdAt])
+  @@index([userId, createdAt])
+  @@index([path, createdAt])
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum CrewCategory {
+  CABIN
+  FLIGHT_DECK
+}
+
+enum TradeType {
+  FLIGHT_SWAP
+  VACATION_SWAP
+}
+
+enum TradeStatus {
+  OPEN
+  MATCHED
+  ACCEPTED
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+enum TripType {
+  LAYOVER
+  TURNAROUND
+  MULTI_STOP
+}
+
+enum SwapPostType {
+  OFFERING_TRIPS
+  OFFERING_DAYS_OFF
+  GIVING_AWAY
+  LOOKING_FOR
+  VACATION_SWAP
+}
+
+enum SwapPostStatus {
+  OPEN
+  IN_NEGOTIATION
+  AGREED
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+enum WantType {
+  LAYOVER
+  LONGER_LAYOVER
+  ROUND_TRIP
+  ANY_FLIGHT
+  DAYS_OFF
+  ANYTHING
+  SPECIFIC
+}
+
+enum RouteType {
+  DOMESTIC
+  INTERNATIONAL
+}
+
+enum LineType {
+  NORMAL
+  US_LINE
+  CHINA_LINE
+  RESERVE_LINE
+}
+
+enum MatchStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+enum NotificationType {
+  MATCH_FOUND
+  MATCH_ACCEPTED
+  MATCH_REJECTED
+  TRADE_EXPIRED
+  NEW_MESSAGE
+  SWAP_PROPOSED
+  SWAP_ACCEPTED
+  SYSTEM
+}
+
+enum ConversationStatus {
+  ACTIVE
+  SWAP_PROPOSED
+  SWAP_ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum MessageType {
+  TEXT
+  SYSTEM
+  TRIP_OFFER
+}
+
+enum SystemAction {
+  SWAP_PROPOSED
+  SWAP_ACCEPTED
+  SWAP_DECLINED
+  TRIP_OFFERED
+  TRIP_CHANGED
+  CONVERSATION_CLOSED
+}
+
+enum SwapRuleType {
+  OVERTIME_LIMIT
+  NO_PARTIAL_TRADE
+  DOMESTIC_RESTRICTION
+  QUALIFICATION_MISMATCH
+  BASE_MISMATCH
+  RANK_MISMATCH
+  REST_VIOLATION
+  SCHEDULE_CONFLICT
+}
+
+enum FeedbackType {
+  REQUEST
+  QUESTION
+  SUGGESTION
+}
+
+enum FeedbackStatus {
+  OPEN
+  IN_PROGRESS
+  CLOSED
+}
+
+enum FeedbackPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+// Email verification (NextAuth / custom)
+model VerificationToken {
+  id         String   @id @default(cuid())
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+}

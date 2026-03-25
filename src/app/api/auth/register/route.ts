@@ -74,8 +74,11 @@ export async function POST(request: Request) {
       { status: 422 }
     );
   }
+  const normalizedEmail = email.toLowerCase().trim();
+  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
+  const isAdmin = !!adminEmail && normalizedEmail === adminEmail;
   const allowAnyEmail = process.env.ALLOW_ANY_EMAIL_FOR_TESTING === "true" || process.env.NODE_ENV === "development";
-  if (!allowAnyEmail) {
+  if (!allowAnyEmail && !isAdmin) {
     const domainCheck = await findAirlineByEmailDomain(email.split("@")[1]);
     if (!domainCheck || domainCheck.id !== airline.id) {
       return NextResponse.json(
@@ -112,10 +115,8 @@ export async function POST(request: Request) {
   }
 
   const qualifications = Array.from(chosenByFamily.values()).map((t) => ({ aircraftTypeId: t.id }));
-  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
-  const isAdmin = !!adminEmail && email.toLowerCase().trim() === adminEmail;
   const user = await createUser({
-    email: email.toLowerCase(),
+    email: normalizedEmail,
     passwordHash,
     firstName,
     lastName,

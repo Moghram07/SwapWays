@@ -100,6 +100,12 @@ function tooManyRequests(retryAfterSec: number): NextResponse {
 
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  if (pathname === "/4" || pathname.startsWith("/4/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname === "/4" ? "/" : pathname.slice(3) || "/";
+    return NextResponse.redirect(url, 308);
+  }
+
   const isApi = pathname.startsWith("/api/");
   const ip = getClientIp(request);
   const method = request.method.toUpperCase();

@@ -29,6 +29,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href="/images/swapways-logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/images/swapways-logo.png" />
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#1E6FB9" />
       </head>

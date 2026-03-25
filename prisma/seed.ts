@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../src/generated/prisma";
 import { hash } from "bcryptjs";
 import { saudiaConfig } from "../src/config/airlines/saudia";
 

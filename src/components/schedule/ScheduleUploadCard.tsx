@@ -36,7 +36,7 @@ export function ScheduleUploadCard({ onUploadSuccess }: ScheduleUploadCardProps)
         method: "POST",
         body: formData,
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setMessage({ type: "error", text: json.message ?? json.error ?? "Upload failed" });
         return;

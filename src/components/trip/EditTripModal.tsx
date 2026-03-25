@@ -61,7 +61,7 @@ export function EditTripModal({
         setError(j.message ?? "Failed to load trip");
         return;
       }
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       const data = json.data as FetchedTrip;
       setReportTime(scheduleTimeToInput(data.reportTime));
       setLegs(

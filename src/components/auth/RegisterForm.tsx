@@ -54,7 +54,7 @@ export function RegisterForm() {
         phone: phone || undefined,
       }),
     });
-    const json = await res.json();
+    const json = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
       setError(json.message ?? "Registration failed.");

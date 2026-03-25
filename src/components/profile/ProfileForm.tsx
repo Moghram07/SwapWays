@@ -61,7 +61,7 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
     });
     setLoading(false);
     if (!res.ok) {
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       setError(json.message ?? "Update failed.");
       return;
     }

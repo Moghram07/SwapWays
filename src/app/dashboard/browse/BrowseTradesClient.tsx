@@ -32,10 +32,11 @@ export function BrowseTradesClient() {
   function fetchTrades() {
     setLoading(true);
     fetch(buildUrl())
-      .then((r) => r.json())
+      .then((r) => r.json().catch(() => ({})))
       .then((json) => {
         setTrades(json.data?.items ?? []);
       })
+      .catch(() => setTrades([]))
       .finally(() => setLoading(false));
   }
 
@@ -45,7 +46,7 @@ export function BrowseTradesClient() {
 
   useEffect(() => {
     fetch("/api/schedule/my-trips")
-      .then((r) => r.json())
+      .then((r) => r.json().catch(() => ({})))
       .then((json) => {
         if (json.data) setMyTrips(json.data);
       })
@@ -54,7 +55,7 @@ export function BrowseTradesClient() {
 
   async function handleMessageClick(trade: { id: string }) {
     const res = await fetch(`/api/trades/${trade.id}/preview`);
-    const json = await res.json();
+    const json = await res.json().catch(() => ({}));
     if (json.data) {
       setChatModalTrade({
         id: json.data.id,
@@ -73,7 +74,7 @@ export function BrowseTradesClient() {
         initialMessage: data.message,
       }),
     })
-      .then((r) => r.json())
+      .then((r) => r.json().catch(() => ({})))
       .then((json) => {
         const convId = json.data?.id;
         if (convId) {

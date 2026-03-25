@@ -1,0 +1,41 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import sharp from "sharp";
+import pngToIco from "png-to-ico";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.join(__dirname, "..");
+const input = path.join(root, "public", "images", "swapways-logo.png");
+const outIcon = path.join(root, "src", "app", "icon.png");
+const outIco = path.join(root, "public", "favicon.ico");
+
+const ICON_PX = 512;
+/** ICO embeds these sizes so the file stays small and crisp at 16–32px in tabs. */
+const ICO_SIZES = [16, 32, 48, 64];
+
+async function squarePng(size) {
+  return sharp(input)
+    .resize(size, size, {
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
+    })
+    .png()
+    .toBuffer();
+}
+
+async function main() {
+  const iconBuf = await squarePng(ICON_PX);
+  fs.mkdirSync(path.dirname(outIcon), { recursive: true });
+  fs.writeFileSync(outIcon, iconBuf);
+
+  const icoFrames = await Promise.all(ICO_SIZES.map((s) => squarePng(s)));
+  const ico = await pngToIco(icoFrames);
+  fs.writeFileSync(outIco, ico);
+  console.log("Wrote", outIcon, outIco, `(${ico.length} bytes)`);
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

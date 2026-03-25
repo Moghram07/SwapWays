@@ -19,7 +19,8 @@
     "db:studio": "prisma studio",
     "db:cleanup:saudia-fleet": "node scripts/cleanup-saudia-aircraft-fleet.mjs",
     "load:smoke": "k6 run scripts/load/k6-smoke.js",
-    "load:staged": "k6 run scripts/load/k6-staged.js"
+    "load:staged": "k6 run scripts/load/k6-staged.js",
+    "favicon": "node scripts/generate-favicon.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",
@@ -50,7 +51,9 @@
     "dotenv": "^16.4.5",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "png-to-ico": "^3.0.1",
     "prisma": "^7.5.0",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
     "typescript": "^5",

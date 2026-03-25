@@ -1,7 +1,7 @@
 // Service worker for basic offline support without caching dynamic Next build assets.
 // Important: never cache /_next/* files aggressively, otherwise CSS/JS can go stale.
 
-const CACHE_NAME = "swapways-shell-v2";
+const CACHE_NAME = "swapways-shell-v3";
 const SHELL_URLS = ["/", "/dashboard"];
 
 function isSameOrigin(url) {

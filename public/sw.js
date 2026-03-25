@@ -1,7 +1,8 @@
 // Service worker for basic offline support without caching dynamic Next build assets.
 // Important: never cache /_next/* files aggressively, otherwise CSS/JS can go stale.
 
-const CACHE_NAME = "swapways-shell-v3";
+const CACHE_NAME = "swapways-shell-v4";
+
 const SHELL_URLS = ["/", "/dashboard"];
 
 function isSameOrigin(url) {
@@ -14,6 +15,17 @@ function isNextBuildAsset(url) {
 
 function isNavigation(request) {
   return request.mode === "navigate";
+}
+
+/** Never cache favicons / PWA icons — stale SW cache kept showing the old Vercel tab icon. */
+function isIconOrManifest(url) {
+  const p = url.pathname;
+  if (p === "/favicon.ico") return true;
+  if (p === "/manifest.webmanifest") return true;
+  if (p === "/icon" || p.startsWith("/icon.")) return true;
+  if (p === "/apple-icon" || p.startsWith("/apple-icon.")) return true;
+  if (p.startsWith("/images/") && (p.includes("logo") || p.includes("icon"))) return true;
+  return false;
 }
 
 self.addEventListener("install", (event) => {
@@ -44,6 +56,12 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (!isSameOrigin(url)) return;
+
+  // Always fetch fresh icons so the browser tab matches the latest deploy.
+  if (isIconOrManifest(url)) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   // Let Next.js handle build assets with normal HTTP caching.
   if (isNextBuildAsset(url)) {
@@ -79,4 +97,3 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
-

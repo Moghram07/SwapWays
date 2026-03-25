@@ -7,10 +7,11 @@ import pngToIco from "png-to-ico";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const input = path.join(root, "public", "images", "swapways-logo.png");
-const outIcon = path.join(root, "src", "app", "icon.png");
-const outIco = path.join(root, "public", "favicon.ico");
+/** Next.js serves these from `app/` — avoid duplicate public/ favicon (confuses browsers + SW cache). */
+const outIco = path.join(root, "src", "app", "favicon.ico");
+const outApple = path.join(root, "src", "app", "apple-icon.png");
 
-const ICON_PX = 512;
+const APPLE_PX = 512;
 /** ICO embeds these sizes so the file stays small and crisp at 16–32px in tabs. */
 const ICO_SIZES = [16, 32, 48, 64];
 
@@ -25,14 +26,15 @@ async function squarePng(size) {
 }
 
 async function main() {
-  const iconBuf = await squarePng(ICON_PX);
-  fs.mkdirSync(path.dirname(outIcon), { recursive: true });
-  fs.writeFileSync(outIcon, iconBuf);
+  fs.mkdirSync(path.dirname(outIco), { recursive: true });
+
+  const appleBuf = await squarePng(APPLE_PX);
+  fs.writeFileSync(outApple, appleBuf);
 
   const icoFrames = await Promise.all(ICO_SIZES.map((s) => squarePng(s)));
   const ico = await pngToIco(icoFrames);
   fs.writeFileSync(outIco, ico);
-  console.log("Wrote", outIcon, outIco, `(${ico.length} bytes)`);
+  console.log("Wrote", outIco, outApple, `(${ico.length} bytes ico)`);
 }
 
 main().catch((err) => {

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
@@ -19,6 +19,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Swap Ways — Trip & Vacation Swaps for Crew",
   description: "Stop searching. Start swapping. Match trip and vacation swaps with your airline crew.",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/favicon.ico", sizes: "any" }],
+    apple: [{ url: "/apple-icon.png", sizes: "512x512", type: "image/png" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1E6FB9",
 };
 
 export default function RootLayout({
@@ -28,13 +37,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/images/swapways-logo.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-icon.png" />
-        <link rel="manifest" href="/manifest.webmanifest" />
-        <meta name="theme-color" content="#1E6FB9" />
-      </head>
       <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}>
         <SessionProvider>
           <AnalyticsProvider />

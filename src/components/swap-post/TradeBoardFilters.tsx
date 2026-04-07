@@ -82,8 +82,7 @@ export function TradeBoardFilters({ filters, onChange }: TradeBoardFiltersProps)
             className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
           >
             <option value="">All post types</option>
-            <option value="OFFERING_TRIPS">Swap flights</option>
-            <option value="OFFERING_DAYS_OFF">Off days</option>
+            <option value="OFFERING_TRIPS">Flight Swap</option>
             <option value="VACATION_SWAP">Vacation swap</option>
           </select>
           <select

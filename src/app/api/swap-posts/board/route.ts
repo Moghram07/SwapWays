@@ -47,7 +47,7 @@ export async function GET(request: Request) {
 
   try {
     const filters: Parameters<typeof findSwapPostsForBoard>[2] = {
-      postType: postType as "OFFERING_TRIPS" | "OFFERING_DAYS_OFF" | "VACATION_SWAP",
+      postType: postType as "OFFERING_TRIPS" | "VACATION_SWAP",
       tripType,
       destination,
       lookingForCurrentDays,

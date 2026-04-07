@@ -5,10 +5,11 @@ import type { SwapPostType } from "@/types/swapPost";
 import type { WantCriteriaData } from "@/types/swapPost";
 import { PostTypeSelector } from "./PostTypeSelector";
 import { TripSelector, type TripOption } from "./TripSelector";
-import { DayOffSelector } from "./DayOffSelector";
 import { WantCriteria } from "./WantCriteria";
 import { PostPreview } from "./PostPreview";
 import { VacationSwapFields } from "@/components/trade/VacationSwapFields";
+import { QuickPostForm } from "./QuickPostForm";
+import type { QuickPostAdvancedData, QuickPostTripData, SwapPostInputSource } from "@/types/swapPost";
 
 const defaultWantCriteria: WantCriteriaData = {
   wantType: "ANYTHING",
@@ -38,6 +39,9 @@ export interface CreatePostFlowProps {
     selectedTrips: string[];
     selectedDaysOff: number[];
     wantCriteria: WantCriteriaData;
+    source?: SwapPostInputSource;
+    quickTrip?: QuickPostTripData;
+    advanced?: QuickPostAdvancedData;
     vacationYear?: number;
     vacationMonth?: number;
     vacationStartDay?: number;
@@ -53,7 +57,7 @@ export interface CreatePostFlowProps {
   initialPostId?: string;
   /** Prefill want criteria (for edit mode). */
   initialWantCriteria?: WantCriteriaData;
-  /** Prefill selected days off (for edit mode with OFFERING_DAYS_OFF). */
+  /** Reserved for backwards compatibility with older posts. */
   initialSelectedDaysOff?: number[];
   /** Prefill vacation fields (for edit mode with VACATION_SWAP). */
   initialVacationYear?: number | "";
@@ -62,6 +66,7 @@ export interface CreatePostFlowProps {
   initialVacationEndDay?: number | "";
   initialDesiredVacationMonths?: number[];
   onSelectLineSwap?: () => void;
+  quickPostEnabled?: boolean;
 }
 
 const steps: CreatePostStep[] = ["type", "offering", "wants", "preview"];
@@ -85,6 +90,7 @@ export function CreatePostFlow({
   initialVacationEndDay,
   initialDesiredVacationMonths,
   onSelectLineSwap,
+  quickPostEnabled = true,
 }: CreatePostFlowProps) {
   const hasPreselected = initialSelectedTripIds != null && initialSelectedTripIds.length > 0;
   const hasInitialType = initialPostType === "VACATION_SWAP";
@@ -105,6 +111,14 @@ export function CreatePostFlow({
   const [vacationEndDay, setVacationEndDay] = useState<number | "">(initialVacationEndDay ?? "");
   const [desiredVacationMonths, setDesiredVacationMonths] = useState<number[]>(initialDesiredVacationMonths ?? []);
   const [wantCriteria, setWantCriteria] = useState<WantCriteriaData>(initialWantCriteria ?? defaultWantCriteria);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const [quickTrip, setQuickTrip] = useState<QuickPostTripData>({
+    tripType: "LAYOVER",
+    destinations: [],
+    date: todayIso,
+    layoverHours: null,
+  });
+  const [advanced, setAdvanced] = useState<QuickPostAdvancedData>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const currentStepIndex = steps.indexOf(step);
@@ -120,6 +134,9 @@ export function CreatePostFlow({
         selectedTrips,
         selectedDaysOff,
         wantCriteria,
+        source: selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK",
+        quickTrip: postType === "OFFERING_TRIPS" ? quickTrip : undefined,
+        advanced: postType === "OFFERING_TRIPS" ? advanced : undefined,
         ...(postType === "VACATION_SWAP" && {
           vacationYear: vacationYear === "" ? undefined : vacationYear,
           vacationMonth: vacationMonth === "" ? undefined : vacationMonth,
@@ -159,25 +176,30 @@ export function CreatePostFlow({
 
       {step === "offering" && postType && (
         <>
-          {(postType === "OFFERING_TRIPS" || postType === "GIVING_AWAY") && (
-            <TripSelector
-              trips={myTrips}
-              selected={selectedTrips}
-              onChange={setSelectedTrips}
-              onNext={() => setStep("wants")}
-              onBack={() => setStep("type")}
-            />
-          )}
-          {postType === "OFFERING_DAYS_OFF" && (
-            <DayOffSelector
-              scheduledDays={scheduledDays}
-              selected={selectedDaysOff}
-              onChange={setSelectedDaysOff}
-              month={month}
-              year={year}
-              onNext={() => setStep("wants")}
-              onBack={() => setStep("type")}
-            />
+          {postType === "OFFERING_TRIPS" && (
+            quickPostEnabled ? (
+              <QuickPostForm
+                quickTrip={quickTrip}
+                advanced={advanced}
+                wantCriteria={wantCriteria}
+                month={month}
+                year={year}
+                scheduledDays={scheduledDays}
+                onQuickTripChange={setQuickTrip}
+                onAdvancedChange={setAdvanced}
+                onWantCriteriaChange={setWantCriteria}
+                onNext={() => setStep("preview")}
+                onBack={() => setStep("type")}
+              />
+            ) : (
+              <TripSelector
+                trips={myTrips}
+                selected={selectedTrips}
+                onChange={setSelectedTrips}
+                onNext={() => setStep("wants")}
+                onBack={() => setStep("type")}
+              />
+            )
           )}
           {postType === "VACATION_SWAP" && (
             <div className="space-y-4">
@@ -222,11 +244,13 @@ export function CreatePostFlow({
         </>
       )}
 
-      {step === "wants" && postType && (
+      {step === "wants" && postType && (!quickPostEnabled || postType === "VACATION_SWAP") && (
         <WantCriteria
           postType={postType}
           criteria={wantCriteria}
           onChange={setWantCriteria}
+          desiredDaysOff={selectedDaysOff}
+          onDesiredDaysOffChange={setSelectedDaysOff}
           scheduledDays={scheduledDays}
           month={month}
           year={year}
@@ -247,6 +271,8 @@ export function CreatePostFlow({
             selectedTrips={selectedTripObjects}
             selectedDaysOff={selectedDaysOff}
             wantCriteria={wantCriteria}
+            quickTrip={postType === "OFFERING_TRIPS" ? quickTrip : undefined}
+            advanced={postType === "OFFERING_TRIPS" ? advanced : undefined}
             userDisplay={userDisplay}
             vacationYear={postType === "VACATION_SWAP" ? vacationYear : undefined}
             vacationMonth={postType === "VACATION_SWAP" ? vacationMonth : undefined}

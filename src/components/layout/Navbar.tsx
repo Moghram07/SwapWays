@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, X, LayoutDashboard, FileText } from "lucide-react";
@@ -38,13 +37,12 @@ export function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <Link href={isDashboard ? "/dashboard" : "/"} className="flex items-center gap-2">
-            <Image
+            <img
               src="/images/swapways-logo.png"
               alt=""
               width={36}
               height={36}
-              className="h-9 w-auto object-contain"
-              style={{ height: "auto" }}
+              className="object-contain"
             />
             <span className="text-lg font-bold">
               <span style={{ color: LOGO_BLUE }}>Swap</span>

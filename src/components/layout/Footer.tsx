@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 
 export function Footer() {
   return (
@@ -7,13 +6,12 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
           <Link href="/" className="flex items-center gap-2">
-            <Image
+            <img
               src="/images/swapways-logo.png"
               alt=""
               width={32}
               height={32}
-              className="h-8 w-auto brightness-0 invert"
-              style={{ height: "auto" }}
+              className="object-contain brightness-0 invert"
             />
             <span className="text-lg font-semibold text-white">Swap Ways</span>
           </Link>

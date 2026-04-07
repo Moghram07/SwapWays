@@ -47,9 +47,6 @@ export type TripType = "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
 
 export type SwapPostType =
   | "OFFERING_TRIPS"
-  | "OFFERING_DAYS_OFF"
-  | "GIVING_AWAY"
-  | "LOOKING_FOR"
   | "VACATION_SWAP";
 
 export type SwapPostStatus =
@@ -68,5 +65,7 @@ export type WantType =
   | "DAYS_OFF"
   | "ANYTHING"
   | "SPECIFIC";
+
+export type SwapPostInputSource = "MANUAL_QUICK" | "SCHEDULE_PREFILL";
 
 export type LineType = "NORMAL" | "US_LINE" | "CHINA_LINE" | "RESERVE_LINE";

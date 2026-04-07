@@ -58,6 +58,15 @@ interface BoardPost {
   vacationStartDay?: number | null;
   vacationEndDay?: number | null;
   desiredVacationMonths?: number[];
+  inputSource?: "MANUAL_QUICK" | "SCHEDULE_PREFILL" | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
+  quickDestinations?: string[];
+  quickDate?: string | null;
+  quickLayoverHours?: number | null;
+  advancedReportTime?: string | null;
+  advancedAircraftTypeCode?: string | null;
+  advancedBlockHours?: number | null;
+  advancedFlightNumber?: string | null;
   offeredTrips: {
     flightNumber: string;
     destination: string;
@@ -87,7 +96,7 @@ interface BoardPost {
 
 const wantTypeLabel: Record<string, string> = {
   LAYOVER: "Any layover",
-  LONGER_LAYOVER: "Longer layover",
+  LONGER_LAYOVER: "Any layover",
   ROUND_TRIP: "Round Trip",
   ANY_FLIGHT: "Any flight",
   DAYS_OFF: "Days off",
@@ -143,9 +152,16 @@ export function TradeBoardSection() {
   const filtered = posts.filter((p) => {
     if (filters.routeType === "domestic" || filters.routeType === "international") {
       const routeFilter = filters.routeType === "domestic";
-      const hasDomestic = p.offeredTrips.some((t) => domesticCodes.includes(t.destination));
+      const hasDomestic =
+        p.offeredTrips.some((t) => domesticCodes.includes(t.destination)) ||
+        (p.quickDestinations ?? []).some((d) => domesticCodes.includes(d));
       if (routeFilter && !hasDomestic) return false;
-      if (!routeFilter && hasDomestic && p.offeredTrips.every((t) => domesticCodes.includes(t.destination))) return false;
+      if (
+        !routeFilter &&
+        hasDomestic &&
+        p.offeredTrips.every((t) => domesticCodes.includes(t.destination)) &&
+        (p.quickDestinations ?? []).every((d) => domesticCodes.includes(d))
+      ) return false;
     }
     return true;
   });
@@ -274,6 +290,15 @@ export function TradeBoardSection() {
       wantDaysOff: p.wantDaysOff,
       notes: p.notes,
       user: p.user,
+      source: p.inputSource ?? undefined,
+      quickTripType: p.quickTripType ?? undefined,
+      quickDestinations: p.quickDestinations ?? [],
+      quickDate: p.quickDate ? new Date(p.quickDate) : undefined,
+      quickLayoverHours: p.quickLayoverHours ?? undefined,
+      advancedReportTime: p.advancedReportTime ?? undefined,
+      advancedAircraftTypeCode: p.advancedAircraftTypeCode ?? undefined,
+      advancedBlockHours: p.advancedBlockHours ?? undefined,
+      advancedFlightNumber: p.advancedFlightNumber ?? undefined,
       createdAt: new Date(p.createdAt),
       matchPercent: p.matchPercent ?? 0,
       matchReasons: p.matchReasons ?? [],

@@ -15,13 +15,15 @@ type ScheduleLegLike = {
   arrivalDate: Date;
   departureAirport: string;
   arrivalAirport: string;
-  flightNumber: string;
+  flightNumber?: string;
+  aircraftTypeCode?: string;
 };
 
 type ViewerScheduleTripLike = { legs: ScheduleLegLike[] };
 
 type PostLike = {
   wantExclude: string[];
+  advancedAircraftTypeCode?: string | null;
   offeredTrips: {
     scheduleTrip: {
       legs: {
@@ -45,7 +47,8 @@ export function checkHardConstraints(
   viewer: ViewerLike,
   viewerScheduleTrips: ViewerScheduleTripLike[],
   post: PostLike,
-  postOwner: ViewerLike
+  postOwner: ViewerLike,
+  viewerCandidateTrips: ViewerScheduleTripLike[] = viewerScheduleTrips
 ): HardConstraintResult {
   const baseResult = checkBase(viewer, postOwner);
   if (!baseResult.passes) return baseResult;
@@ -55,6 +58,16 @@ export function checkHardConstraints(
 
   const qualResult = checkAircraftQualification(viewer, post);
   if (!qualResult.passes) return qualResult;
+
+  const hasAircraftHint =
+    !!post.advancedAircraftTypeCode ||
+    post.offeredTrips.some((trip) => (trip.scheduleTrip?.legs?.length ?? 0) > 0);
+  const reverseQualResult = checkReverseAircraftQualification(
+    postOwner,
+    viewerCandidateTrips,
+    hasAircraftHint
+  );
+  if (!reverseQualResult.passes) return reverseQualResult;
 
   const visaResult = checkVisa(viewer, post);
   if (!visaResult.passes) return visaResult;
@@ -111,17 +124,68 @@ function checkAircraftQualification(viewer: ViewerLike, post: PostLike): HardCon
     viewerCodes.add(normalizeAircraftFamily(q.aircraftType.code));
     if (q.aircraftType.scheduleCode) viewerCodes.add(normalizeAircraftFamily(q.aircraftType.scheduleCode));
   }
+  let hasAircraftEvidence = false;
   for (const trip of post.offeredTrips) {
     const legs = trip.scheduleTrip?.legs ?? [];
     for (const leg of legs) {
       if (isDeadHeadFlightNumber(leg.flightNumber)) continue;
+      hasAircraftEvidence = true;
       const legFamily = normalizeAircraftFamily(leg.aircraftTypeCode);
       if (!viewerCodes.has(legFamily)) {
         return { passes: false, failReason: `Not qualified on aircraft: ${leg.aircraftTypeCode}` };
       }
     }
   }
+  if (!hasAircraftEvidence && post.advancedAircraftTypeCode) {
+    const requiredFamily = normalizeAircraftFamily(post.advancedAircraftTypeCode);
+    if (!viewerCodes.has(requiredFamily)) {
+      return {
+        passes: false,
+        failReason: `Not qualified on aircraft: ${post.advancedAircraftTypeCode}`,
+      };
+    }
+  }
   return { passes: true, failReason: null };
+}
+
+function collectQualificationFamilies(user: ViewerLike): Set<string> {
+  const codes = new Set<string>();
+  for (const q of user.qualifications) {
+    codes.add(normalizeAircraftFamily(q.aircraftType.code));
+    if (q.aircraftType.scheduleCode) {
+      codes.add(normalizeAircraftFamily(q.aircraftType.scheduleCode));
+    }
+  }
+  return codes;
+}
+
+function checkReverseAircraftQualification(
+  postOwner: ViewerLike,
+  viewerCandidateTrips: ViewerScheduleTripLike[],
+  hasAircraftHint = true
+): HardConstraintResult {
+  if (!hasAircraftHint) return { passes: true, failReason: null };
+  const ownerCodes = collectQualificationFamilies(postOwner);
+  let foundTripWithAircraft = false;
+  for (const trip of viewerCandidateTrips) {
+    const requiredFamilies = new Set<string>();
+    for (const leg of trip.legs) {
+      if (isDeadHeadFlightNumber(leg.flightNumber ?? "")) continue;
+      if (!leg.aircraftTypeCode) continue;
+      requiredFamilies.add(normalizeAircraftFamily(leg.aircraftTypeCode));
+    }
+    if (requiredFamilies.size === 0) continue;
+    foundTripWithAircraft = true;
+    const ownerCanOperateTrip = Array.from(requiredFamilies).every((family) => ownerCodes.has(family));
+    if (ownerCanOperateTrip) {
+      return { passes: true, failReason: null };
+    }
+  }
+  if (!foundTripWithAircraft) return { passes: true, failReason: null };
+  return {
+    passes: false,
+    failReason: "Post owner is not qualified for your offered trip aircraft",
+  };
 }
 
 function checkVisa(viewer: ViewerLike, post: PostLike): HardConstraintResult {

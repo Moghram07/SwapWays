@@ -7,8 +7,7 @@ import { DesiredDestinations } from "@/components/swap/DesiredDestinations";
 import { WtfDayPicker } from "@/components/swap/WtfDayPicker";
 
 const wantTypeOptions: { value: WantType; label: string; icon: string }[] = [
-  { value: "LAYOVER", label: "Any layover", icon: "🟢" },
-  { value: "LONGER_LAYOVER", label: "Longer layover", icon: "🟢+" },
+  { value: "LAYOVER", label: "Layover", icon: "🟢" },
   { value: "ROUND_TRIP", label: "Round Trip", icon: "🔵" },
   { value: "ANY_FLIGHT", label: "Any flight", icon: "✈️" },
   { value: "DAYS_OFF", label: "Days off", icon: "🏖️" },
@@ -19,6 +18,8 @@ interface WantCriteriaProps {
   postType: SwapPostType;
   criteria: WantCriteriaData;
   onChange: (c: WantCriteriaData) => void;
+  desiredDaysOff: number[];
+  onDesiredDaysOffChange: (days: number[]) => void;
   scheduledDays: number[];
   month: number;
   year: number;
@@ -30,48 +31,25 @@ export function WantCriteria({
   postType,
   criteria,
   onChange,
+  desiredDaysOff,
+  onDesiredDaysOffChange,
   scheduledDays,
   month,
   year,
   onNext,
   onBack,
 }: WantCriteriaProps) {
-  if (postType === "GIVING_AWAY") {
-    return (
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">You want days off</h2>
-        <p className="text-sm text-slate-500">
-          Someone will take your flight(s). You&apos;ll get the day(s) off.
-        </p>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">Notes (optional)</label>
-          <textarea
-            value={criteria.notes}
-            onChange={(e) => onChange({ ...criteria, notes: e.target.value })}
-            placeholder="Any additional notes..."
-            className="h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-            rows={3}
-          />
-        </div>
-        <div className="flex justify-between pt-2">
-          <button type="button" onClick={onBack} className="text-sm text-slate-500 hover:underline">
-            ← Back
-          </button>
-          <button
-            type="button"
-            onClick={onNext}
-            className="rounded-lg bg-slate-800 px-6 py-2 text-sm font-medium text-white"
-          >
-            Preview →
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const isVacationMode = postType === "VACATION_SWAP";
+  const needsOffDaysSelection = criteria.wantType === "DAYS_OFF";
+  const canProceed =
+    !needsOffDaysSelection || (desiredDaysOff.length > 0 && criteria.wtfDays.length > 0);
 
   return (
     <div className="space-y-5">
       <h2 className="text-lg font-semibold text-slate-900">What do you want in return?</h2>
+      {isVacationMode && (
+        <p className="text-sm text-slate-500">Set your preferred vacation replacement window.</p>
+      )}
 
       <div>
         <label className="mb-2 block text-sm font-medium text-slate-700">Type</label>
@@ -82,7 +60,9 @@ export function WantCriteria({
               type="button"
               onClick={() => onChange({ ...criteria, wantType: opt.value })}
               className={`rounded-lg border-2 px-3 py-2 text-sm transition-colors ${
-                criteria.wantType === opt.value
+                (opt.value === "LAYOVER"
+                  ? criteria.wantType === "LAYOVER" || criteria.wantType === "LONGER_LAYOVER"
+                  : criteria.wantType === opt.value)
                   ? "border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
                   : "border-slate-200 text-slate-600 hover:border-slate-300"
               }`}
@@ -109,6 +89,28 @@ export function WantCriteria({
             placeholder="e.g. 24"
             className="w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm"
           />
+        </div>
+      )}
+
+      {needsOffDaysSelection && (
+        <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+          <p className="text-sm font-medium text-slate-800">Select the days off you want (required)</p>
+          <WtfDayPicker
+            label="Days off I want"
+            selectedDays={desiredDaysOff}
+            scheduledDays={[]}
+            month={month}
+            year={year}
+            onChange={onDesiredDaysOffChange}
+          />
+          {desiredDaysOff.length === 0 && (
+            <p className="text-xs text-rose-600">Choose at least one day you want off.</p>
+          )}
+          {desiredDaysOff.length > 0 && (
+            <p className="text-xs font-medium text-slate-700">
+              Days off selected: {[...desiredDaysOff].sort((a, b) => a - b).join(", ")}
+            </p>
+          )}
         </div>
       )}
 
@@ -153,8 +155,9 @@ export function WantCriteria({
         />
       </div>
 
-      <div>
+      <div className="space-y-2 rounded-lg border border-[#2668B0]/20 bg-[#2668B0]/5 p-3">
         <WtfDayPicker
+          label="I am willing to fly on"
           selectedDays={criteria.wtfDays}
           scheduledDays={scheduledDays}
           month={month}
@@ -162,6 +165,9 @@ export function WantCriteria({
           minSelectableDay={new Date().getDate()}
           onChange={(d) => onChange({ ...criteria, wtfDays: d })}
         />
+        {needsOffDaysSelection && criteria.wtfDays.length === 0 && (
+          <p className="text-xs text-rose-600">Choose at least one day you are willing to fly.</p>
+        )}
       </div>
 
       <div>
@@ -182,7 +188,8 @@ export function WantCriteria({
         <button
           type="button"
           onClick={onNext}
-          className="rounded-lg bg-slate-800 px-6 py-2 text-sm font-medium text-white"
+          disabled={!canProceed}
+          className="rounded-lg bg-slate-800 px-6 py-2 text-sm font-medium text-white disabled:opacity-50"
         >
           Preview →
         </button>

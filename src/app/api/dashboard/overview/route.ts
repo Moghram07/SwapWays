@@ -2,15 +2,9 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSwapPostExpired, isTradeExpired } from "@/lib/swapExpiry";
-
-type ActivityItem = {
-  id: string;
-  title: string;
-  detail: string;
-  createdAt: string;
-  kind: "notification";
-};
+import { isSwapPostExpired } from "@/lib/swapExpiry";
+import { findSwapPostsForBoard } from "@/repositories/swapPostRepository";
+import { getTradeboardForViewer } from "@/services/matching/matchEngine";
 
 function json(data: unknown) {
   return NextResponse.json({ data, error: null, message: null });
@@ -28,81 +22,32 @@ export async function GET() {
   if (!session?.user?.id) return unauthorized();
 
   const userId = session.user.id;
-  const now = new Date();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [
-    user,
-    upcomingFlightsCount,
-    upcomingLegs,
-    mySwapPosts,
-    myVacationTrades,
-    unreadMessagesCount,
-    recentMatches,
-    recentNotifications,
+    schedule,
+    activeSwaps,
+    matchNotifications,
+    unreadMessages,
+    topMatches,
   ] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        firstName: true,
-        airline: { select: { code: true } },
-      },
+    prisma.schedule.findFirst({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      select: { lineNumber: true, month: true, year: true },
     }),
-    prisma.scheduleTripLeg.count({
-      where: {
-        scheduleTrip: { schedule: { userId } },
-        departureDate: { gte: today },
-      },
-    }),
-    prisma.scheduleTripLeg.findMany({
-      where: {
-        scheduleTrip: { schedule: { userId } },
-        departureDate: { gte: today },
-      },
-      orderBy: { departureDate: "asc" },
-      take: 5,
-      select: {
-        id: true,
-        departureDate: true,
-        departureAirport: true,
-        arrivalAirport: true,
-        flightNumber: true,
-        aircraftTypeCode: true,
-        scheduleTrip: { select: { reportTime: true } },
-      },
-    }),
-    prisma.swapPost.findMany({
+    Promise.all([
+      prisma.swapPost.count({ where: { userId, status: "OPEN" } }),
+      prisma.lineSwapPost.count({ where: { userId, status: "OPEN" } }),
+    ]).then(([trips, lines]) => trips + lines),
+    prisma.notification.findMany({
       where: {
         userId,
+        type: "MATCH_FOUND",
+        isRead: false,
+        createdAt: { gte: sevenDaysAgo },
       },
-      select: {
-        status: true,
-        postType: true,
-        vacationYear: true,
-        vacationMonth: true,
-        vacationStartDate: true,
-        offeredTrips: {
-          select: {
-            departureDate: true,
-            scheduleTrip: { select: { reportTime: true } },
-          },
-        },
-      },
-    }),
-    prisma.trade.findMany({
-      where: {
-        userId,
-        tradeType: "VACATION_SWAP",
-      },
-      select: {
-        status: true,
-        tradeType: true,
-        departureDate: true,
-        reportTime: true,
-        vacationStartDate: true,
-      },
+      select: { data: true },
     }),
     prisma.message.count({
       where: {
@@ -113,87 +58,75 @@ export async function GET() {
         },
       },
     }),
-    prisma.match.findMany({
-      where: {
-        OR: [{ offererId: userId }, { receiverId: userId }],
-      },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      include: {
-        trade: { select: { destination: true, departureDate: true, id: true } },
-        offerer: { select: { firstName: true, lastName: true, rank: { select: { name: true } } } },
-        receiver: { select: { firstName: true, lastName: true, rank: { select: { name: true } } } },
-      },
-    }),
-    prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      select: {
-        id: true,
-        title: true,
-        message: true,
-        createdAt: true,
-      },
-    }),
+    getTopMatchesForUser(userId, 3),
   ]);
 
-  const notificationActivities: ActivityItem[] = recentNotifications.map((n) => ({
-    id: `notif:${n.id}`,
-    title: n.title,
-    detail: n.message,
-    createdAt: n.createdAt.toISOString(),
-    kind: "notification",
-  }));
-
-  const activity = notificationActivities
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
-
-  const nonActiveStatuses = new Set(["CANCELLED", "COMPLETED", "EXPIRED", "AGREED", "ACCEPTED"]);
-  const activeSwapPostsCount = mySwapPosts.filter(
-    (post) => !nonActiveStatuses.has(post.status) && !isSwapPostExpired(post, now)
-  ).length;
-  const activeVacationTradesCount = myVacationTrades.filter(
-    (trade) => !nonActiveStatuses.has(trade.status) && !isTradeExpired(trade, now)
-  ).length;
+  const newMatches = matchNotifications.reduce((count, n) => {
+    const score = extractMatchPercent(n.data);
+    return score > 50 ? count + 1 : count;
+  }, 0);
 
   return json({
-    user: {
-      id: user?.id ?? userId,
-      firstName: user?.firstName ?? "Crew",
-      airlineCode: user?.airline?.code ?? "SV",
-    },
-    stats: {
-      upcomingFlights: upcomingFlightsCount,
-      activeSwaps: activeSwapPostsCount + activeVacationTradesCount,
-      unreadMessages: unreadMessagesCount,
-    },
-    upcomingFlights: upcomingLegs.map((leg) => ({
-      id: leg.id,
-      departureDate: leg.departureDate.toISOString(),
-      departureAirport: leg.departureAirport,
-      arrivalAirport: leg.arrivalAirport,
-      flightNumber: leg.flightNumber,
-      aircraftTypeCode: leg.aircraftTypeCode,
-      reportTime: leg.scheduleTrip.reportTime ?? null,
-    })),
-    recentMatches: recentMatches.map((m) => ({
-      id: m.id,
-      matchScore: m.matchScore,
-      status: m.status,
-      offererId: m.offererId,
-      receiverId: m.receiverId,
-      createdAt: m.createdAt.toISOString(),
-      trade: {
-        destination: m.trade?.destination ?? null,
-        departureDate: m.trade?.departureDate?.toISOString() ?? null,
-      },
-      offerer: m.offerer,
-      receiver: m.receiver,
-    })),
-    recentActivity: activity,
-    generatedAt: now.toISOString(),
+    schedule,
+    activeSwaps,
+    newMatches,
+    unreadMessages,
+    topMatches,
   });
+}
+
+type TopMatchItem = {
+  postId: string;
+  matchPercent: number;
+  reasons: string[];
+  flightNumber: string | null;
+  destination: string | null;
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
+  posterRank: string;
+  posterBase: string;
+};
+
+async function getTopMatchesForUser(userId: string, limit: number): Promise<TopMatchItem[]> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { baseId: true, rankId: true },
+  });
+  if (!user?.baseId) return [];
+
+  const posts = await findSwapPostsForBoard(userId, user.baseId, { rankId: user.rankId });
+  const openPosts = posts.filter((post) => !isSwapPostExpired(post, new Date()));
+  if (openPosts.length === 0) return [];
+
+  const matches = await getTradeboardForViewer(
+    userId,
+    openPosts.map((post) => post.id)
+  );
+  const matchMap = new Map(matches.map((m) => [m.postId, m]));
+
+  return openPosts
+    .map((post) => {
+      const match = matchMap.get(post.id);
+      const offered = post.offeredTrips[0];
+      return {
+        postId: post.id,
+        matchPercent: match?.matchPercent ?? 0,
+        reasons: match?.reasons ?? [],
+        flightNumber: offered?.flightNumber ?? null,
+        destination: offered?.destination ?? null,
+        tripType: offered?.tripType ?? null,
+        posterRank: post.user.rank.name,
+        posterBase: post.user.base.name,
+      };
+    })
+    .filter((item) => item.matchPercent >= 40)
+    .sort((a, b) => b.matchPercent - a.matchPercent)
+    .slice(0, limit);
+}
+
+function extractMatchPercent(data: unknown): number {
+  if (!data || typeof data !== "object") return 0;
+  if (!("matchPercent" in data)) return 0;
+  const value = (data as { matchPercent?: unknown }).matchPercent;
+  return typeof value === "number" ? value : Number(value) || 0;
 }
 

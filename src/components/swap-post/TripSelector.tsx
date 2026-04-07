@@ -24,7 +24,7 @@ interface TripSelectorProps {
   onChange: (ids: string[]) => void;
   onNext: () => void;
   onBack: () => void;
-  /** When true, Next is enabled even with 0 selected (e.g. LOOKING_FOR) */
+  /** When true, Next is enabled even with 0 selected. */
   allowEmpty?: boolean;
 }
 

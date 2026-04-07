@@ -89,13 +89,7 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.6 }}
           >
             <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-300" /> 2,500+ Active Crew
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-300" /> 15+ Airlines
-            </span>
-            <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-300" /> 98% Match Rate
+              <span className="h-2 w-2 rounded-full bg-amber-300" /> Private Beta (Testing Phase)
             </span>
           </motion.div>
         </div>

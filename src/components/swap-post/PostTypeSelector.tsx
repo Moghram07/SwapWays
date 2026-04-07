@@ -1,15 +1,12 @@
 "use client";
 
 import type { SwapPostType } from "@/types/swapPost";
-import { RefreshCw, Hand, Plane, CalendarRange, CalendarDays } from "lucide-react";
+import { RefreshCw, CalendarRange, CalendarDays } from "lucide-react";
 
 const PRIMARY = "#1E6FB9";
-const ACCENT = "#2DAF66";
 
 const options: { type: SwapPostType; label: string; icon: React.ElementType; description: string }[] = [
-  { type: "OFFERING_TRIPS", label: "Offer flights for swap", icon: RefreshCw, description: "I have trips I want to trade" },
-  { type: "GIVING_AWAY", label: "Give away flights", icon: Hand, description: "Take my flights, I want days off" },
-  { type: "OFFERING_DAYS_OFF", label: "Want to fly", icon: Plane, description: "I have days off, I want flights" },
+  { type: "OFFERING_TRIPS", label: "Flight Swap", icon: RefreshCw, description: "I have trips I want to trade" },
   { type: "VACATION_SWAP", label: "Vacation swap", icon: CalendarRange, description: "Swap my vacation period for different dates" },
 ];
 

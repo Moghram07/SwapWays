@@ -48,8 +48,23 @@ interface SwapPostRecord {
     departureDate: string;
     tripType: string;
     creditHours: number;
+    tafb?: number;
     hasLayover: boolean;
     layoverHours?: number | null;
+    scheduleTrip?: {
+      reportTime?: string;
+      legs?: {
+        legOrder: number;
+        flightNumber?: string;
+        departureTime?: string;
+        departureDate?: string;
+        departureAirport?: string;
+        arrivalTime?: string;
+        arrivalDate?: string;
+        arrivalAirport?: string;
+        flyingTime?: number;
+      }[];
+    };
   }[];
   offeringDaysOff?: boolean;
   offeredDaysOff?: number[];
@@ -73,6 +88,15 @@ interface SwapPostRecord {
   vacationEndDate?: string | null;
   desiredVacationStart?: string | null;
   desiredVacationEnd?: string | null;
+  inputSource?: "MANUAL_QUICK" | "SCHEDULE_PREFILL" | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
+  quickDestinations?: string[];
+  quickDate?: string | null;
+  quickLayoverHours?: number | null;
+  advancedReportTime?: string | null;
+  advancedAircraftTypeCode?: string | null;
+  advancedBlockHours?: number | null;
+  advancedFlightNumber?: string | null;
 }
 
 interface MatchesClientProps {
@@ -111,8 +135,24 @@ function postToCard(p: SwapPostRecord) {
         departureDate: new Date(t.departureDate),
         tripType,
         creditHours: t.creditHours,
+        tafb: t.tafb,
         hasLayover: t.hasLayover,
         layoverHours: t.layoverHours,
+        reportTime: t.scheduleTrip?.reportTime,
+        legs: (t.scheduleTrip?.legs ?? [])
+          .slice()
+          .sort((a, b) => (a.legOrder ?? 0) - (b.legOrder ?? 0))
+          .map((l) => ({
+            legOrder: l.legOrder,
+            flightNumber: l.flightNumber,
+            departureTime: l.departureTime,
+            departureDate: l.departureDate ? new Date(l.departureDate) : undefined,
+            departureAirport: l.departureAirport,
+            arrivalTime: l.arrivalTime,
+            arrivalDate: l.arrivalDate ? new Date(l.arrivalDate) : undefined,
+            arrivalAirport: l.arrivalAirport,
+            flyingTime: l.flyingTime,
+          })),
         stopsDisplay,
       };
     }),
@@ -138,6 +178,15 @@ function postToCard(p: SwapPostRecord) {
     vacationEndDate: p.vacationEndDate ? new Date(p.vacationEndDate) : undefined,
     desiredVacationStart: p.desiredVacationStart ? new Date(p.desiredVacationStart) : undefined,
     desiredVacationEnd: p.desiredVacationEnd ? new Date(p.desiredVacationEnd) : undefined,
+    source: p.inputSource ?? undefined,
+    quickTripType: p.quickTripType ?? undefined,
+    quickDestinations: p.quickDestinations ?? [],
+    quickDate: p.quickDate ? new Date(p.quickDate) : undefined,
+    quickLayoverHours: p.quickLayoverHours ?? undefined,
+    advancedReportTime: p.advancedReportTime ?? undefined,
+    advancedAircraftTypeCode: p.advancedAircraftTypeCode ?? undefined,
+    advancedBlockHours: p.advancedBlockHours ?? undefined,
+    advancedFlightNumber: p.advancedFlightNumber ?? undefined,
   };
 }
 
@@ -147,6 +196,15 @@ function vacationTradeToPost(t: VacationTrade) {
   const user = t.user ?? { firstName: "Crew", rank: { name: "Crew" }, base: { name: "Base" } };
   return {
     postType: "VACATION_SWAP" as const,
+    source: undefined,
+    quickTripType: undefined,
+    quickDestinations: [] as string[],
+    quickDate: undefined,
+    quickLayoverHours: undefined,
+    advancedReportTime: undefined,
+    advancedAircraftTypeCode: undefined,
+    advancedBlockHours: undefined,
+    advancedFlightNumber: undefined,
     offeredTrips: [],
     offeringDaysOff: false,
     offeredDaysOff: [] as number[],

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { mutate } from "swr";
@@ -75,13 +74,12 @@ export function Sidebar({ unreadMessages, isAdmin }: { unreadMessages: number; i
   return (
     <aside className="hidden md:flex md:w-64 md:shrink-0 flex-col border-r border-slate-200 bg-white">
       <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-5">
-        <Image
+        <img
           src="/images/swapways-logo.png"
           alt=""
           width={32}
           height={32}
-          className="h-8 w-8 object-contain"
-          style={{ width: "auto", height: "auto" }}
+          className="object-contain"
         />
         <span className="text-sm font-bold tracking-tight">
           <span style={{ color: PRIMARY }}>Swap</span>

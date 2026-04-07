@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -12,15 +11,14 @@ const LOGO_GREEN = "#299B4F";
 
 type Variant = "1" | "2" | "3" | "4" | "5";
 
-function BrandIcon({ className }: { className?: string }) {
+function BrandIcon({ className, size = 36 }: { className?: string; size?: number }) {
   return (
-    <Image
+    <img
       src="/images/swapways-logo.png"
       alt=""
-      width={36}
-      height={36}
+      width={size}
+      height={size}
       className={className}
-      style={{ width: "auto", height: "auto" }}
     />
   );
 }
@@ -66,7 +64,7 @@ export function LandingTopBar({ variant }: { variant: Variant }) {
       <header className="landing-nav-v1 sticky top-0 z-50 border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <BrandIcon className="h-9 w-9 object-contain" />
+            <BrandIcon className="object-contain" size={36} />
             <span className="text-lg font-bold text-slate-900"><span style={{ color: LOGO_BLUE }}>Swap</span> <span style={{ color: LOGO_GREEN }}>Ways</span></span>
           </Link>
           {sharedLinks}
@@ -80,7 +78,7 @@ export function LandingTopBar({ variant }: { variant: Variant }) {
       <header className="sticky top-0 z-50 bg-slate-900 text-white [&_a]:text-white [&_a]:hover:opacity-90 [&_button]:text-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <BrandIcon className="h-9 w-9 object-contain opacity-95" />
+            <BrandIcon className="object-contain opacity-95" size={36} />
             <span className="text-lg font-bold" style={{ color: "#7dd3fc" }}>Swap</span>
             <span className="text-lg font-bold" style={{ color: "#86efac" }}>Ways</span>
           </Link>
@@ -95,7 +93,7 @@ export function LandingTopBar({ variant }: { variant: Variant }) {
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex h-12 max-w-5xl items-center justify-between px-5 md:px-8">
           <Link href="/3" className="flex items-center gap-2">
-            <BrandIcon className="h-8 w-8 object-contain" />
+            <BrandIcon className="object-contain" size={32} />
             <span className="text-base font-semibold tracking-tight">
               <span style={{ color: LOGO_BLUE }}>Swap</span>{" "}
               <span style={{ color: LOGO_GREEN }}>Ways</span>
@@ -121,7 +119,7 @@ export function LandingTopBar({ variant }: { variant: Variant }) {
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <BrandIcon className="h-9 w-9 object-contain" />
+            <BrandIcon className="object-contain" size={36} />
             <span className="text-lg font-bold">
               <span style={{ color: LOGO_BLUE }}>Swap</span>
               <span style={{ color: LOGO_GREEN }}> Ways</span>
@@ -187,7 +185,7 @@ export function LandingTopBar({ variant }: { variant: Variant }) {
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex h-12 max-w-5xl items-center justify-between px-5 md:px-8">
           <Link href="/5" className="flex items-center gap-2">
-            <BrandIcon className="h-8 w-8 object-contain grayscale" />
+            <BrandIcon className="object-contain grayscale" size={32} />
             <span className="text-base font-semibold tracking-tight text-slate-900">Swap Ways</span>
           </Link>
           <nav className="flex items-center gap-6 text-sm">

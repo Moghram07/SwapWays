@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { SwapPostType as PrismaSwapPostType } from "@/generated/prisma";
 import type { SwapPostType } from "@/types/swapPost";
 import type { WantCriteriaData } from "@/types/swapPost";
+import type { QuickPostAdvancedData, QuickPostTripData, SwapPostInputSource } from "@/types/swapPost";
 
 const swapPostSelect = {
   id: true,
@@ -31,6 +32,15 @@ const swapPostSelect = {
   vacationStartDay: true,
   vacationEndDay: true,
   desiredVacationMonths: true,
+  inputSource: true,
+  quickTripType: true,
+  quickDestinations: true,
+  quickDate: true,
+  quickLayoverHours: true,
+  advancedReportTime: true,
+  advancedAircraftTypeCode: true,
+  advancedBlockHours: true,
+  advancedFlightNumber: true,
   createdAt: true,
   updatedAt: true,
   user: {
@@ -106,6 +116,9 @@ export async function createSwapPost(
     vacationStartDay?: number | null;
     vacationEndDay?: number | null;
     desiredVacationMonths?: number[];
+    source?: SwapPostInputSource;
+    quickTrip?: QuickPostTripData;
+    advanced?: QuickPostAdvancedData;
   }
 ) {
   const post = await prisma.swapPost.create({
@@ -135,6 +148,15 @@ export async function createSwapPost(
       vacationStartDay: data.vacationStartDay ?? undefined,
       vacationEndDay: data.vacationEndDay ?? undefined,
       desiredVacationMonths: data.desiredVacationMonths ?? [],
+      inputSource: data.source ?? (data.swapPostTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
+      quickTripType: data.quickTrip?.tripType,
+      quickDestinations: data.quickTrip?.destinations ?? [],
+      quickDate: data.quickTrip?.date ? new Date(data.quickTrip.date) : undefined,
+      quickLayoverHours: data.quickTrip?.layoverHours ?? undefined,
+      advancedReportTime: data.advanced?.reportTime ?? undefined,
+      advancedAircraftTypeCode: data.advanced?.aircraftTypeCode ?? undefined,
+      advancedBlockHours: data.advanced?.blockHours ?? undefined,
+      advancedFlightNumber: data.advanced?.flightNumber ?? undefined,
       offeredTrips: data.swapPostTrips.length
         ? {
             create: data.swapPostTrips.map((t) => ({
@@ -195,12 +217,15 @@ export async function findSwapPostsForBoard(
   let filtered = posts;
   if (filters?.tripType) {
     filtered = filtered.filter((p) =>
-      p.offeredTrips.some((t) => t.tripType === filters.tripType)
+      p.offeredTrips.some((t) => t.tripType === filters.tripType) ||
+      p.quickTripType === filters.tripType
     );
   }
   if (filters?.destination) {
+    const wanted = filters.destination.toUpperCase();
     filtered = filtered.filter((p) =>
-      p.offeredTrips.some((t) => t.destination === filters.destination)
+      p.offeredTrips.some((t) => t.destination.toUpperCase() === wanted) ||
+      (p.quickDestinations ?? []).some((d) => d.toUpperCase() === wanted)
     );
   }
 
@@ -247,7 +272,25 @@ export async function findSwapPostsForBoard(
           year === nextYear &&
           nextDays.includes(day);
         return matchesCurrent || matchesNext;
-      });
+      }) ||
+      (() => {
+        if (!p.quickDate) return false;
+        const d = new Date(p.quickDate);
+        const month = d.getMonth() + 1;
+        const year = d.getFullYear();
+        const day = d.getDate();
+        const matchesCurrent =
+          currentDays.length > 0 &&
+          month === currentMonth &&
+          year === currentYear &&
+          currentDays.includes(day);
+        const matchesNext =
+          nextDays.length > 0 &&
+          month === nextMonth &&
+          year === nextYear &&
+          nextDays.includes(day);
+        return matchesCurrent || matchesNext;
+      })();
     });
   }
 
@@ -318,6 +361,9 @@ export async function updateSwapPost(
     vacationStartDay?: number;
     vacationEndDay?: number;
     desiredVacationMonths?: number[];
+    source?: SwapPostInputSource;
+    quickTrip?: QuickPostTripData;
+    advanced?: QuickPostAdvancedData;
   }
 ) {
   const existing = await prisma.swapPost.findUnique({
@@ -349,6 +395,19 @@ export async function updateSwapPost(
   if (data.vacationStartDay !== undefined) updateData.vacationStartDay = data.vacationStartDay;
   if (data.vacationEndDay !== undefined) updateData.vacationEndDay = data.vacationEndDay;
   if (data.desiredVacationMonths !== undefined) updateData.desiredVacationMonths = data.desiredVacationMonths;
+  if (data.source !== undefined) updateData.inputSource = data.source;
+  if (data.quickTrip !== undefined) {
+    updateData.quickTripType = data.quickTrip.tripType;
+    updateData.quickDestinations = data.quickTrip.destinations;
+    updateData.quickDate = new Date(data.quickTrip.date);
+    updateData.quickLayoverHours = data.quickTrip.layoverHours ?? null;
+  }
+  if (data.advanced !== undefined) {
+    updateData.advancedReportTime = data.advanced.reportTime ?? null;
+    updateData.advancedAircraftTypeCode = data.advanced.aircraftTypeCode ?? null;
+    updateData.advancedBlockHours = data.advanced.blockHours ?? null;
+    updateData.advancedFlightNumber = data.advanced.flightNumber ?? null;
+  }
 
   return prisma.$transaction(async (tx) => {
     await tx.swapPost.update({

@@ -29,6 +29,14 @@ function json(data: unknown) {
   return NextResponse.json({ data, error: null, message: null });
 }
 
+function normalizeAirportCodes(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((s) => String(s).trim().toUpperCase())
+    .filter(Boolean)
+    .slice(0, 8);
+}
+
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return unauthorized();
@@ -88,6 +96,19 @@ export async function POST(request: Request) {
     vacationStartDay?: number;
     vacationEndDay?: number;
     desiredVacationMonths?: number[];
+    source?: "MANUAL_QUICK" | "SCHEDULE_PREFILL";
+    quickTrip?: {
+      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+      destinations?: string[];
+      date?: string;
+      layoverHours?: number | null;
+    };
+    advanced?: {
+      reportTime?: string | null;
+      aircraftTypeCode?: string | null;
+      blockHours?: number | null;
+      flightNumber?: string | null;
+    };
   };
   try {
     body = await request.json();
@@ -95,8 +116,8 @@ export async function POST(request: Request) {
     return error("Invalid JSON", 400);
   }
 
-  const postType = body.postType as "OFFERING_TRIPS" | "OFFERING_DAYS_OFF" | "GIVING_AWAY" | "LOOKING_FOR" | "VACATION_SWAP" | undefined;
-  const validTypes = ["OFFERING_TRIPS", "OFFERING_DAYS_OFF", "GIVING_AWAY", "LOOKING_FOR", "VACATION_SWAP"];
+  const postType = body.postType as "OFFERING_TRIPS" | "VACATION_SWAP" | undefined;
+  const validTypes = ["OFFERING_TRIPS", "VACATION_SWAP"];
   if (!postType || !validTypes.includes(postType)) {
     return error("postType is required and must be one of: " + validTypes.join(", "), 400);
   }
@@ -136,9 +157,25 @@ export async function POST(request: Request) {
 
   const selectedTrips = Array.isArray(body.selectedTrips) ? body.selectedTrips : [];
   const selectedDaysOff = Array.isArray(body.selectedDaysOff) ? body.selectedDaysOff : [];
+  const quickTrip = body.quickTrip;
+  const hasQuickTrip = !!quickTrip?.tripType && !!quickTrip?.date;
+  if (postType === "OFFERING_TRIPS" && selectedTrips.length === 0 && !hasQuickTrip) {
+    return error("Flight Swap requires selectedTrips or quickTrip data", 400);
+  }
 
-  const offeringDaysOff = postType === "OFFERING_DAYS_OFF";
-  const wantDaysOff = wantCriteria.wantDaysOff ?? postType === "GIVING_AWAY";
+  const normalizedQuickTrip =
+    hasQuickTrip
+      ? {
+          tripType: quickTrip!.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP",
+          destinations: normalizeAirportCodes(quickTrip?.destinations),
+          date: String(quickTrip?.date),
+          layoverHours:
+            quickTrip?.layoverHours != null ? Number(quickTrip.layoverHours) : null,
+        }
+      : undefined;
+  if (normalizedQuickTrip && normalizedQuickTrip.destinations.length === 0) {
+    return error("quickTrip.destinations is required", 400);
+  }
 
   const criteria = {
     wantType: wantCriteria.wantType as "LAYOVER" | "LONGER_LAYOVER" | "ROUND_TRIP" | "ANY_FLIGHT" | "DAYS_OFF" | "ANYTHING" | "SPECIFIC",
@@ -151,9 +188,15 @@ export async function POST(request: Request) {
     wantDestinations: wantCriteria.wantDestinations ?? [],
     wantExclude: wantCriteria.wantExclude ?? [],
     wtfDays: wantCriteria.wtfDays ?? [],
-    wantDaysOff,
+    wantDaysOff: wantCriteria.wantDaysOff ?? false,
     notes: wantCriteria.notes ?? "",
   };
+  if (criteria.wantType === "DAYS_OFF" && criteria.wtfDays.length === 0) {
+    return error("wantCriteria.wtfDays is required when wantType is DAYS_OFF", 400);
+  }
+  if (criteria.wantType === "DAYS_OFF" && selectedDaysOff.length === 0) {
+    return error("selectedDaysOff is required when wantType is DAYS_OFF", 400);
+  }
 
   const swapPostTrips: {
     scheduleTripId: string;
@@ -202,6 +245,9 @@ export async function POST(request: Request) {
           layoverHours: hasLayover && layover ? layover.durationDecimal : null,
         });
       }
+      if (postType === "OFFERING_TRIPS" && swapPostTrips.length === 0) {
+        return error("Selected trips were not found in your schedule", 400);
+      }
     }
 
     const vacationStartDate = postType === "VACATION_SWAP" && body.vacationStartDate ? new Date(body.vacationStartDate) : undefined;
@@ -219,10 +265,15 @@ export async function POST(request: Request) {
 
     const post = await createSwapPost(session.user.id, {
       postType,
-      offeringDaysOff,
+      offeringDaysOff: false,
       offeredDaysOff: selectedDaysOff,
       wantCriteria: criteria,
       swapPostTrips,
+      source:
+        body.source ??
+        (swapPostTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
+      quickTrip: normalizedQuickTrip,
+      advanced: body.advanced,
       vacationStartDate: vacationStartDate ?? null,
       vacationEndDate: vacationEndDate ?? null,
       desiredVacationStart: desiredVacationStart ?? null,
@@ -255,7 +306,16 @@ export async function POST(request: Request) {
       eventName: "swap_post_created",
       userId: session.user.id,
       path: "/dashboard/add-trade",
-      properties: { postType },
+      properties: {
+        postType,
+        source: body.source ?? (swapPostTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
+        hasAdvanced: !!(
+          body.advanced?.reportTime ||
+          body.advanced?.aircraftTypeCode ||
+          body.advanced?.blockHours ||
+          body.advanced?.flightNumber
+        ),
+      },
     }).catch(() => {});
 
     return json(post);

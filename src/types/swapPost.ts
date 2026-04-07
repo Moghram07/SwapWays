@@ -18,6 +18,22 @@ export interface WantCriteriaData {
   notes: string;
 }
 
+export type SwapPostInputSource = "MANUAL_QUICK" | "SCHEDULE_PREFILL";
+
+export interface QuickPostTripData {
+  tripType: TripType;
+  destinations: string[];
+  date: string; // ISO date string
+  layoverHours?: number | null;
+}
+
+export interface QuickPostAdvancedData {
+  reportTime?: string | null;
+  aircraftTypeCode?: string | null;
+  blockHours?: number | null;
+  flightNumber?: string | null;
+}
+
 export interface SwapPostTripData {
   id: string;
   swapPostId: string;
@@ -61,6 +77,15 @@ export interface SwapPostData {
   vacationStartDay: number | null;
   vacationEndDay: number | null;
   desiredVacationMonths: number[];
+  source?: SwapPostInputSource;
+  quickTripType?: TripType | null;
+  quickDestinations?: string[];
+  quickDate?: Date | null;
+  quickLayoverHours?: number | null;
+  advancedReportTime?: string | null;
+  advancedAircraftTypeCode?: string | null;
+  advancedBlockHours?: number | null;
+  advancedFlightNumber?: string | null;
   createdAt: Date;
   updatedAt: Date;
   expiresAt: Date | null;
@@ -79,6 +104,9 @@ export interface CreateSwapPostInput {
   selectedTrips: string[];
   selectedDaysOff: number[];
   wantCriteria: WantCriteriaData;
+  source?: SwapPostInputSource;
+  quickTrip?: QuickPostTripData;
+  advanced?: QuickPostAdvancedData;
 }
 
 /** Trip row for Create Post wizard (from schedule). */

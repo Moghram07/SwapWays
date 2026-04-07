@@ -135,7 +135,7 @@ export async function calculateSwapPostMatch(
   }
 
   const offeredTripDates = post.offeredTrips.map((t) => t.departureDate);
-  const primaryDate = offeredTripDates[0] ?? new Date();
+  const primaryDate = offeredTripDates[0] ?? post.quickDate ?? new Date();
   const primaryMonth = primaryDate.getUTCMonth() + 1;
   const primaryYear = primaryDate.getUTCFullYear();
   const monthKeys = new Set(
@@ -169,7 +169,8 @@ export async function calculateSwapPostMatch(
     viewer,
     allViewerTrips,
     post,
-    postOwner
+    postOwner,
+    primarySchedule.trips
   );
 
   if (!hardResult.passes) {

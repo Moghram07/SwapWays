@@ -31,6 +31,11 @@ type PostLike = {
     scheduleTrip: { legs: { departureAirport: string; arrivalAirport: string }[] } | null;
   }[];
   wtfDays: number[];
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
+  quickDestinations?: string[];
+  quickDate?: Date | null;
+  quickLayoverHours?: number | null;
+  advancedBlockHours?: number | null;
 };
 
 export interface ScoreBreakdown {
@@ -89,13 +94,25 @@ export function calculateMatchScore(
 
 function scoreWtfDays(
   post: PostLike,
-  _viewerTrips: ViewerTripLike[],
+  viewerTrips: ViewerTripLike[],
   viewerDaysOff: number[],
   reasons: string[]
 ): number {
   if (post.wtfDays.length === 0) {
     reasons.push("No date constraint - flexible");
     return 15;
+  }
+  if (post.wantType === "DAYS_OFF") {
+    const viewerTripDays = viewerTrips.map((t) => new Date(t.startDate).getUTCDate());
+    const overlappingDays = post.wtfDays.filter((d) => viewerTripDays.includes(d));
+    if (overlappingDays.length === 0) {
+      reasons.push("No viewer trips on willing-to-fly days");
+      return 0;
+    }
+    const ratio = overlappingDays.length / post.wtfDays.length;
+    const score = 20 + Math.round(ratio * 15);
+    reasons.push(`${overlappingDays.length}/${post.wtfDays.length} willing-to-fly days matched`);
+    return Math.min(35, score);
   }
   const overlappingDays = post.wtfDays.filter((d) => viewerDaysOff.includes(d));
   if (overlappingDays.length === 0) {
@@ -189,7 +206,13 @@ function scoreBlockHours(
   matchingTrips: string[],
   reasons: string[]
 ): number {
-  const postTotalBlock = post.offeredTrips.reduce((sum, t) => sum + (t.creditHours || 0), 0);
+  const offeredTotal = post.offeredTrips.reduce((sum, t) => sum + (t.creditHours || 0), 0);
+  const postTotalBlock =
+    offeredTotal > 0 ? offeredTotal : post.advancedBlockHours ?? 0;
+  if (postTotalBlock <= 0) {
+    reasons.push("No block-hours provided, scoring by trip type/date only");
+    return 4;
+  }
   let bestScore = 0;
   let bestTrip: string | null = null;
 
@@ -238,6 +261,7 @@ function scoreTripType(
   matchingTrips: string[],
   reasons: string[]
 ): number {
+  const offeredTripType = post.offeredTrips[0]?.tripType ?? post.quickTripType ?? null;
   switch (post.wantType) {
     case "LAYOVER":
     case "LONGER_LAYOVER": {
@@ -254,7 +278,8 @@ function scoreTripType(
       return 15;
     }
     case "ANY_FLIGHT":
-      return viewerTrips.length > 0 ? 12 : 0;
+      if (!offeredTripType) return viewerTrips.length > 0 ? 10 : 0;
+      return viewerTrips.some((t) => t.tripType === offeredTripType) ? 12 : 6;
     case "DAYS_OFF":
       return 10;
     case "ANYTHING":
@@ -265,7 +290,12 @@ function scoreTripType(
 }
 
 function scoreSameDate(post: PostLike, viewerTrips: ViewerTripLike[], reasons: string[]): number {
-  const postDates = post.offeredTrips.map((t) => new Date(t.departureDate).getUTCDate());
+  const postDates = post.offeredTrips.length
+    ? post.offeredTrips.map((t) => new Date(t.departureDate).getUTCDate())
+    : post.quickDate
+      ? [new Date(post.quickDate).getUTCDate()]
+      : [];
+  if (postDates.length === 0) return 3;
   for (const trip of viewerTrips) {
     const tripDate = new Date(trip.startDate).getUTCDate();
     if (postDates.includes(tripDate)) {
@@ -281,6 +311,10 @@ function scoreSameDate(post: PostLike, viewerTrips: ViewerTripLike[], reasons: s
         return 5;
       }
     }
+  }
+  if (post.wantType === "DAYS_OFF" && post.wtfDays.length > 0) {
+    reasons.push("Date mismatch tolerated due to off-day flexibility");
+    return 4;
   }
   return 0;
 }
@@ -310,6 +344,15 @@ function scoreLayoverDuration(post: PostLike, viewerTrips: ViewerTripLike[], rea
     if (viewerMaxLayover >= post.wantMinLayover) return 10;
     reasons.push("Layover below minimum requirement");
     return 2;
+  }
+
+  if (post.quickTripType === "LAYOVER" && post.quickLayoverHours != null) {
+    const viewerMaxLayover = layoverTrips
+      .flatMap((t) => t.layovers ?? [])
+      .reduce((max, l) => Math.max(max, l.durationDecimal), 0);
+    if (viewerMaxLayover >= post.quickLayoverHours) return 9;
+    reasons.push("Layover below offered quick-post duration");
+    return 3;
   }
 
   return 7;

@@ -156,6 +156,12 @@ describe("LINE 1300 Complete Schedule Validation", () => {
     expect(trip!.legs[1]!.departureDate!.toISOString().split("T")[0]).toBe("2026-04-02");
   });
 
+  it("Trip #558: block hours should preserve month-bounded footer value (1:05)", () => {
+    const trip = schedule.trips.find((t) => t.tripNumber === "558");
+    expect(trip).toBeDefined();
+    expect(trip!.blockHours).toBeCloseTo(1 + 5 / 60, 5);
+  });
+
   it("Trip #003: JED→CAI→JED on 33R", () => {
     const trip = schedule.trips.find((t) => t.tripNumber === "003");
     expect(trip!.legs[0]!.departureAirport).toBe("JED");

@@ -7,6 +7,8 @@ import { CreatePostFlow } from "@/components/swap-post/CreatePostFlow";
 import { LineSwapForm } from "@/components/line-swap/LineSwapForm";
 import type { TripOption } from "@/components/swap-post/TripSelector";
 import type { WantCriteriaData } from "@/types/swapPost";
+import type { QuickPostAdvancedData, QuickPostTripData, SwapPostInputSource } from "@/types/swapPost";
+import { isQuickPostEnabledForUser } from "@/lib/featureFlags";
 
 function getScheduledDaysFromTrips(
   trips: TripOption[],
@@ -51,6 +53,15 @@ interface EditPostData {
   vacationStartDay?: number | null;
   vacationEndDay?: number | null;
   desiredVacationMonths?: number[];
+  inputSource?: SwapPostInputSource | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
+  quickDestinations?: string[];
+  quickDate?: string | null;
+  quickLayoverHours?: number | null;
+  advancedReportTime?: string | null;
+  advancedAircraftTypeCode?: string | null;
+  advancedBlockHours?: number | null;
+  advancedFlightNumber?: string | null;
 }
 
 export default function PostToTradeBoardPage() {
@@ -137,12 +148,16 @@ export default function PostToTradeBoardPage() {
     rank: "Crew",
     base: "Base",
   };
+  const quickPostEnabled = isQuickPostEnabledForUser(session.user.id);
 
   async function handleSubmit(data: {
     postType: import("@/types/swapPost").SwapPostType;
     selectedTrips: string[];
     selectedDaysOff: number[];
     wantCriteria: WantCriteriaData;
+    source?: SwapPostInputSource;
+    quickTrip?: QuickPostTripData;
+    advanced?: QuickPostAdvancedData;
     vacationYear?: number;
     vacationMonth?: number;
     vacationStartDay?: number;
@@ -154,6 +169,9 @@ export default function PostToTradeBoardPage() {
       selectedTrips: data.selectedTrips,
       selectedDaysOff: data.selectedDaysOff,
       wantCriteria: data.wantCriteria,
+      source: data.source,
+      quickTrip: data.quickTrip,
+      advanced: data.advanced,
     };
     if (data.postType === "VACATION_SWAP") {
       body.vacationYear = data.vacationYear;
@@ -236,6 +254,7 @@ export default function PostToTradeBoardPage() {
           initialVacationEndDay={editPost?.vacationEndDay != null ? editPost.vacationEndDay : undefined}
           initialDesiredVacationMonths={editPost?.desiredVacationMonths}
           onSelectLineSwap={() => router.push("/dashboard/add-trade?type=line-swap")}
+          quickPostEnabled={quickPostEnabled}
         />
       )}
     </div>

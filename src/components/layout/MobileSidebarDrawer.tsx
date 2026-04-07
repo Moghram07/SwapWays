@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -58,13 +57,12 @@ export function MobileSidebarDrawer({ open, onClose, unreadMessages = 0, isAdmin
       <aside className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex flex-col border-r border-slate-200 bg-white shadow-xl md:hidden">
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
           <div className="flex items-center gap-3">
-            <Image
+            <img
               src="/images/swapways-logo.png"
               alt=""
               width={32}
               height={32}
-              className="h-8 w-8 object-contain"
-              style={{ width: "auto", height: "auto" }}
+              className="object-contain"
             />
             <span className="text-sm font-bold tracking-tight">
               <span style={{ color: PRIMARY }}>Swap</span>

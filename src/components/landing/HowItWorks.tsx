@@ -10,19 +10,19 @@ const steps = [
   {
     icon: UserCircle,
     title: "Create profile",
-    description: "Set your rank, base, and aircraft qualifications so we only show relevant matches.",
+    description: "Create your profile with your rank, base, and aircraft qualifications.",
     color: PRIMARY,
   },
   {
     icon: Upload,
-    title: "Post trade",
-    description: "Add the trip you want to give away and what you want in return.",
+    title: "Upload PDF line schedule",
+    description: "Upload your monthly line schedule PDF so your trips are available for posting.",
     color: GREEN,
   },
   {
     icon: CheckCircle2,
-    title: "Get matched",
-    description: "We find compatible crew and show you the best matches.",
+    title: "Post trade and get matches",
+    description: "Post your trade and get matched with compatible crew automatically.",
     color: PRIMARY,
   },
 ];

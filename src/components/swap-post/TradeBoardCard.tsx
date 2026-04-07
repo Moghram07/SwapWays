@@ -68,6 +68,15 @@ interface TripRow {
 
 interface PostCardData {
   postType: string;
+  source?: "MANUAL_QUICK" | "SCHEDULE_PREFILL" | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
+  quickDestinations?: string[];
+  quickDate?: Date | null;
+  quickLayoverHours?: number | null;
+  advancedReportTime?: string | null;
+  advancedAircraftTypeCode?: string | null;
+  advancedBlockHours?: number | null;
+  advancedFlightNumber?: string | null;
   offeredTrips: TripRow[];
   offeringDaysOff?: boolean;
   offeredDaysOff?: number[];
@@ -102,7 +111,7 @@ interface PostCardData {
 function getWantTypeLabel(type: WantType): string {
   const labels: Record<WantType, string> = {
     LAYOVER: "Any layover",
-    LONGER_LAYOVER: "Longer layover",
+    LONGER_LAYOVER: "Any layover",
     ROUND_TRIP: "Round Trip",
     ANY_FLIGHT: "Any flight",
     DAYS_OFF: "Days off",
@@ -171,8 +180,6 @@ function OfferingTripRow({ trip, packageMode = false }: { trip: TripRow; package
   })();
 
   const blockLabel = creditHoursToHumanReadable(trip.creditHours);
-  const tafbLabel =
-    trip.tafb != null ? creditHoursToHumanReadable(trip.tafb) : null;
 
   const reportTime = (() => {
     if (!trip.reportTime) return "—";
@@ -316,9 +323,8 @@ function OfferingTripRow({ trip, packageMode = false }: { trip: TripRow; package
         })}
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-4 text-sm font-semibold text-gray-700">
+      <div className="mt-3 flex items-center gap-4 text-sm font-semibold text-gray-700">
         <span>Block: {blockLabel}</span>
-        {tafbLabel ? <span>TAFB: {tafbLabel}</span> : null}
       </div>
     </div>
   );
@@ -331,6 +337,7 @@ function WantsDisplay({
   wantSameDate,
   wantDestinations,
   wantExclude,
+  offeredDaysOff,
   wtfDays,
 }: {
   wantType: WantType;
@@ -339,6 +346,7 @@ function WantsDisplay({
   wantSameDate?: boolean;
   wantDestinations?: string[];
   wantExclude?: string[];
+  offeredDaysOff?: number[];
   wtfDays?: number[];
 }) {
   const hasPreferredDestinations = !!wantDestinations && wantDestinations.length > 0;
@@ -399,6 +407,13 @@ function WantsDisplay({
             </p>
           </div>
         )}
+        {wantType === "DAYS_OFF" && offeredDaysOff && offeredDaysOff.length > 0 && (
+          <div className="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 md:col-span-2">
+            <p className="text-sm font-medium text-slate-800">
+              Wants days off: <span className="font-semibold text-amber-700">{formatPreferenceDays(offeredDaysOff)}</span>
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -451,7 +466,28 @@ function getPillLabel(pill: "active" | "pending" | "completed") {
 }
 
 export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill }: SwapPostTradeBoardCardProps) {
-  const totalHours = post.offeredTrips.reduce((s, t) => s + t.creditHours, 0);
+  const syntheticQuickTrip: TripRow[] =
+    post.offeredTrips.length === 0 &&
+    post.quickTripType &&
+    post.quickDestinations &&
+    post.quickDestinations.length > 0 &&
+    post.quickDate
+      ? [
+          {
+            flightNumber: post.advancedFlightNumber ?? "",
+            destination: post.quickDestinations[0],
+            destinations: post.quickDestinations,
+            departureDate: new Date(post.quickDate),
+            tripType: post.quickTripType,
+            creditHours: post.advancedBlockHours ?? 0,
+            hasLayover: post.quickTripType === "LAYOVER",
+            layoverHours: post.quickLayoverHours ?? null,
+            reportTime: post.advancedReportTime ?? undefined,
+          },
+        ]
+      : [];
+  const offeringTrips = post.offeredTrips.length > 0 ? post.offeredTrips : syntheticQuickTrip;
+  const totalHours = offeringTrips.reduce((s, t) => s + t.creditHours, 0);
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
@@ -480,6 +516,15 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {post.source === "MANUAL_QUICK" ? (
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+              Quick
+            </span>
+          ) : post.source === "SCHEDULE_PREFILL" ? (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+              Detailed
+            </span>
+          ) : null}
           {typeof post.matchPercent === "number" && post.matchPercent > 0 && (
             <MatchBadge percent={post.matchPercent} reasons={post.matchReasons ?? []} />
           )}
@@ -506,8 +551,8 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
           {post.postType === "VACATION_SWAP"
             ? "Offering"
-            : post.offeredTrips.length > 1
-              ? `Offering (${post.offeredTrips.length} trips · Total block: ${creditHoursToHumanReadable(totalHours)})`
+            : offeringTrips.length > 1
+              ? `Offering (${offeringTrips.length} trips · Total block: ${creditHoursToHumanReadable(totalHours)})`
               : "Offering"}
         </p>
         {post.postType === "VACATION_SWAP" ? (
@@ -543,10 +588,10 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
             }
             return null;
           })()
-        ) : post.offeredTrips.length > 0 ? (
+        ) : offeringTrips.length > 0 ? (
           <div className="space-y-1.5">
-            {post.offeredTrips.map((trip, i) => (
-              <OfferingTripRow key={i} trip={trip} packageMode={post.offeredTrips.length > 1} />
+            {offeringTrips.map((trip, i) => (
+              <OfferingTripRow key={i} trip={trip} packageMode={offeringTrips.length > 1} />
             ))}
           </div>
         ) : null}
@@ -557,18 +602,21 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
         )}
       </div>
 
-      <div className="bg-slate-50/50 px-4 py-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Looking For</p>
-        <WantsDisplay
-          wantType={post.wantType}
-          wantMinLayover={post.wantMinLayover}
-          wantEqualHours={post.wantEqualHours}
-          wantSameDate={post.wantSameDate}
-          wantDestinations={post.wantDestinations}
-          wantExclude={post.wantExclude}
-          wtfDays={post.wtfDays}
-        />
-      </div>
+      {post.postType !== "VACATION_SWAP" && (
+        <div className="bg-slate-50/50 px-4 py-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Looking For</p>
+          <WantsDisplay
+            wantType={post.wantType}
+            wantMinLayover={post.wantMinLayover}
+            wantEqualHours={post.wantEqualHours}
+            wantSameDate={post.wantSameDate}
+            wantDestinations={post.wantDestinations}
+            wantExclude={post.wantExclude}
+            offeredDaysOff={post.offeredDaysOff}
+            wtfDays={post.wtfDays}
+          />
+        </div>
+      )}
 
       {post.notes && (
         <div className="border-t border-slate-100 px-4 py-2">

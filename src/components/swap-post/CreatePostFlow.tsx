@@ -9,7 +9,7 @@ import { WantCriteria } from "./WantCriteria";
 import { PostPreview } from "./PostPreview";
 import { VacationSwapFields } from "@/components/trade/VacationSwapFields";
 import { QuickPostForm } from "./QuickPostForm";
-import type { QuickPostAdvancedData, QuickPostTripData, SwapPostInputSource } from "@/types/swapPost";
+import type { QuickPostOfferedTripData, SwapPostInputSource } from "@/types/swapPost";
 
 const defaultWantCriteria: WantCriteriaData = {
   wantType: "ANYTHING",
@@ -40,8 +40,7 @@ export interface CreatePostFlowProps {
     selectedDaysOff: number[];
     wantCriteria: WantCriteriaData;
     source?: SwapPostInputSource;
-    quickTrip?: QuickPostTripData;
-    advanced?: QuickPostAdvancedData;
+    offeredTrips?: QuickPostOfferedTripData[];
     vacationYear?: number;
     vacationMonth?: number;
     vacationStartDay?: number;
@@ -111,14 +110,23 @@ export function CreatePostFlow({
   const [vacationEndDay, setVacationEndDay] = useState<number | "">(initialVacationEndDay ?? "");
   const [desiredVacationMonths, setDesiredVacationMonths] = useState<number[]>(initialDesiredVacationMonths ?? []);
   const [wantCriteria, setWantCriteria] = useState<WantCriteriaData>(initialWantCriteria ?? defaultWantCriteria);
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const [quickTrip, setQuickTrip] = useState<QuickPostTripData>({
-    tripType: "LAYOVER",
-    destinations: [],
-    date: todayIso,
-    layoverHours: null,
-  });
-  const [advanced, setAdvanced] = useState<QuickPostAdvancedData>({});
+  const [offeringInputMode, setOfferingInputMode] = useState<"quick" | "schedule">(
+    hasPreselected || !quickPostEnabled ? "schedule" : "quick"
+  );
+  const [offeredTrips, setOfferedTrips] = useState<QuickPostOfferedTripData[]>([
+    {
+      id: 1,
+      tripType: "LAYOVER",
+      destination: "",
+      destinations: [""],
+      date: "",
+      layoverHours: null,
+      reportTime: "",
+      aircraftTypeCode: "",
+      blockHours: null,
+      flightNumber: "",
+    },
+  ]);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const currentStepIndex = steps.indexOf(step);
@@ -134,9 +142,14 @@ export function CreatePostFlow({
         selectedTrips,
         selectedDaysOff,
         wantCriteria,
-        source: selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK",
-        quickTrip: postType === "OFFERING_TRIPS" ? quickTrip : undefined,
-        advanced: postType === "OFFERING_TRIPS" ? advanced : undefined,
+        source:
+          postType === "OFFERING_TRIPS" && offeringInputMode === "quick"
+            ? "MANUAL_QUICK"
+            : "SCHEDULE_PREFILL",
+        offeredTrips:
+          postType === "OFFERING_TRIPS" && offeringInputMode === "quick"
+            ? offeredTrips
+            : undefined,
         ...(postType === "VACATION_SWAP" && {
           vacationYear: vacationYear === "" ? undefined : vacationYear,
           vacationMonth: vacationMonth === "" ? undefined : vacationMonth,
@@ -177,29 +190,56 @@ export function CreatePostFlow({
       {step === "offering" && postType && (
         <>
           {postType === "OFFERING_TRIPS" && (
-            quickPostEnabled ? (
-              <QuickPostForm
-                quickTrip={quickTrip}
-                advanced={advanced}
-                wantCriteria={wantCriteria}
-                month={month}
-                year={year}
-                scheduledDays={scheduledDays}
-                onQuickTripChange={setQuickTrip}
-                onAdvancedChange={setAdvanced}
-                onWantCriteriaChange={setWantCriteria}
-                onNext={() => setStep("preview")}
-                onBack={() => setStep("type")}
-              />
-            ) : (
-              <TripSelector
-                trips={myTrips}
-                selected={selectedTrips}
-                onChange={setSelectedTrips}
-                onNext={() => setStep("wants")}
-                onBack={() => setStep("type")}
-              />
-            )
+            <div className="space-y-4">
+              {quickPostEnabled && (
+                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setOfferingInputMode("quick")}
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                      offeringInputMode === "quick"
+                        ? "bg-white text-[#2668B0] shadow-sm"
+                        : "text-slate-600"
+                    }`}
+                  >
+                    Quick Post
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOfferingInputMode("schedule")}
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                      offeringInputMode === "schedule"
+                        ? "bg-white text-[#2668B0] shadow-sm"
+                        : "text-slate-600"
+                    }`}
+                  >
+                    From Schedule
+                  </button>
+                </div>
+              )}
+
+              {offeringInputMode === "quick" ? (
+                <QuickPostForm
+                  offeredTrips={offeredTrips}
+                  wantCriteria={wantCriteria}
+                  month={month}
+                  year={year}
+                  scheduledDays={scheduledDays}
+                  onOfferedTripsChange={setOfferedTrips}
+                  onWantCriteriaChange={setWantCriteria}
+                  onNext={() => setStep("preview")}
+                  onBack={() => setStep("type")}
+                />
+              ) : (
+                <TripSelector
+                  trips={myTrips}
+                  selected={selectedTrips}
+                  onChange={setSelectedTrips}
+                  onNext={() => setStep("wants")}
+                  onBack={() => setStep("type")}
+                />
+              )}
+            </div>
           )}
           {postType === "VACATION_SWAP" && (
             <div className="space-y-4">
@@ -244,7 +284,9 @@ export function CreatePostFlow({
         </>
       )}
 
-      {step === "wants" && postType && (!quickPostEnabled || postType === "VACATION_SWAP") && (
+      {step === "wants" &&
+        postType &&
+        (postType === "VACATION_SWAP" || offeringInputMode === "schedule") && (
         <WantCriteria
           postType={postType}
           criteria={wantCriteria}
@@ -271,8 +313,7 @@ export function CreatePostFlow({
             selectedTrips={selectedTripObjects}
             selectedDaysOff={selectedDaysOff}
             wantCriteria={wantCriteria}
-            quickTrip={postType === "OFFERING_TRIPS" ? quickTrip : undefined}
-            advanced={postType === "OFFERING_TRIPS" ? advanced : undefined}
+            offeredTrips={postType === "OFFERING_TRIPS" ? offeredTrips : undefined}
             userDisplay={userDisplay}
             vacationYear={postType === "VACATION_SWAP" ? vacationYear : undefined}
             vacationMonth={postType === "VACATION_SWAP" ? vacationMonth : undefined}
@@ -280,7 +321,14 @@ export function CreatePostFlow({
             vacationEndDay={postType === "VACATION_SWAP" ? vacationEndDay : undefined}
             desiredVacationMonths={postType === "VACATION_SWAP" ? desiredVacationMonths : undefined}
             onPost={handleSubmit}
-            onBack={() => { setSubmitError(null); setStep(postType === "VACATION_SWAP" ? "offering" : "wants"); }}
+            onBack={() => {
+              setSubmitError(null);
+              if (postType === "VACATION_SWAP") {
+                setStep("offering");
+                return;
+              }
+              setStep(offeringInputMode === "quick" ? "offering" : "wants");
+            }}
           />
         </>
       )}

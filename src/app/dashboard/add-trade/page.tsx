@@ -7,7 +7,7 @@ import { CreatePostFlow } from "@/components/swap-post/CreatePostFlow";
 import { LineSwapForm } from "@/components/line-swap/LineSwapForm";
 import type { TripOption } from "@/components/swap-post/TripSelector";
 import type { WantCriteriaData } from "@/types/swapPost";
-import type { QuickPostAdvancedData, QuickPostTripData, SwapPostInputSource } from "@/types/swapPost";
+import type { QuickPostOfferedTripData, SwapPostInputSource } from "@/types/swapPost";
 import { isQuickPostEnabledForUser } from "@/lib/featureFlags";
 
 function getScheduledDaysFromTrips(
@@ -34,7 +34,7 @@ function getScheduledDaysFromTrips(
 interface EditPostData {
   id: string;
   postType: string;
-  offeredTrips: { scheduleTripId: string }[];
+  offeredTrips: { scheduleTripId: string | null }[];
   offeredDaysOff: number[];
   wantType: string;
   wantTripTypes: string[];
@@ -156,8 +156,7 @@ export default function PostToTradeBoardPage() {
     selectedDaysOff: number[];
     wantCriteria: WantCriteriaData;
     source?: SwapPostInputSource;
-    quickTrip?: QuickPostTripData;
-    advanced?: QuickPostAdvancedData;
+    offeredTrips?: QuickPostOfferedTripData[];
     vacationYear?: number;
     vacationMonth?: number;
     vacationStartDay?: number;
@@ -170,8 +169,7 @@ export default function PostToTradeBoardPage() {
       selectedDaysOff: data.selectedDaysOff,
       wantCriteria: data.wantCriteria,
       source: data.source,
-      quickTrip: data.quickTrip,
-      advanced: data.advanced,
+      offeredTrips: data.offeredTrips,
     };
     if (data.postType === "VACATION_SWAP") {
       body.vacationYear = data.vacationYear;
@@ -203,7 +201,9 @@ export default function PostToTradeBoardPage() {
   }
 
   const initialSelectedTripIds = editPost
-    ? editPost.offeredTrips.map((t) => t.scheduleTripId)
+    ? editPost.offeredTrips
+        .map((t) => t.scheduleTripId)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
     : tripId
       ? [tripId]
       : undefined;

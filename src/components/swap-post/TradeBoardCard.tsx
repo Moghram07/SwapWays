@@ -29,7 +29,8 @@ interface TripRow {
   destinations?: string[];
   departureDate: Date;
   tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
-  creditHours: number;
+  creditHours: number | null;
+  blockHours?: number | null;
   tafb?: number;
   hasLayover?: boolean;
   layoverHours?: number | null;
@@ -106,6 +107,7 @@ interface PostCardData {
   desiredVacationMonths?: number[];
   matchPercent?: number;
   matchReasons?: string[];
+  bestTripIndex?: number | null;
 }
 
 function getWantTypeLabel(type: WantType): string {
@@ -179,7 +181,8 @@ function OfferingTripRow({ trip, packageMode = false }: { trip: TripRow; package
     return `${startStr} – ${endStr}`;
   })();
 
-  const blockLabel = creditHoursToHumanReadable(trip.creditHours);
+  const blockValue = trip.blockHours ?? trip.creditHours ?? 0;
+  const blockLabel = blockValue > 0 ? creditHoursToHumanReadable(blockValue) : "—";
 
   const reportTime = (() => {
     if (!trip.reportTime) return "—";
@@ -480,6 +483,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
             departureDate: new Date(post.quickDate),
             tripType: post.quickTripType,
             creditHours: post.advancedBlockHours ?? 0,
+            blockHours: post.advancedBlockHours ?? 0,
             hasLayover: post.quickTripType === "LAYOVER",
             layoverHours: post.quickLayoverHours ?? null,
             reportTime: post.advancedReportTime ?? undefined,
@@ -487,7 +491,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
         ]
       : [];
   const offeringTrips = post.offeredTrips.length > 0 ? post.offeredTrips : syntheticQuickTrip;
-  const totalHours = offeringTrips.reduce((s, t) => s + t.creditHours, 0);
+  const totalHours = offeringTrips.reduce((s, t) => s + (t.blockHours ?? t.creditHours ?? 0), 0);
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
@@ -526,7 +530,15 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
             </span>
           ) : null}
           {typeof post.matchPercent === "number" && post.matchPercent > 0 && (
-            <MatchBadge percent={post.matchPercent} reasons={post.matchReasons ?? []} />
+            <MatchBadge
+              percent={post.matchPercent}
+              reasons={post.matchReasons ?? []}
+              bestTripLabel={
+                offeringTrips.length > 1 && typeof post.bestTripIndex === "number"
+                  ? `Trip ${post.bestTripIndex + 1}`
+                  : undefined
+              }
+            />
           )}
           {(() => {
             const d = post.createdAt ? new Date(post.createdAt) : null;
@@ -591,10 +603,37 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
         ) : offeringTrips.length > 0 ? (
           <div className="space-y-1.5">
             {offeringTrips.map((trip, i) => (
-              <OfferingTripRow key={i} trip={trip} packageMode={offeringTrips.length > 1} />
+              <div
+                key={i}
+                className={
+                  offeringTrips.length > 1 &&
+                  typeof post.bestTripIndex === "number" &&
+                  post.bestTripIndex === i &&
+                  typeof post.matchPercent === "number" &&
+                  post.matchPercent > 0
+                    ? "rounded-xl ring-2 ring-[#3BA34A]/25"
+                    : ""
+                }
+              >
+                <OfferingTripRow trip={trip} packageMode={offeringTrips.length > 1} />
+                {offeringTrips.length > 1 &&
+                  typeof post.bestTripIndex === "number" &&
+                  post.bestTripIndex === i &&
+                  typeof post.matchPercent === "number" &&
+                  post.matchPercent > 0 && (
+                    <p className="mt-1 pl-1 text-xs font-semibold text-[#3BA34A]">
+                      ⭐ Best match for you
+                    </p>
+                  )}
+              </div>
             ))}
           </div>
         ) : null}
+        {offeringTrips.length > 1 && (
+          <div className="mt-3 text-center text-xs text-slate-500">
+            📦 Package deal — swap all {offeringTrips.length} trips together
+          </div>
+        )}
         {post.offeringDaysOff && post.offeredDaysOff && post.offeredDaysOff.length > 0 && (
           <div className="mt-2 flex items-center gap-2 text-sm text-slate-700">
             <span>Days off: {post.offeredDaysOff.join(", ")}</span>

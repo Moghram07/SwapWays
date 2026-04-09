@@ -34,16 +34,34 @@ export interface QuickPostAdvancedData {
   flightNumber?: string | null;
 }
 
+export interface QuickPostOfferedTripData {
+  id?: number;
+  tripType: TripType;
+  destination?: string;
+  destinations: string[];
+  date: string; // ISO date string
+  layoverHours?: number | null;
+  reportTime?: string | null;
+  aircraftTypeCode?: string | null;
+  blockHours?: number | null;
+  flightNumber?: string | null;
+}
+
 export interface SwapPostTripData {
   id: string;
   swapPostId: string;
-  scheduleTripId: string;
-  flightNumber: string;
+  scheduleTripId: string | null;
+  flightNumber: string | null;
   destination: string;
+  destinations?: string[];
   departureDate: Date;
   tripType: TripType;
-  creditHours: number;
-  tafb: number;
+  creditHours: number | null;
+  tafb: number | null;
+  reportTime?: string | null;
+  aircraftType?: string | null;
+  blockHours?: number | null;
+  isManualEntry?: boolean;
   hasLayover: boolean;
   layoverCity: string | null;
   layoverHours: number | null;
@@ -107,6 +125,7 @@ export interface CreateSwapPostInput {
   source?: SwapPostInputSource;
   quickTrip?: QuickPostTripData;
   advanced?: QuickPostAdvancedData;
+  offeredTrips?: QuickPostOfferedTripData[];
 }
 
 /** Trip row for Create Post wizard (from schedule). */

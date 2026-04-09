@@ -58,13 +58,18 @@ const swapPostSelect = {
       scheduleTripId: true,
       flightNumber: true,
       destination: true,
+      destinations: true,
       departureDate: true,
       tripType: true,
       creditHours: true,
       tafb: true,
+      reportTime: true,
+      aircraftType: true,
+      blockHours: true,
       hasLayover: true,
       layoverCity: true,
       layoverHours: true,
+      isManualEntry: true,
       scheduleTrip: {
         select: {
           reportTime: true,
@@ -96,16 +101,21 @@ export async function createSwapPost(
     offeredDaysOff: number[];
     wantCriteria: WantCriteriaData;
     swapPostTrips: {
-      scheduleTripId: string;
-      flightNumber: string;
+      scheduleTripId?: string | null;
+      flightNumber?: string | null;
       destination: string;
+      destinations?: string[];
       departureDate: Date;
       tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
-      creditHours: number;
-      tafb: number;
+      creditHours?: number | null;
+      tafb?: number | null;
+      reportTime?: string | null;
+      aircraftType?: string | null;
+      blockHours?: number | null;
       hasLayover: boolean;
       layoverCity: string | null;
       layoverHours: number | null;
+      isManualEntry?: boolean;
     }[];
     vacationStartDate?: Date | null;
     vacationEndDate?: Date | null;
@@ -160,16 +170,21 @@ export async function createSwapPost(
       offeredTrips: data.swapPostTrips.length
         ? {
             create: data.swapPostTrips.map((t) => ({
-              scheduleTripId: t.scheduleTripId,
-              flightNumber: t.flightNumber,
+              scheduleTripId: t.scheduleTripId ?? null,
+              flightNumber: t.flightNumber ?? null,
               destination: t.destination,
+              destinations: t.destinations ?? [],
               departureDate: t.departureDate,
               tripType: t.tripType,
-              creditHours: t.creditHours,
-              tafb: t.tafb,
+              creditHours: t.creditHours ?? null,
+              tafb: t.tafb ?? null,
+              reportTime: t.reportTime ?? null,
+              aircraftType: t.aircraftType ?? null,
+              blockHours: t.blockHours ?? null,
               hasLayover: t.hasLayover,
               layoverCity: t.layoverCity,
               layoverHours: t.layoverHours,
+              isManualEntry: t.isManualEntry ?? false,
             })),
           }
         : undefined,
@@ -345,16 +360,21 @@ export async function updateSwapPost(
     offeringDaysOff?: boolean;
     offeredDaysOff?: number[];
     swapPostTrips?: {
-      scheduleTripId: string;
-      flightNumber: string;
+      scheduleTripId?: string | null;
+      flightNumber?: string | null;
       destination: string;
+      destinations?: string[];
       departureDate: Date;
       tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
-      creditHours: number;
-      tafb: number;
+      creditHours?: number | null;
+      tafb?: number | null;
+      reportTime?: string | null;
+      aircraftType?: string | null;
+      blockHours?: number | null;
       hasLayover: boolean;
       layoverCity: string | null;
       layoverHours: number | null;
+      isManualEntry?: boolean;
     }[];
     vacationYear?: number;
     vacationMonth?: number;
@@ -420,16 +440,21 @@ export async function updateSwapPost(
         await tx.swapPostTrip.createMany({
           data: data.swapPostTrips.map((t) => ({
             swapPostId: id,
-            scheduleTripId: t.scheduleTripId,
-            flightNumber: t.flightNumber,
+            scheduleTripId: t.scheduleTripId ?? null,
+            flightNumber: t.flightNumber ?? null,
             destination: t.destination,
+            destinations: t.destinations ?? [],
             departureDate: t.departureDate,
             tripType: t.tripType,
-            creditHours: t.creditHours,
-            tafb: t.tafb,
+            creditHours: t.creditHours ?? null,
+            tafb: t.tafb ?? null,
+            reportTime: t.reportTime ?? null,
+            aircraftType: t.aircraftType ?? null,
+            blockHours: t.blockHours ?? null,
             hasLayover: t.hasLayover,
             layoverCity: t.layoverCity,
             layoverHours: t.layoverHours,
+            isManualEntry: t.isManualEntry ?? false,
           })),
         });
       }

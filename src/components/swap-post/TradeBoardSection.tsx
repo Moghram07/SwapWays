@@ -44,6 +44,7 @@ interface BoardPost {
     layoverDuration: number;
   } | null;
   failReason?: string | null;
+  bestTripIndex?: number | null;
   user: {
     firstName: string;
     rank: { name: string; code: string };
@@ -68,15 +69,20 @@ interface BoardPost {
   advancedBlockHours?: number | null;
   advancedFlightNumber?: string | null;
   offeredTrips: {
-    flightNumber: string;
+    flightNumber: string | null;
     destination: string;
+    destinations?: string[];
     departureDate: string;
     tripType: string;
-    creditHours: number;
-    tafb: number;
+    creditHours: number | null;
+    blockHours?: number | null;
+    tafb: number | null;
     hasLayover: boolean;
     layoverCity: string | null;
     layoverHours: number | null;
+    reportTime?: string | null;
+    aircraftType?: string | null;
+    isManualEntry?: boolean;
     scheduleTrip?: {
       reportTime: string;
       legs: {
@@ -238,18 +244,19 @@ export function TradeBoardSection() {
             : undefined;
 
         return {
-          flightNumber: t.flightNumber,
+          flightNumber: t.flightNumber ?? "",
           // Row 1 "destinations" should never include base.
           // For non-multi-stop trips, this is the single off-base destination.
           destination: destinationCodes[0] ?? t.destination,
-          destinations: uniqueDestinations,
+          destinations: (t.destinations && t.destinations.length > 0 ? t.destinations : uniqueDestinations),
           departureDate: new Date(t.departureDate),
           tripType,
           creditHours: t.creditHours,
+          blockHours: t.blockHours ?? t.creditHours,
           tafb: t.tafb,
           hasLayover: t.hasLayover,
           layoverHours: t.layoverHours,
-          reportTime: t.scheduleTrip?.reportTime,
+          reportTime: t.reportTime ?? t.scheduleTrip?.reportTime,
           departureTime: firstLeg?.departureTime,
           departureDateLeg: firstLeg?.departureDate ? new Date(firstLeg.departureDate) : undefined,
           arrivalTime: lastLeg?.arrivalTime,
@@ -302,6 +309,7 @@ export function TradeBoardSection() {
       createdAt: new Date(p.createdAt),
       matchPercent: p.matchPercent ?? 0,
       matchReasons: p.matchReasons ?? [],
+      bestTripIndex: p.bestTripIndex ?? null,
       vacationStartDate: p.vacationStartDate ? new Date(p.vacationStartDate) : undefined,
       vacationEndDate: p.vacationEndDate ? new Date(p.vacationEndDate) : undefined,
       desiredVacationStart: p.desiredVacationStart ? new Date(p.desiredVacationStart) : undefined,

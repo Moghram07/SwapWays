@@ -68,7 +68,10 @@ export async function GET(request: Request) {
 
     const enriched = posts.map((post) => {
       const match = matchMap.get(post.id);
-      const totalBlock = post.offeredTrips.reduce((sum, t) => sum + (t.creditHours || 0), 0);
+      const totalBlock = post.offeredTrips.reduce(
+        (sum, t) => sum + (t.blockHours ?? t.creditHours ?? 0),
+        0
+      );
       const firstDate = post.offeredTrips
         .map((t) => new Date(t.departureDate))
         .sort((a, b) => a.getTime() - b.getTime())[0];
@@ -79,6 +82,7 @@ export async function GET(request: Request) {
         matchingTrips: match?.matchingTrips ?? [],
         matchReasons: match?.reasons ?? [],
         failReason: match?.failReason ?? null,
+        bestTripIndex: match?.bestTripIndex ?? null,
         __sortBlock: totalBlock,
         __sortDate: firstDate ? firstDate.getTime() : Number.MAX_SAFE_INTEGER,
       };

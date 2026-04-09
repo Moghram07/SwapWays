@@ -3,7 +3,7 @@
 import type { SwapPostType } from "@/types/swapPost";
 import type { WantCriteriaData } from "@/types/swapPost";
 import type { TripOption } from "./TripSelector";
-import type { QuickPostAdvancedData, QuickPostTripData } from "@/types/swapPost";
+import type { QuickPostOfferedTripData } from "@/types/swapPost";
 import { SwapPostTradeBoardCard } from "./TradeBoardCard";
 
 interface PostPreviewProps {
@@ -11,8 +11,7 @@ interface PostPreviewProps {
   selectedTrips: TripOption[];
   selectedDaysOff: number[];
   wantCriteria: WantCriteriaData;
-  quickTrip?: QuickPostTripData;
-  advanced?: QuickPostAdvancedData;
+  offeredTrips?: QuickPostOfferedTripData[];
   userDisplay: { firstName: string; rank: string; base: string };
   vacationYear?: number | "";
   vacationMonth?: number | "";
@@ -28,8 +27,7 @@ export function PostPreview({
   selectedTrips,
   selectedDaysOff,
   wantCriteria,
-  quickTrip,
-  advanced,
+  offeredTrips: manualOfferedTrips = [],
   userDisplay,
   vacationYear,
   vacationMonth,
@@ -42,6 +40,9 @@ export function PostPreview({
   const offeredTripsFromSchedule = selectedTrips.map((t) => ({
     flightNumber: t.legs[0]?.flightNumber ?? "",
     destination: t.legs[t.legs.length - 1]?.arrivalAirport ?? "",
+    destinations: Array.from(
+      new Set(t.legs.map((leg) => leg.arrivalAirport).filter((airport) => airport !== t.legs[0]?.departureAirport))
+    ),
     departureDate: t.startDate,
     tripType: t.tripType,
     creditHours: t.creditHours,
@@ -51,22 +52,26 @@ export function PostPreview({
   const offeredTrips =
     offeredTripsFromSchedule.length > 0
       ? offeredTripsFromSchedule
-      : quickTrip
-        ? [
-            {
-              flightNumber: advanced?.flightNumber ?? "",
-              destination: quickTrip.destinations[0] ?? "",
-              destinations: quickTrip.destinations,
-              departureDate: new Date(`${quickTrip.date}T00:00:00.000Z`),
-              tripType: quickTrip.tripType,
-              creditHours: advanced?.blockHours ?? 0,
-              hasLayover: quickTrip.tripType === "LAYOVER",
-              layoverHours: quickTrip.layoverHours ?? null,
-              reportTime: advanced?.reportTime ?? undefined,
-            },
-          ]
+      : manualOfferedTrips.length > 0
+        ? manualOfferedTrips.map((trip) => ({
+            flightNumber: trip.flightNumber ?? "",
+            destination: trip.tripType === "MULTI_STOP" ? (trip.destinations.find(Boolean) ?? "") : (trip.destination ?? ""),
+            destinations:
+              trip.tripType === "MULTI_STOP"
+                ? trip.destinations.filter(Boolean)
+                : trip.destination
+                  ? [trip.destination]
+                  : [],
+            departureDate: new Date(`${trip.date}T00:00:00.000Z`),
+            tripType: trip.tripType,
+            creditHours: trip.blockHours ?? 0,
+            hasLayover: trip.tripType === "LAYOVER",
+            layoverHours: trip.layoverHours ?? null,
+            reportTime: trip.reportTime ?? undefined,
+          }))
         : [];
 
+  const firstManualTrip = manualOfferedTrips[0];
   const post = {
     postType,
     offeredTrips,
@@ -84,14 +89,19 @@ export function PostPreview({
     source: (selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK") as
       | "MANUAL_QUICK"
       | "SCHEDULE_PREFILL",
-    quickTripType: quickTrip?.tripType ?? null,
-    quickDestinations: quickTrip?.destinations ?? [],
-    quickDate: quickTrip?.date ? new Date(`${quickTrip.date}T00:00:00.000Z`) : null,
-    quickLayoverHours: quickTrip?.layoverHours ?? null,
-    advancedReportTime: advanced?.reportTime ?? null,
-    advancedAircraftTypeCode: advanced?.aircraftTypeCode ?? null,
-    advancedBlockHours: advanced?.blockHours ?? null,
-    advancedFlightNumber: advanced?.flightNumber ?? null,
+    quickTripType: firstManualTrip?.tripType ?? null,
+    quickDestinations:
+      firstManualTrip?.tripType === "MULTI_STOP"
+        ? firstManualTrip.destinations.filter(Boolean)
+        : firstManualTrip?.destination
+          ? [firstManualTrip.destination]
+          : [],
+    quickDate: firstManualTrip?.date ? new Date(`${firstManualTrip.date}T00:00:00.000Z`) : null,
+    quickLayoverHours: firstManualTrip?.layoverHours ?? null,
+    advancedReportTime: firstManualTrip?.reportTime ?? null,
+    advancedAircraftTypeCode: firstManualTrip?.aircraftTypeCode ?? null,
+    advancedBlockHours: firstManualTrip?.blockHours ?? null,
+    advancedFlightNumber: firstManualTrip?.flightNumber ?? null,
     user: {
       firstName: userDisplay.firstName,
       rank: { name: userDisplay.rank, code: "" },

@@ -24,7 +24,7 @@ type PostLike = {
   offeredTrips: {
     departureDate: Date;
     destination: string;
-    creditHours: number;
+    creditHours: number | null;
     hasLayover: boolean;
     layoverHours: number | null;
     tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";

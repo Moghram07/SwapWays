@@ -98,6 +98,7 @@ export interface SwapPostMatchResult {
   matchingTrips: string[];
   reasons: string[];
   failReason: string | null;
+  bestTripIndex?: number | null;
 }
 
 export async function calculateSwapPostMatch(
@@ -118,6 +119,7 @@ export async function calculateSwapPostMatch(
       matchingTrips: [],
       reasons: [],
       failReason: "Missing viewer or post",
+      bestTripIndex: null,
     };
   }
 
@@ -131,6 +133,7 @@ export async function calculateSwapPostMatch(
       matchingTrips: [],
       reasons: [],
       failReason: "Own post",
+      bestTripIndex: null,
     };
   }
 
@@ -162,6 +165,7 @@ export async function calculateSwapPostMatch(
       matchingTrips: [],
       reasons: [],
       failReason: "No schedule found for post month",
+      bestTripIndex: null,
     };
   }
 
@@ -182,29 +186,46 @@ export async function calculateSwapPostMatch(
       matchingTrips: [],
       reasons: [],
       failReason: hardResult.failReason,
+      bestTripIndex: null,
     };
   }
 
   const viewerMonthlyBlock = primarySchedule.trips.reduce((sum, t) => sum + (t.blockHours ?? 0), 0);
-  const score = calculateMatchScore(
-    {
-      month: primarySchedule.month,
-      year: primarySchedule.year,
-      trips: primarySchedule.trips,
-    },
-    viewerMonthlyBlock,
-    post
-  );
-
-  return {
-    postId,
-    viewerId,
-    matchPercent: score.total,
-    breakdown: score.breakdown,
-    matchingTrips: score.matchingTrips,
-    reasons: score.reasons,
-    failReason: null,
+  const scheduleForScoring = {
+    month: primarySchedule.month,
+    year: primarySchedule.year,
+    trips: primarySchedule.trips,
   };
+
+  const scoreSingle = (postCandidate: typeof post, bestTripIndex?: number) => {
+    const score = calculateMatchScore(scheduleForScoring, viewerMonthlyBlock, postCandidate);
+    return {
+      postId,
+      viewerId,
+      matchPercent: score.total,
+      breakdown: score.breakdown,
+      matchingTrips: score.matchingTrips,
+      reasons: score.reasons,
+      failReason: null,
+      bestTripIndex: bestTripIndex ?? null,
+    };
+  };
+
+  if (post.offeredTrips.length <= 1) {
+    return scoreSingle(post);
+  }
+
+  let bestResult: ReturnType<typeof scoreSingle> | null = null;
+  for (let index = 0; index < post.offeredTrips.length; index++) {
+    const virtualPost = { ...post, offeredTrips: [post.offeredTrips[index]] };
+    const current = scoreSingle(virtualPost, index);
+    if (!bestResult || current.matchPercent > bestResult.matchPercent) {
+      bestResult = current;
+    }
+  }
+  if (bestResult) return bestResult;
+
+  return scoreSingle(post);
 }
 
 export async function getTradeboardForViewer(

@@ -43,14 +43,17 @@ interface SwapPostRecord {
   status: string;
   postType: string;
   offeredTrips: {
-    flightNumber: string;
+    flightNumber: string | null;
     destination: string;
+    destinations?: string[];
     departureDate: string;
     tripType: string;
-    creditHours: number;
-    tafb?: number;
+    creditHours: number | null;
+    blockHours?: number | null;
+    tafb?: number | null;
     hasLayover: boolean;
     layoverHours?: number | null;
+    reportTime?: string | null;
     scheduleTrip?: {
       reportTime?: string;
       legs?: {
@@ -130,15 +133,17 @@ function postToCard(p: SwapPostRecord) {
         }
       }
       return {
-        flightNumber: t.flightNumber,
+        flightNumber: t.flightNumber ?? "",
         destination: t.destination,
+        destinations: t.destinations ?? [],
         departureDate: new Date(t.departureDate),
         tripType,
         creditHours: t.creditHours,
+        blockHours: t.blockHours ?? t.creditHours,
         tafb: t.tafb,
         hasLayover: t.hasLayover,
         layoverHours: t.layoverHours,
-        reportTime: t.scheduleTrip?.reportTime,
+        reportTime: t.reportTime ?? t.scheduleTrip?.reportTime,
         legs: (t.scheduleTrip?.legs ?? [])
           .slice()
           .sort((a, b) => (a.legOrder ?? 0) - (b.legOrder ?? 0))

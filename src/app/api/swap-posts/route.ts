@@ -8,6 +8,7 @@ import { findMatchesForPost } from "@/services/matching/matchEngine";
 import { createNotification } from "@/lib/notifications";
 import { isSwapPostExpired } from "@/lib/swapExpiry";
 import { trackEventServer } from "@/lib/analytics/server";
+import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
 
 function normalizeFlightNumber(raw: string | null | undefined): string {
   const s = (raw ?? "").trim();
@@ -35,6 +36,74 @@ function normalizeAirportCodes(input: unknown): string[] {
     .map((s) => String(s).trim().toUpperCase())
     .filter(Boolean)
     .slice(0, 8);
+}
+
+type ManualOfferedTrip = {
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+  destination: string;
+  destinations: string[];
+  departureDate: Date;
+  layoverHours: number | null;
+  reportTime: string | null;
+  aircraftType: string | null;
+  blockHours: number | null;
+  flightNumber: string | null;
+};
+
+function normalizeManualOfferedTrips(
+  offeredTrips: unknown
+): { trips: ManualOfferedTrip[]; errorMessage?: string } {
+  if (!Array.isArray(offeredTrips)) return { trips: [] };
+  if (offeredTrips.length < MIN_TRIPS_PER_POST) {
+    return { trips: [], errorMessage: "At least one trip is required" };
+  }
+  if (offeredTrips.length > MAX_TRIPS_PER_POST) {
+    return { trips: [], errorMessage: `Maximum ${MAX_TRIPS_PER_POST} trips per post` };
+  }
+
+  const out: ManualOfferedTrip[] = [];
+  for (const raw of offeredTrips) {
+    if (!raw || typeof raw !== "object") return { trips: [], errorMessage: "Invalid offered trip payload" };
+    const trip = raw as {
+      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+      destination?: string;
+      destinations?: string[];
+      date?: string;
+      layoverHours?: number | null;
+      reportTime?: string | null;
+      aircraftTypeCode?: string | null;
+      blockHours?: number | null;
+      flightNumber?: string | null;
+    };
+    if (!trip.tripType || !trip.date) {
+      return { trips: [], errorMessage: "Each offered trip requires tripType and date" };
+    }
+    const destinations = normalizeAirportCodes(trip.destinations);
+    const singleDestination = String(trip.destination ?? "").trim().toUpperCase();
+    if (trip.tripType === "MULTI_STOP") {
+      if (destinations.length < 2) {
+        return { trips: [], errorMessage: "Multi-stop trips need at least 2 destinations" };
+      }
+    } else if (!singleDestination) {
+      return { trips: [], errorMessage: "Each non-multi-stop trip needs a destination" };
+    }
+    if (trip.tripType === "LAYOVER" && !(Number(trip.layoverHours) > 0)) {
+      return { trips: [], errorMessage: "Layover trips need a duration" };
+    }
+
+    out.push({
+      tripType: trip.tripType,
+      destination: trip.tripType === "MULTI_STOP" ? destinations[0] ?? "" : singleDestination,
+      destinations: trip.tripType === "MULTI_STOP" ? destinations : [singleDestination],
+      departureDate: new Date(`${trip.date}T00:00:00.000Z`),
+      layoverHours: trip.tripType === "LAYOVER" ? Number(trip.layoverHours) : null,
+      reportTime: trip.reportTime?.trim() ? trip.reportTime.trim() : null,
+      aircraftType: trip.aircraftTypeCode?.trim() ? trip.aircraftTypeCode.trim().toUpperCase() : null,
+      blockHours: trip.blockHours != null ? Number(trip.blockHours) : null,
+      flightNumber: trip.flightNumber?.trim() ? normalizeFlightNumber(trip.flightNumber) : null,
+    });
+  }
+  return { trips: out };
 }
 
 export async function GET(request: Request) {
@@ -97,6 +166,17 @@ export async function POST(request: Request) {
     vacationEndDay?: number;
     desiredVacationMonths?: number[];
     source?: "MANUAL_QUICK" | "SCHEDULE_PREFILL";
+    offeredTrips?: {
+      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+      destination?: string;
+      destinations?: string[];
+      date?: string;
+      layoverHours?: number | null;
+      reportTime?: string | null;
+      aircraftTypeCode?: string | null;
+      blockHours?: number | null;
+      flightNumber?: string | null;
+    }[];
     quickTrip?: {
       tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
       destinations?: string[];
@@ -156,25 +236,36 @@ export async function POST(request: Request) {
   }
 
   const selectedTrips = Array.isArray(body.selectedTrips) ? body.selectedTrips : [];
+  if (selectedTrips.length > MAX_TRIPS_PER_POST) {
+    return error(`Maximum ${MAX_TRIPS_PER_POST} trips per post`, 400);
+  }
   const selectedDaysOff = Array.isArray(body.selectedDaysOff) ? body.selectedDaysOff : [];
-  const quickTrip = body.quickTrip;
-  const hasQuickTrip = !!quickTrip?.tripType && !!quickTrip?.date;
-  if (postType === "OFFERING_TRIPS" && selectedTrips.length === 0 && !hasQuickTrip) {
-    return error("Flight Swap requires selectedTrips or quickTrip data", 400);
+  const normalizedManualTrips = normalizeManualOfferedTrips(body.offeredTrips);
+  if (normalizedManualTrips.errorMessage) {
+    return error(normalizedManualTrips.errorMessage, 400);
   }
 
-  const normalizedQuickTrip =
-    hasQuickTrip
-      ? {
-          tripType: quickTrip!.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP",
-          destinations: normalizeAirportCodes(quickTrip?.destinations),
-          date: String(quickTrip?.date),
-          layoverHours:
-            quickTrip?.layoverHours != null ? Number(quickTrip.layoverHours) : null,
-        }
-      : undefined;
-  if (normalizedQuickTrip && normalizedQuickTrip.destinations.length === 0) {
-    return error("quickTrip.destinations is required", 400);
+  // Backward compatibility for legacy single quick trip payload.
+  if (normalizedManualTrips.trips.length === 0 && body.quickTrip?.tripType && body.quickTrip?.date) {
+    const fallback = normalizeManualOfferedTrips([
+      {
+        tripType: body.quickTrip.tripType,
+        destination: body.quickTrip.destinations?.[0],
+        destinations: body.quickTrip.destinations,
+        date: body.quickTrip.date,
+        layoverHours: body.quickTrip.layoverHours ?? null,
+        reportTime: body.advanced?.reportTime ?? null,
+        aircraftTypeCode: body.advanced?.aircraftTypeCode ?? null,
+        blockHours: body.advanced?.blockHours ?? null,
+        flightNumber: body.advanced?.flightNumber ?? null,
+      },
+    ]);
+    if (fallback.errorMessage) return error(fallback.errorMessage, 400);
+    normalizedManualTrips.trips = fallback.trips;
+  }
+
+  if (postType === "OFFERING_TRIPS" && selectedTrips.length === 0 && normalizedManualTrips.trips.length === 0) {
+    return error("Flight Swap requires selectedTrips or offeredTrips data", 400);
   }
 
   const criteria = {
@@ -199,19 +290,37 @@ export async function POST(request: Request) {
   }
 
   const swapPostTrips: {
-    scheduleTripId: string;
-    flightNumber: string;
+    scheduleTripId?: string | null;
+    flightNumber?: string | null;
     destination: string;
+    destinations?: string[];
     departureDate: Date;
     tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
-    creditHours: number;
-    tafb: number;
+    creditHours?: number | null;
+    tafb?: number | null;
+    reportTime?: string | null;
+    aircraftType?: string | null;
+    blockHours?: number | null;
     hasLayover: boolean;
     layoverCity: string | null;
     layoverHours: number | null;
+    isManualEntry?: boolean;
   }[] = [];
 
   try {
+    if (selectedTrips.length > 0) {
+      const duplicate = await prisma.swapPostTrip.findFirst({
+        where: {
+          scheduleTripId: { in: selectedTrips },
+          swapPost: { userId: session.user.id, status: "OPEN" },
+        },
+        select: { scheduleTripId: true },
+      });
+      if (duplicate) {
+        return error("One of these trips is already in another open post. Cancel that post first.", 400);
+      }
+    }
+
     if (selectedTrips.length > 0) {
       const trips = await prisma.scheduleTrip.findMany({
         where: {
@@ -236,17 +345,42 @@ export async function POST(request: Request) {
           scheduleTripId: trip.id,
           flightNumber: normalizeFlightNumber(firstLeg?.flightNumber),
           destination,
+          destinations,
           departureDate: trip.startDate,
           tripType,
           creditHours: trip.creditHours,
           tafb: trip.tafb,
+          reportTime: trip.reportTime ?? null,
+          aircraftType: firstLeg?.aircraftTypeCode ?? null,
+          blockHours: trip.blockHours ?? null,
           hasLayover,
           layoverCity: hasLayover && layover ? layover.airport : null,
           layoverHours: hasLayover && layover ? layover.durationDecimal : null,
+          isManualEntry: false,
         });
       }
       if (postType === "OFFERING_TRIPS" && swapPostTrips.length === 0) {
         return error("Selected trips were not found in your schedule", 400);
+      }
+    } else if (normalizedManualTrips.trips.length > 0) {
+      for (const trip of normalizedManualTrips.trips) {
+        swapPostTrips.push({
+          scheduleTripId: null,
+          flightNumber: trip.flightNumber ?? null,
+          destination: trip.destination,
+          destinations: trip.destinations,
+          departureDate: trip.departureDate,
+          tripType: trip.tripType,
+          creditHours: trip.blockHours ?? 0,
+          tafb: null,
+          reportTime: trip.reportTime,
+          aircraftType: trip.aircraftType,
+          blockHours: trip.blockHours,
+          hasLayover: trip.tripType === "LAYOVER",
+          layoverCity: trip.tripType === "LAYOVER" ? trip.destination : null,
+          layoverHours: trip.layoverHours,
+          isManualEntry: true,
+        });
       }
     }
 
@@ -271,9 +405,25 @@ export async function POST(request: Request) {
       swapPostTrips,
       source:
         body.source ??
-        (swapPostTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
-      quickTrip: normalizedQuickTrip,
-      advanced: body.advanced,
+        (selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
+      quickTrip:
+        normalizedManualTrips.trips.length > 0
+          ? {
+              tripType: normalizedManualTrips.trips[0].tripType,
+              destinations: normalizedManualTrips.trips[0].destinations,
+              date: normalizedManualTrips.trips[0].departureDate.toISOString().slice(0, 10),
+              layoverHours: normalizedManualTrips.trips[0].layoverHours,
+            }
+          : undefined,
+      advanced:
+        normalizedManualTrips.trips.length > 0
+          ? {
+              reportTime: normalizedManualTrips.trips[0].reportTime,
+              aircraftTypeCode: normalizedManualTrips.trips[0].aircraftType,
+              blockHours: normalizedManualTrips.trips[0].blockHours,
+              flightNumber: normalizedManualTrips.trips[0].flightNumber,
+            }
+          : undefined,
       vacationStartDate: vacationStartDate ?? null,
       vacationEndDate: vacationEndDate ?? null,
       desiredVacationStart: desiredVacationStart ?? null,
@@ -308,12 +458,11 @@ export async function POST(request: Request) {
       path: "/dashboard/add-trade",
       properties: {
         postType,
-        source: body.source ?? (swapPostTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
+        source: body.source ?? (selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
         hasAdvanced: !!(
-          body.advanced?.reportTime ||
-          body.advanced?.aircraftTypeCode ||
-          body.advanced?.blockHours ||
-          body.advanced?.flightNumber
+          normalizedManualTrips.trips.some(
+            (trip) => trip.reportTime || trip.aircraftType || trip.blockHours || trip.flightNumber
+          )
         ),
       },
     }).catch(() => {});

@@ -240,19 +240,25 @@ model SwapPostTrip {
   id             String       @id @default(cuid())
   swapPostId     String
   swapPost       SwapPost     @relation(fields: [swapPostId], references: [id], onDelete: Cascade)
-  scheduleTripId String
-  scheduleTrip   ScheduleTrip @relation(fields: [scheduleTripId], references: [id])
-  flightNumber   String
+  scheduleTripId String?
+  scheduleTrip   ScheduleTrip? @relation(fields: [scheduleTripId], references: [id])
+  flightNumber   String?
   destination    String
+  destinations   String[]      @default([])
   departureDate  DateTime
   tripType       TripType
-  creditHours    Float
-  tafb           Float
+  creditHours    Float?
+  tafb           Float?
+  reportTime     String?
+  aircraftType   String?
+  blockHours     Float?
   hasLayover     Boolean
   layoverCity    String?
   layoverHours   Float?
+  isManualEntry  Boolean       @default(false)
 
   @@index([swapPostId])
+  @@index([scheduleTripId])
 }
 
 // ============================================

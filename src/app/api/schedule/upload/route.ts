@@ -5,6 +5,7 @@ import { findUserById } from "@/repositories/userRepository";
 import { parseScheduleFromText } from "@/services/schedule/scheduleParser";
 import * as scheduleRepo from "@/repositories/scheduleRepository";
 import { trackEventServer } from "@/lib/analytics/server";
+import { getUserAccess } from "@/utils/featureGates";
 
 export const maxDuration = 60;
 
@@ -12,6 +13,18 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized", message: "Please sign in" }, { status: 401 });
+  }
+
+  const access = await getUserAccess(session.user.id);
+  if (!access.canUploadSchedule) {
+    return NextResponse.json(
+      {
+        error: "UPLOAD_LIMIT_REACHED",
+        feature: "unlimited_uploads",
+        message: "Free tier is limited to 1 schedule upload per month. Upgrade to Premium for unlimited uploads.",
+      },
+      { status: 403 }
+    );
   }
 
   let rawText: string;

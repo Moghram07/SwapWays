@@ -247,7 +247,7 @@ export function MatchesClient({ initialMatches, currentUserId }: MatchesClientPr
   const [mySwapPosts, setMySwapPosts] = useState<SwapPostRecord[]>([]);
 
   const fetchSwapPosts = () => {
-    fetch("/api/swap-posts?mine=1")
+    fetch("/api/swap-posts?mine=1", { cache: "no-store", credentials: "include" })
       .then((r) => r.json())
       .then((json) => {
         setMySwapPosts(Array.isArray(json.data) ? json.data : []);
@@ -256,7 +256,7 @@ export function MatchesClient({ initialMatches, currentUserId }: MatchesClientPr
   };
 
   useEffect(() => {
-    fetch("/api/trades?mine=1")
+    fetch("/api/trades?mine=1", { cache: "no-store", credentials: "include" })
       .then((r) => r.json())
       .then((json) => {
         const items = json.data?.items ?? [];
@@ -284,7 +284,7 @@ export function MatchesClient({ initialMatches, currentUserId }: MatchesClientPr
     if (item.source === "swapPost") {
       fetchSwapPosts();
     } else {
-      fetch("/api/trades?mine=1")
+      fetch("/api/trades?mine=1", { cache: "no-store", credentials: "include" })
         .then((r) => r.json())
         .then((json) => {
           const items = json.data?.items ?? [];

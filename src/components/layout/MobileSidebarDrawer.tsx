@@ -39,9 +39,20 @@ interface MobileSidebarDrawerProps {
   onClose: () => void;
   unreadMessages?: number;
   isAdmin?: boolean;
+  access?: {
+    tier: "FREE" | "PREMIUM";
+    isTrialing: boolean;
+    trialDaysRemaining: number;
+  };
 }
 
-export function MobileSidebarDrawer({ open, onClose, unreadMessages = 0, isAdmin = false }: MobileSidebarDrawerProps) {
+export function MobileSidebarDrawer({
+  open,
+  onClose,
+  unreadMessages = 0,
+  isAdmin = false,
+  access,
+}: MobileSidebarDrawerProps) {
   const pathname = usePathname();
   const links = isAdmin ? [...baseLinks, adminLink] : baseLinks;
 
@@ -112,6 +123,24 @@ export function MobileSidebarDrawer({ open, onClose, unreadMessages = 0, isAdmin
             );
           })}
         </nav>
+        <div className="border-t border-slate-100 px-4 py-3">
+          {!access ? null : access.tier === "PREMIUM" ? (
+            <div className="rounded-lg bg-slate-50 px-3 py-2">
+              <p className="text-xs font-semibold text-slate-900">⭐ Premium</p>
+              {access.isTrialing ? (
+                <p className="text-[10px] text-slate-500">{access.trialDaysRemaining}d left in trial</p>
+              ) : null}
+            </div>
+          ) : (
+            <Link
+              href="/dashboard/upgrade"
+              onClick={onClose}
+              className="block w-full rounded-lg bg-gradient-to-r from-[#2668B0] to-[#3BA34A] px-3 py-2 text-center text-xs font-semibold text-white"
+            >
+              ⭐ Upgrade to Premium
+            </Link>
+          )}
+        </div>
         <div className="border-t border-slate-100 p-4">
           <Link
             href="/"

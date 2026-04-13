@@ -43,11 +43,15 @@ const swapPostSelect = {
   advancedFlightNumber: true,
   createdAt: true,
   updatedAt: true,
+  expiresAt: true,
   user: {
     select: {
       id: true,
       firstName: true,
       lastName: true,
+      tier: true,
+      trialEndsAt: true,
+      subscriptionStatus: true,
       rank: { select: { name: true, code: true } },
       base: { select: { name: true, airportCode: true } },
     },
@@ -126,6 +130,7 @@ export async function createSwapPost(
     vacationStartDay?: number | null;
     vacationEndDay?: number | null;
     desiredVacationMonths?: number[];
+    expiresAt?: Date | null;
     source?: SwapPostInputSource;
     quickTrip?: QuickPostTripData;
     advanced?: QuickPostAdvancedData;
@@ -158,6 +163,7 @@ export async function createSwapPost(
       vacationStartDay: data.vacationStartDay ?? undefined,
       vacationEndDay: data.vacationEndDay ?? undefined,
       desiredVacationMonths: data.desiredVacationMonths ?? [],
+      expiresAt: data.expiresAt ?? undefined,
       inputSource: data.source ?? (data.swapPostTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
       quickTripType: data.quickTrip?.tripType,
       quickDestinations: data.quickTrip?.destinations ?? [],

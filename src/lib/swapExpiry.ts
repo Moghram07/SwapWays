@@ -28,6 +28,7 @@ type TripLike = {
 
 type SwapPostLike = {
   postType: string;
+  expiresAt?: Date | string | null;
   vacationYear?: number | null;
   vacationMonth?: number | null;
   vacationStartDate?: Date | string | null;
@@ -109,6 +110,10 @@ export function isTradeExpired(trade: TradeLike, now = new Date()): boolean {
 }
 
 export function isSwapPostExpired(post: SwapPostLike, now = new Date()): boolean {
+  if (post.expiresAt) {
+    return now.getTime() >= toDate(post.expiresAt).getTime();
+  }
+
   if (post.postType === "VACATION_SWAP") {
     if (post.vacationYear && post.vacationMonth) {
       return now.getTime() >= getRiyadhMonthStartUtc(post.vacationYear, post.vacationMonth).getTime();

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 import { MessageCircle, Moon } from "lucide-react";
 import { getTripTypeInfo } from "@/utils/tripClassifier";
 import { creditHoursToHumanReadable, formatZuluTime } from "@/utils/timeUtils";
@@ -10,6 +10,8 @@ import { getAirportCity, getAirportDisplay } from "@/utils/airportNames";
 import { useTimeFormat } from "@/hooks/useTimeFormat";
 import { TripTypeBadge } from "@/components/trip/TripTypeBadge";
 import { MatchBadge } from "@/components/swap-post/MatchBadge";
+import { NotesDisplay } from "@/components/swap-post/NotesDisplay";
+import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 
 const PRIMARY = "var(--primary)";
 const PRIMARY_CTA = "var(--primary-cta)";
@@ -106,8 +108,11 @@ interface PostCardData {
   vacationEndDay?: number | null;
   desiredVacationMonths?: number[];
   matchPercent?: number;
+  matchTier?: "low" | "medium" | "high" | "none";
   matchReasons?: string[];
   bestTripIndex?: number | null;
+  userTier?: "FREE" | "PREMIUM";
+  notesIsTruncated?: boolean;
 }
 
 function getWantTypeLabel(type: WantType): string {
@@ -469,6 +474,11 @@ function getPillLabel(pill: "active" | "pending" | "completed") {
 }
 
 export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill }: SwapPostTradeBoardCardProps) {
+  const [upgradeModal, setUpgradeModal] = useState<{
+    open: boolean;
+    feature?: string;
+    reason?: string;
+  }>({ open: false });
   const syntheticQuickTrip: TripRow[] =
     post.offeredTrips.length === 0 &&
     post.quickTripType &&
@@ -505,8 +515,8 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
           </span>
         </div>
       )}
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2">
           <div
             className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)]/10"
           >
@@ -519,7 +529,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
             <span className="ml-1 text-xs text-slate-500">· {post.user.base.name} Base</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
           {post.source === "MANUAL_QUICK" ? (
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
               Quick
@@ -532,7 +542,9 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
           {typeof post.matchPercent === "number" && post.matchPercent > 0 && (
             <MatchBadge
               percent={post.matchPercent}
+              tier={post.matchTier}
               reasons={post.matchReasons ?? []}
+              userTier={post.userTier ?? "PREMIUM"}
               bestTripLabel={
                 offeringTrips.length > 1 && typeof post.bestTripIndex === "number"
                   ? `Trip ${post.bestTripIndex + 1}`
@@ -540,6 +552,16 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
               }
             />
           )}
+          {(post.userTier ?? "PREMIUM") === "FREE" &&
+            post.matchTier &&
+            post.matchTier !== "none" && (
+              <MatchBadge
+                percent={null}
+                tier={post.matchTier}
+                reasons={[]}
+                userTier="FREE"
+              />
+            )}
           {(() => {
             const d = post.createdAt ? new Date(post.createdAt) : null;
             const valid = d && !Number.isNaN(d.getTime());
@@ -657,11 +679,28 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
         </div>
       )}
 
-      {post.notes && (
-        <div className="border-t border-slate-100 px-4 py-2">
-          <p className="text-sm italic text-slate-600">&quot;{post.notes}&quot;</p>
-        </div>
-      )}
+      <NotesDisplay
+        notes={post.notes ?? null}
+        isTruncated={post.notesIsTruncated ?? false}
+        onUpgradeClick={
+          post.notesIsTruncated
+            ? () =>
+                setUpgradeModal({
+                  open: true,
+                  feature: "full_notes",
+                  reason:
+                    "Full swap notes are available on Premium so you can review details before messaging.",
+                })
+            : undefined
+        }
+      />
+
+      <UpgradeModal
+        isOpen={upgradeModal.open}
+        feature={upgradeModal.feature}
+        reason={upgradeModal.reason}
+        onClose={() => setUpgradeModal({ open: false })}
+      />
     </div>
   );
 }

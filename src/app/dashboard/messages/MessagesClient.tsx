@@ -53,7 +53,7 @@ export function MessagesClient({
   return (
     <div className="space-y-4">
       <h1 className="dashboard-page-title text-2xl text-slate-900">Messages</h1>
-      <div className="flex h-[calc(100vh-12rem)] rounded-xl border border-slate-200 bg-white overflow-hidden">
+      <div className="flex h-[calc(100vh-12rem)] max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div
           className={`w-full min-w-0 md:w-80 md:min-w-[18rem] md:max-w-sm shrink-0 border-r border-slate-200 flex flex-col overflow-hidden ${
             selectedId ? "hidden md:flex" : "flex"

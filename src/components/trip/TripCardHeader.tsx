@@ -147,15 +147,17 @@ export function TripCardHeader({
   baseAirportCode,
   onEdit,
 }: TripCardHeaderProps) {
-  const destinationLabel = trip.destinations
+  const firstLeg = trip.legs[0];
+  const destinationDesktopLabel = trip.destinations
     .map((code) => getAirportDisplay(code))
     .join(" + ");
+  const destinationMobileLabel = trip.destinations.length > 0 ? trip.destinations.join(" + ") : destinationDesktopLabel;
   const prefix = trip.airlineCode ?? "SV";
-  const primaryFlightNumber = trip.legs[0]
-    ? `${prefix}${trip.legs[0].flightNumber}`
+  const primaryFlightNumber = firstLeg
+    ? `${prefix}${firstLeg.flightNumber}`
     : "";
   const dateLabel = formatTripDateRange(trip, timeMode);
-  const reportAirport = baseAirportCode ?? trip.legs[0]?.departureAirport ?? "";
+  const reportAirport = baseAirportCode ?? firstLeg?.departureAirport ?? "";
   const reportLabel =
     trip.reportTime &&
     (timeMode === "local" && reportAirport
@@ -163,37 +165,34 @@ export function TripCardHeader({
       : formatZuluTime(trip.reportTime));
 
   return (
-    <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <div className="flex min-w-0 flex-1 items-start gap-2 sm:items-center sm:gap-3">
         <TripTypeBadge typeInfo={typeInfo} />
-        <div>
-          <span className="font-semibold text-gray-900">
-            {primaryFlightNumber}
-          </span>
-          <span className="mx-2 text-gray-500">·</span>
-          <span className="text-sm text-gray-600">{destinationLabel}</span>
-          <span className="mx-2 text-gray-500">·</span>
-          <span className="text-sm text-gray-500">{dateLabel}</span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-semibold text-gray-900">
+            {primaryFlightNumber} · <span className="sm:hidden">{destinationMobileLabel}</span>
+            <span className="hidden sm:inline">{destinationDesktopLabel}</span>
+          </div>
+          <div className="truncate text-xs text-gray-500 sm:text-sm">
+            {dateLabel}
+          </div>
           {reportLabel && (
-            <>
-              <span className="mx-2 text-gray-500">·</span>
-              <span className="text-sm text-gray-600">
-                Report:{" "}
-                <span
-                  className={
-                    timeMode === "local"
-                      ? "font-medium text-green-600"
-                      : "font-medium text-blue-600"
-                  }
-                >
-                  {reportLabel}
-                </span>
+            <div className="truncate text-xs text-gray-600 sm:text-sm">
+              Report:{" "}
+              <span
+                className={
+                  timeMode === "local"
+                    ? "font-medium text-green-600"
+                    : "font-medium text-blue-600"
+                }
+              >
+                {reportLabel}
               </span>
-            </>
+            </div>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 sm:flex-nowrap">
         {trip.scheduleTripId && onEdit && (
           <button
             type="button"
@@ -203,14 +202,16 @@ export function TripCardHeader({
             Edit
           </button>
         )}
-        <CardActions
-          trip={trip}
-          typeInfo={typeInfo}
-          onSwap={onSwap}
-          onCancelSwap={onCancelSwap}
-          onAcceptMatch={onAcceptMatch}
-          onDeclineMatch={onDeclineMatch}
-        />
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap">
+          <CardActions
+            trip={trip}
+            typeInfo={typeInfo}
+            onSwap={onSwap}
+            onCancelSwap={onCancelSwap}
+            onAcceptMatch={onAcceptMatch}
+            onDeclineMatch={onDeclineMatch}
+          />
+        </div>
       </div>
     </div>
   );

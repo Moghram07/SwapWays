@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { findConversationsByUserId } from "@/repositories/conversationRepository";
 import { createNotification } from "@/lib/notifications";
+import { getUserAccess } from "@/utils/featureGates";
 
 function unauthorized() {
   return NextResponse.json({ data: null, error: "Unauthorized", message: "Please sign in" }, { status: 401 });
@@ -20,6 +21,7 @@ function json(data: unknown) {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return unauthorized();
+  const access = await getUserAccess(session.user.id);
 
   let body: {
     tradeId?: string;
@@ -55,6 +57,19 @@ export async function POST(request: Request) {
     });
     if (existing) {
       return json({ ...existing, isExisting: true });
+    }
+
+    if (!access.canStartNewConversation) {
+      return NextResponse.json(
+        {
+          data: null,
+          error: "CONVERSATION_LIMIT_REACHED",
+          feature: "multiple_conversations",
+          message:
+            "Free tier is limited to 1 active conversation. Close your current conversation or upgrade to Premium for unlimited conversations.",
+        },
+        { status: 403 }
+      );
     }
 
     const tripIds = Array.isArray(offeredTripIds) ? offeredTripIds : offeredTripId ? [offeredTripId] : [];
@@ -147,6 +162,19 @@ export async function POST(request: Request) {
     return json({ ...existing, isExisting: true });
   }
 
+  if (!access.canStartNewConversation) {
+    return NextResponse.json(
+      {
+        data: null,
+        error: "CONVERSATION_LIMIT_REACHED",
+        feature: "multiple_conversations",
+        message:
+          "Free tier is limited to 1 active conversation. Close your current conversation or upgrade to Premium for unlimited conversations.",
+      },
+      { status: 403 }
+    );
+  }
+
   if (offeredTripId) {
     const ownedTrip = await prisma.scheduleTrip.findFirst({
       where: {
@@ -211,7 +239,15 @@ export async function POST(request: Request) {
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return unauthorized();
+  const access = await getUserAccess(session.user.id);
 
   const withUnread = await findConversationsByUserId(session.user.id);
-  return json(withUnread);
+  if (access.canViewConversationHistory) {
+    return json(withUnread);
+  }
+  return json(
+    withUnread.filter((conversation) =>
+      ["ACTIVE", "SWAP_PROPOSED", "SWAP_ACCEPTED"].includes(conversation.status)
+    )
+  );
 }

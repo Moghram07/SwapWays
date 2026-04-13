@@ -9,6 +9,7 @@ import { createNotification } from "@/lib/notifications";
 import { isSwapPostExpired } from "@/lib/swapExpiry";
 import { trackEventServer } from "@/lib/analytics/server";
 import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
+import { getUserAccess } from "@/utils/featureGates";
 
 function normalizeFlightNumber(raw: string | null | undefined): string {
   const s = (raw ?? "").trim();
@@ -36,6 +37,15 @@ function normalizeAirportCodes(input: unknown): string[] {
     .map((s) => String(s).trim().toUpperCase())
     .filter(Boolean)
     .slice(0, 8);
+}
+
+function addDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function getVacationMonthStart(year: number | undefined, month: number | undefined): Date | null {
+  if (!year || !month || month < 1 || month > 12) return null;
+  return new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
 }
 
 type ManualOfferedTrip = {
@@ -137,6 +147,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return unauthorized();
+  const access = await getUserAccess(session.user.id);
 
   let body: {
     postType?: string;
@@ -200,6 +211,17 @@ export async function POST(request: Request) {
   const validTypes = ["OFFERING_TRIPS", "VACATION_SWAP"];
   if (!postType || !validTypes.includes(postType)) {
     return error("postType is required and must be one of: " + validTypes.join(", "), 400);
+  }
+  if (postType === "VACATION_SWAP" && !access.canPostVacationSwap) {
+    return NextResponse.json(
+      {
+        data: null,
+        error: "PREMIUM_REQUIRED",
+        feature: "vacation_swap",
+        message: "Vacation swaps are a Premium feature. Upgrade to post vacation swaps.",
+      },
+      { status: 403 }
+    );
   }
 
   if (postType === "VACATION_SWAP") {
@@ -397,6 +419,26 @@ export async function POST(request: Request) {
       ? (body.desiredVacationMonths as number[]).map((m) => Number(m)).filter((m) => m >= 1 && m <= 12)
       : undefined;
 
+    const now = new Date();
+    const expiresAt = (() => {
+      if (access.tier === "FREE") return addDays(now, 7);
+      if (postType === "VACATION_SWAP") {
+        return (
+          getVacationMonthStart(vacationYear ?? undefined, vacationMonth ?? undefined) ??
+          vacationStartDate ??
+          null
+        );
+      }
+      if (swapPostTrips.length > 0) {
+        const earliestTripDate = swapPostTrips.reduce<Date | null>((earliest, trip) => {
+          if (!earliest) return trip.departureDate;
+          return trip.departureDate.getTime() < earliest.getTime() ? trip.departureDate : earliest;
+        }, null);
+        return earliestTripDate;
+      }
+      return null;
+    })();
+
     const post = await createSwapPost(session.user.id, {
       postType,
       offeringDaysOff: false,
@@ -433,6 +475,7 @@ export async function POST(request: Request) {
       vacationStartDay: vacationStartDay ?? null,
       vacationEndDay: vacationEndDay ?? null,
       desiredVacationMonths: desiredVacationMonths ?? [],
+      expiresAt,
     });
 
     try {

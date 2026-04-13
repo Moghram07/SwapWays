@@ -9,6 +9,8 @@ import { ChatInput } from "./ChatInput";
 import { SwapProposalBar } from "./SwapProposalBar";
 import { useMessages } from "@/hooks/useMessages";
 import { mapTripsForChat } from "@/utils/chatTripMapping";
+import { ConversationLockScreen } from "@/components/chat/ConversationLockScreen";
+import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 
 interface ConversationDetail {
   id: string;
@@ -62,28 +64,40 @@ interface ChatWindowProps {
 export function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
   const [conversation, setConversation] = useState<ConversationDetail | null>(null);
   const [conversationError, setConversationError] = useState<string | null>(null);
+  const [isConversationLocked, setIsConversationLocked] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const fetchConversation = (id: string) => {
     setConversationError(null);
-    fetch(`/api/conversations/${id}`)
-      .then((r) => {
-        if (!r.ok) {
-          setConversationError(r.status === 503 ? "Conversation temporarily unavailable. Try again." : "Could not load conversation.");
+    void (async () => {
+      try {
+        const response = await fetch(`/api/conversations/${id}`);
+        const json = await response.json().catch(() => ({} as Record<string, unknown>));
+        if (!response.ok) {
           setConversation(null);
-          return null;
+          if (response.status === 403 && json?.feature === "conversation_history") {
+            setIsConversationLocked(true);
+            setConversationError(null);
+            return;
+          }
+          setIsConversationLocked(false);
+          setConversationError(
+            response.status === 503
+              ? "Conversation temporarily unavailable. Try again."
+              : "Could not load conversation."
+          );
+          return;
         }
-        return r.json();
-      })
-      .then((json) => {
-        if (json == null) return;
-        const data = json.data;
+        setIsConversationLocked(false);
+        const data = (json as { data?: ConversationDetail | null }).data;
         setConversation(data ?? null);
         if (!data) setConversationError("Could not load conversation.");
-      })
-      .catch(() => {
+      } catch {
+        setIsConversationLocked(false);
         setConversationError("Could not load conversation.");
         setConversation(null);
-      });
+      }
+    })();
   };
 
   const isDropdownOpenRef = useRef(false);
@@ -142,6 +156,23 @@ export function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
           Retry
         </button>
       </div>
+    );
+  }
+
+  if (isConversationLocked) {
+    return (
+      <>
+        <ConversationLockScreen
+          hasActiveConversation
+          onUpgradeClick={() => setShowUpgradeModal(true)}
+        />
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          feature="conversation_history"
+          reason="Free tier can only view active conversations. Upgrade to Premium for full conversation history."
+          onClose={() => setShowUpgradeModal(false)}
+        />
+      </>
     );
   }
 

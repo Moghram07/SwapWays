@@ -96,6 +96,13 @@ model User {
   avatarUrl     String?
   hasUsVisa     Boolean  @default(false)
   hasChinaVisa  Boolean  @default(false)
+  tier          UserTier @default(PREMIUM)
+  trialStartedAt DateTime @default(now())
+  trialEndsAt    DateTime @default(now())
+  subscriptionStatus SubscriptionStatus @default(TRIALING)
+  subscribedAt   DateTime?
+  subscriptionRenewsAt DateTime?
+  cancelledAt    DateTime?
   isActive      Boolean  @default(true)
   isAdmin       Boolean  @default(false)
   createdAt     DateTime @default(now())
@@ -118,6 +125,7 @@ model User {
   appEvents              AppEvent[]
 
   @@unique([airlineId, crewId])
+  @@index([subscriptionStatus, trialEndsAt])
 }
 
 model UserQualification {
@@ -597,6 +605,19 @@ enum MatchStatus {
   PENDING
   ACCEPTED
   REJECTED
+  EXPIRED
+}
+
+enum UserTier {
+  FREE
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
   EXPIRED
 }
 

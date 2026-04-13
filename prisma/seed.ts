@@ -15,20 +15,78 @@ async function main() {
     update: {},
   });
 
-  for (const r of saudiaConfig.ranks.cabin) {
+  const desiredCabinRanks = saudiaConfig.ranks.cabin.map((r) => ({
+    ...r,
+    category: "CABIN" as const,
+  }));
+  const desiredFlightDeckRanks = saudiaConfig.ranks.flightDeck.map((r) => ({
+    ...r,
+    category: "FLIGHT_DECK" as const,
+  }));
+  const desiredRanks = [...desiredCabinRanks, ...desiredFlightDeckRanks];
+  const desiredRankCodes = new Set(desiredRanks.map((r) => r.code));
+
+  for (const r of desiredRanks) {
     await prisma.rank.upsert({
       where: { airlineId_code: { airlineId: airline.id, code: r.code } },
-      create: { airlineId: airline.id, name: r.name, code: r.code, category: "CABIN", sortOrder: r.sortOrder },
-      update: {},
+      create: { airlineId: airline.id, name: r.name, code: r.code, category: r.category, sortOrder: r.sortOrder },
+      update: { name: r.name, category: r.category, sortOrder: r.sortOrder },
     });
   }
-  for (const r of saudiaConfig.ranks.flightDeck) {
-    await prisma.rank.upsert({
-      where: { airlineId_code: { airlineId: airline.id, code: r.code } },
-      create: { airlineId: airline.id, name: r.name, code: r.code, category: "FLIGHT_DECK", sortOrder: r.sortOrder },
-      update: {},
+
+  const ranksAfterUpsert = await prisma.rank.findMany({
+    where: { airlineId: airline.id },
+    select: { id: true, code: true },
+  });
+  const rankIdByCode = new Map(ranksAfterUpsert.map((r) => [r.code, r.id]));
+
+  // Migrate users off deprecated rank codes before removing those rank rows.
+  const legacyToNewCode: Record<string, string> = {
+    HST: "YC",
+    STW: "YC",
+    CHF: "CHEF",
+    BTL: "BULTER",
+    FO: "FRIST OFFICER",
+    CPT: "CAPTAIN",
+  };
+  for (const [legacyCode, newCode] of Object.entries(legacyToNewCode)) {
+    const oldId = rankIdByCode.get(legacyCode);
+    const newId = rankIdByCode.get(newCode);
+    if (!oldId || !newId) continue;
+    await prisma.user.updateMany({
+      where: { airlineId: airline.id, rankId: oldId },
+      data: { rankId: newId },
     });
   }
+
+  const fallbackRankId =
+    rankIdByCode.get("YC") ??
+    rankIdByCode.get("PC") ??
+    desiredRanks
+      .map((r) => rankIdByCode.get(r.code))
+      .find((id): id is string => typeof id === "string");
+
+  const obsoleteRanks = await prisma.rank.findMany({
+    where: {
+      airlineId: airline.id,
+      code: { notIn: Array.from(desiredRankCodes) },
+    },
+    select: { id: true, code: true },
+  });
+  for (const obsolete of obsoleteRanks) {
+    if (fallbackRankId) {
+      await prisma.user.updateMany({
+        where: { airlineId: airline.id, rankId: obsolete.id },
+        data: { rankId: fallbackRankId },
+      });
+    }
+  }
+  await prisma.rank.deleteMany({
+    where: {
+      airlineId: airline.id,
+      code: { notIn: Array.from(desiredRankCodes) },
+    },
+  });
 
   for (const at of saudiaConfig.aircraftTypes) {
     await prisma.aircraftType.upsert({

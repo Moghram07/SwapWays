@@ -115,6 +115,8 @@ export async function POST(request: Request) {
   }
 
   const qualifications = Array.from(chosenByFamily.values()).map((t) => ({ aircraftTypeId: t.id }));
+  const trialStartedAt = new Date();
+  const trialEndsAt = new Date(trialStartedAt.getTime() + 90 * 24 * 60 * 60 * 1000);
   const user = await createUser({
     email: normalizedEmail,
     passwordHash,
@@ -126,6 +128,10 @@ export async function POST(request: Request) {
     baseId: base.id,
     phone,
     isAdmin,
+    tier: "PREMIUM",
+    subscriptionStatus: "TRIALING",
+    trialStartedAt,
+    trialEndsAt,
     qualifications,
   });
   await trackEventServer({

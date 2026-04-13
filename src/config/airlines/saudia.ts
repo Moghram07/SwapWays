@@ -7,17 +7,16 @@ export const saudiaConfig: AirlineConfig = {
 
   ranks: {
     cabin: [
-      { code: "HST", name: "Hostess", sortOrder: 1 },
-      { code: "STW", name: "Steward", sortOrder: 2 },
-      { code: "PC", name: "Purser (Business Class)", sortOrder: 3 },
-      { code: "SNF", name: "Senior Flight Attendant", sortOrder: 4 },
-      { code: "GD", name: "Guest Director", sortOrder: 5 },
-      { code: "CHF", name: "Chef", sortOrder: 6 },
-      { code: "BTL", name: "Butler", sortOrder: 7 },
+      { code: "YC", name: "YC", sortOrder: 1 },
+      { code: "PC", name: "PC", sortOrder: 2 },
+      { code: "SNF", name: "SNF", sortOrder: 3 },
+      { code: "CHEF", name: "CHEF", sortOrder: 4 },
+      { code: "BULTER", name: "BULTER", sortOrder: 5 },
+      { code: "GD", name: "GD", sortOrder: 6 },
     ],
     flightDeck: [
-      { code: "CPT", name: "Captain", sortOrder: 1 },
-      { code: "FO", name: "First Officer", sortOrder: 2 },
+      { code: "FRIST OFFICER", name: "FRIST OFFICER", sortOrder: 1 },
+      { code: "CAPTAIN", name: "CAPTAIN", sortOrder: 2 },
     ],
   },
 

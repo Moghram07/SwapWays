@@ -4,10 +4,13 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { DashboardHeader } from "./DashboardHeader";
 import { MobileSidebarDrawer } from "./MobileSidebarDrawer";
+import { useUserAccess } from "@/hooks/useUserAccess";
+import { TrialBanner } from "@/components/subscription/TrialBanner";
 
 export function DashboardShell({ children, isAdmin }: { children: React.ReactNode; isAdmin: boolean }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const { access } = useUserAccess();
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -41,11 +44,12 @@ export function DashboardShell({ children, isAdmin }: { children: React.ReactNod
   }, []);
 
   return (
-    <div className="flex min-h-screen w-full bg-[#F7F9FC]">
-      <Sidebar unreadMessages={unreadMessages} isAdmin={isAdmin} />
-      <div className="flex flex-1 flex-col min-h-0">
+    <div className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F9FC]">
+      <Sidebar unreadMessages={unreadMessages} isAdmin={isAdmin} access={access} />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <TrialBanner daysRemaining={access?.isTrialing ? access.trialDaysRemaining : 0} />
         <DashboardHeader onMenuClick={() => setMobileMenuOpen(true)} />
-        <main className="flex-1 overflow-auto p-6 md:p-8">
+        <main className="flex-1 max-w-full overflow-y-auto overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
           {children}
         </main>
       </div>
@@ -54,6 +58,7 @@ export function DashboardShell({ children, isAdmin }: { children: React.ReactNod
         onClose={() => setMobileMenuOpen(false)}
         unreadMessages={unreadMessages}
         isAdmin={isAdmin}
+        access={access}
       />
     </div>
   );

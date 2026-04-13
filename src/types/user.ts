@@ -28,6 +28,13 @@ export interface CreateUserInput {
   baseId: string;
   phone?: string;
   isAdmin?: boolean;
+  tier?: "FREE" | "PREMIUM";
+  trialStartedAt?: Date;
+  trialEndsAt?: Date;
+  subscriptionStatus?: "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELLED" | "EXPIRED";
+  subscribedAt?: Date;
+  subscriptionRenewsAt?: Date;
+  cancelledAt?: Date;
 }
 
 export interface UpdateUserInput {

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getUserAccess } from "@/utils/featureGates";
 
 function unauthorized() {
   return NextResponse.json(
@@ -22,6 +23,7 @@ export async function GET(
   if (!session?.user?.id) return unauthorized();
 
   const { id } = await params;
+  const access = await getUserAccess(session.user.id);
 
   try {
     const conversation = await prisma.conversation.findUnique({
@@ -141,6 +143,22 @@ export async function GET(
       conversation.postOwnerId === session.user.id;
 
     if (!isParticipant) return error("Unauthorized", 403);
+
+    if (
+      !access.canViewConversationHistory &&
+      !["ACTIVE", "SWAP_PROPOSED", "SWAP_ACCEPTED"].includes(conversation.status)
+    ) {
+      return NextResponse.json(
+        {
+          data: null,
+          error: "PREMIUM_REQUIRED",
+          feature: "conversation_history",
+          message:
+            "Free tier can only view active conversations. Upgrade to Premium to access full conversation history.",
+        },
+        { status: 403 }
+      );
+    }
 
     return NextResponse.json({
       data: conversation,

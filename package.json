@@ -16,6 +16,7 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:status": "prisma migrate status",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:backfill:tiers": "npx tsx scripts/backfill-tiers.ts",
     "db:studio": "prisma studio",
     "db:cleanup:saudia-fleet": "node scripts/cleanup-saudia-aircraft-fleet.mjs",
     "load:smoke": "k6 run scripts/load/k6-smoke.js",

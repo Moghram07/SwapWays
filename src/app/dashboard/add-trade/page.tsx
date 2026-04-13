@@ -9,6 +9,8 @@ import type { TripOption } from "@/components/swap-post/TripSelector";
 import type { WantCriteriaData } from "@/types/swapPost";
 import type { QuickPostOfferedTripData, SwapPostInputSource } from "@/types/swapPost";
 import { isQuickPostEnabledForUser } from "@/lib/featureFlags";
+import { useUserAccess } from "@/hooks/useUserAccess";
+import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 
 function getScheduledDaysFromTrips(
   trips: TripOption[],
@@ -77,6 +79,12 @@ export default function PostToTradeBoardPage() {
   const [loading, setLoading] = useState(true);
   const [editPost, setEditPost] = useState<EditPostData | null>(null);
   const [editLoading, setEditLoading] = useState(!!editId);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState<string>("line_swap");
+  const [upgradeReason, setUpgradeReason] = useState<string>(
+    "Upgrade to Premium to unlock this feature."
+  );
+  const { access } = useUserAccess();
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
@@ -233,7 +241,27 @@ export default function PostToTradeBoardPage() {
       </div>
       {isLineSwapMode ? (
         <div className="mx-auto max-w-2xl">
-          <LineSwapForm />
+          {access && !access.canPostLineSwap ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+              <h2 className="text-xl font-semibold text-slate-900">Line swaps are Premium</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Upgrade to Premium to post whole-month line swaps.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setUpgradeFeature("line_swap");
+                  setUpgradeReason("Line swaps let you trade your entire monthly schedule with another crew member.");
+                  setShowUpgradeModal(true);
+                }}
+                className="mt-4 rounded-lg bg-[#2668B0] px-4 py-2.5 text-sm font-medium text-white"
+              >
+                Upgrade to Premium
+              </button>
+            </div>
+          ) : (
+            <LineSwapForm />
+          )}
         </div>
       ) : (
         <CreatePostFlow
@@ -253,10 +281,30 @@ export default function PostToTradeBoardPage() {
           initialVacationStartDay={editPost?.vacationStartDay != null ? editPost.vacationStartDay : undefined}
           initialVacationEndDay={editPost?.vacationEndDay != null ? editPost.vacationEndDay : undefined}
           initialDesiredVacationMonths={editPost?.desiredVacationMonths}
-          onSelectLineSwap={() => router.push("/dashboard/add-trade?type=line-swap")}
+          onSelectLineSwap={() => {
+            if (access && !access.canPostLineSwap) {
+              setUpgradeFeature("line_swap");
+              setUpgradeReason("Line swaps let you trade your entire monthly schedule with another crew member.");
+              setShowUpgradeModal(true);
+              return;
+            }
+            router.push("/dashboard/add-trade?type=line-swap");
+          }}
+          canPostVacationSwap={access?.canPostVacationSwap ?? true}
+          onPremiumRequired={(feature, reason) => {
+            setUpgradeFeature(feature);
+            setUpgradeReason(reason);
+            setShowUpgradeModal(true);
+          }}
           quickPostEnabled={quickPostEnabled}
         />
       )}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        feature={upgradeFeature}
+        reason={upgradeReason}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </div>
   );
 }

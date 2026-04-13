@@ -6,6 +6,7 @@ import type { CreateLineSwapPostInput } from "@/types/lineSwap";
 import type { LineType } from "@/types/enums";
 import { isLineSwapExpired } from "@/lib/swapExpiry";
 import { trackEventServer } from "@/lib/analytics/server";
+import { getUserAccess } from "@/utils/featureGates";
 
 function unauthorized() {
   return NextResponse.json(
@@ -98,6 +99,19 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return unauthorized();
+
+  const access = await getUserAccess(session.user.id);
+  if (!access.canPostLineSwap) {
+    return NextResponse.json(
+      {
+        data: null,
+        error: "PREMIUM_REQUIRED",
+        feature: "line_swap",
+        message: "Line swaps are a Premium feature. Upgrade to post line swaps.",
+      },
+      { status: 403 }
+    );
+  }
 
   const body = (await request.json().catch(() => null)) as CreateLineSwapPostInput | null;
   if (!body) {

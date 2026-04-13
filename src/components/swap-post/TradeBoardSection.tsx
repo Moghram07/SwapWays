@@ -6,6 +6,8 @@ import { TradeBoardFilters, type SwapBoardFilters } from "@/components/swap-post
 import { SwapPostTradeBoardCard } from "@/components/swap-post/TradeBoardCard";
 import { getAirportCity } from "@/utils/airportNames";
 import { TimeFormatToggle } from "@/components/trip/TimeFormatToggle";
+import { UpgradeModal } from "@/components/subscription/UpgradeModal";
+import { useUserAccess } from "@/hooks/useUserAccess";
 
 const defaultFilters: SwapBoardFilters = {
   postType: "",
@@ -33,7 +35,8 @@ interface BoardPost {
   wantDaysOff: boolean;
   notes: string | null;
   createdAt: string;
-  matchPercent?: number;
+  matchPercent?: number | null;
+  matchTier?: "low" | "medium" | "high" | "none";
   matchReasons?: string[];
   matchBreakdown?: {
     wtfDayOverlap: number;
@@ -45,6 +48,8 @@ interface BoardPost {
   } | null;
   failReason?: string | null;
   bestTripIndex?: number | null;
+  userTier?: "FREE" | "PREMIUM";
+  notesIsTruncated?: boolean;
   user: {
     firstName: string;
     rank: { name: string; code: string };
@@ -125,6 +130,12 @@ export function TradeBoardSection() {
   const [offeredTripId, setOfferedTripId] = useState<string>("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [upgradeModal, setUpgradeModal] = useState<{
+    open: boolean;
+    feature?: string;
+    reason?: string;
+  }>({ open: false });
+  const { access } = useUserAccess();
 
   const fetchBoard = useCallback(() => {
     const params = new URLSearchParams();
@@ -203,6 +214,13 @@ export function TradeBoardSection() {
       .then(async (r) => {
         const json = await r.json().catch(() => ({}));
         if (!r.ok) {
+          if (json?.error === "CONVERSATION_LIMIT_REACHED") {
+            setUpgradeModal({
+              open: true,
+              feature: "multiple_conversations",
+              reason: json?.message ?? "Upgrade to Premium for unlimited parallel conversations.",
+            });
+          }
           throw new Error(json.error ?? "Could not start conversation. Try again.");
         }
         return json;
@@ -307,9 +325,12 @@ export function TradeBoardSection() {
       advancedBlockHours: p.advancedBlockHours ?? undefined,
       advancedFlightNumber: p.advancedFlightNumber ?? undefined,
       createdAt: new Date(p.createdAt),
-      matchPercent: p.matchPercent ?? 0,
+      matchPercent: p.matchPercent ?? null,
+      matchTier: p.matchTier ?? "none",
       matchReasons: p.matchReasons ?? [],
       bestTripIndex: p.bestTripIndex ?? null,
+      userTier: p.userTier ?? "PREMIUM",
+      notesIsTruncated: p.notesIsTruncated ?? false,
       vacationStartDate: p.vacationStartDate ? new Date(p.vacationStartDate) : undefined,
       vacationEndDate: p.vacationEndDate ? new Date(p.vacationEndDate) : undefined,
       desiredVacationStart: p.desiredVacationStart ? new Date(p.desiredVacationStart) : undefined,
@@ -324,11 +345,20 @@ export function TradeBoardSection() {
 
   return (
     <div className="space-y-4">
-      <TradeBoardFilters filters={filters} onChange={setFilters} />
-      <div className="flex justify-end">
-        <div className="origin-top-right scale-110">
-          <TimeFormatToggle />
-        </div>
+      <TradeBoardFilters
+        filters={filters}
+        onChange={setFilters}
+        hasAdvancedFilters={access?.hasAdvancedFilters ?? true}
+        onRequireUpgrade={() =>
+          setUpgradeModal({
+            open: true,
+            feature: "advanced_filters",
+            reason: "Advanced Trade Board filters are available on Premium.",
+          })
+        }
+      />
+      <div className="pt-1">
+        <TimeFormatToggle />
       </div>
       {loading ? (
         <p className="py-8 text-center text-slate-600">Loading…</p>
@@ -435,7 +465,7 @@ export function TradeBoardSection() {
                 type="button"
                 onClick={handleSendMessage}
                 disabled={sending}
-                className="rounded-lg px-6 py-2.5 text-sm font-medium text-white disabled:opacity-50 inline-flex items-center justify-center gap-2 min-w-[120px]"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-white disabled:opacity-50 sm:w-auto sm:min-w-[120px]"
                 style={{ backgroundColor: "var(--primary-cta)" }}
               >
                 {sending ? (
@@ -451,6 +481,13 @@ export function TradeBoardSection() {
           </div>
         </div>
       )}
+
+      <UpgradeModal
+        isOpen={upgradeModal.open}
+        feature={upgradeModal.feature}
+        reason={upgradeModal.reason}
+        onClose={() => setUpgradeModal({ open: false })}
+      />
     </div>
   );
 }

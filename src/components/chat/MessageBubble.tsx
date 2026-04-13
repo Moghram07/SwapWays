@@ -31,7 +31,7 @@ export function MessageBubble({
             : "bg-slate-100 text-slate-900 rounded-bl-md"
         }`}
       >
-        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
         <p
           className={`text-xs mt-1 ${
             isOwn ? "text-blue-200" : "text-slate-400"

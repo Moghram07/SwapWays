@@ -5,6 +5,7 @@ import { findUserById } from "@/repositories/userRepository";
 import { findSwapPostsForBoard } from "@/repositories/swapPostRepository";
 import { getTradeboardForViewer } from "@/services/matching/matchEngine";
 import { isSwapPostExpired } from "@/lib/swapExpiry";
+import { getMatchTier, getUserAccess, truncateNotesForFree } from "@/utils/featureGates";
 
 function unauthorized() {
   return NextResponse.json(
@@ -46,12 +47,17 @@ export async function GET(request: Request) {
       : lookingForNextDaysRaw.split(",").map((d) => parseInt(d, 10)).filter((n) => !Number.isNaN(n) && n >= 1 && n <= 31);
 
   try {
+    const access = await getUserAccess(session.user.id);
+    const effectiveTripType = access.hasAdvancedFilters ? tripType : undefined;
+    const effectiveDestination = access.hasAdvancedFilters ? destination : undefined;
+    const effectiveCurrentDays = access.hasAdvancedFilters ? lookingForCurrentDays : [];
+    const effectiveNextDays = access.hasAdvancedFilters ? lookingForNextDays : [];
     const filters: Parameters<typeof findSwapPostsForBoard>[2] = {
       postType: postType as "OFFERING_TRIPS" | "VACATION_SWAP",
-      tripType,
-      destination,
-      lookingForCurrentDays,
-      lookingForNextDays,
+      tripType: effectiveTripType,
+      destination: effectiveDestination,
+      lookingForCurrentDays: effectiveCurrentDays,
+      lookingForNextDays: effectiveNextDays,
     };
     if (filters.postType === "VACATION_SWAP" && user.rankId) {
       filters.rankId = user.rankId;
@@ -68,6 +74,15 @@ export async function GET(request: Request) {
 
     const enriched = posts.map((post) => {
       const match = matchMap.get(post.id);
+      const rawMatchPercent = match?.matchPercent ?? 0;
+      const notesView = access.canSeeFullNotes
+        ? { notes: post.notes, isTruncated: false }
+        : truncateNotesForFree(post.notes);
+      const ownerIsPriority =
+        post.user.tier === "PREMIUM" &&
+        (post.user.subscriptionStatus === "ACTIVE" ||
+          (post.user.subscriptionStatus === "TRIALING" &&
+            post.user.trialEndsAt.getTime() > Date.now()));
       const totalBlock = post.offeredTrips.reduce(
         (sum, t) => sum + (t.blockHours ?? t.creditHours ?? 0),
         0
@@ -77,25 +92,34 @@ export async function GET(request: Request) {
         .sort((a, b) => a.getTime() - b.getTime())[0];
       return {
         ...post,
-        matchPercent: match?.matchPercent ?? 0,
-        matchBreakdown: match?.breakdown ?? null,
+        notes: notesView.notes,
+        notesIsTruncated: notesView.isTruncated,
+        userTier: access.tier,
+        matchPercent: access.canSeeExactMatch ? rawMatchPercent : null,
+        matchTier: getMatchTier(rawMatchPercent),
+        matchBreakdown: access.canSeeExactMatch ? match?.breakdown ?? null : null,
         matchingTrips: match?.matchingTrips ?? [],
-        matchReasons: match?.reasons ?? [],
+        matchReasons: access.canSeeExactMatch ? match?.reasons ?? [] : [],
         failReason: match?.failReason ?? null,
         bestTripIndex: match?.bestTripIndex ?? null,
+        priorityPlacement: ownerIsPriority,
         __sortBlock: totalBlock,
         __sortDate: firstDate ? firstDate.getTime() : Number.MAX_SAFE_INTEGER,
       };
     });
 
     const sorted = enriched.sort((a, b) => {
+      if (a.priorityPlacement && !b.priorityPlacement) return -1;
+      if (!a.priorityPlacement && b.priorityPlacement) return 1;
       if (sortBy === "recent") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       if (sortBy === "block_high") return b.__sortBlock - a.__sortBlock;
       if (sortBy === "block_low") return a.__sortBlock - b.__sortBlock;
       if (sortBy === "date_soon") return a.__sortDate - b.__sortDate;
-      if (a.matchPercent > 0 && b.matchPercent === 0) return -1;
-      if (a.matchPercent === 0 && b.matchPercent > 0) return 1;
-      return b.matchPercent - a.matchPercent;
+      const aScore = typeof a.matchPercent === "number" ? a.matchPercent : 0;
+      const bScore = typeof b.matchPercent === "number" ? b.matchPercent : 0;
+      if (aScore > 0 && bScore === 0) return -1;
+      if (aScore === 0 && bScore > 0) return 1;
+      return bScore - aScore;
     });
 
     return json(

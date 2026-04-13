@@ -3,10 +3,20 @@ import type { CreateUserInput } from "@/types/user";
 
 export async function createUser(data: CreateUserInput & { qualifications: { aircraftTypeId: string }[] }) {
   const { qualifications, ...userData } = data;
+  const trialStartedAt = userData.trialStartedAt ?? new Date();
+  const trialEndsAt =
+    userData.trialEndsAt ?? new Date(trialStartedAt.getTime() + 90 * 24 * 60 * 60 * 1000);
   return prisma.user.create({
     data: {
       ...userData,
       isAdmin: userData.isAdmin ?? false,
+      tier: userData.tier ?? "PREMIUM",
+      trialStartedAt,
+      trialEndsAt,
+      subscriptionStatus: userData.subscriptionStatus ?? "TRIALING",
+      subscribedAt: userData.subscribedAt,
+      subscriptionRenewsAt: userData.subscriptionRenewsAt,
+      cancelledAt: userData.cancelledAt,
       qualifications: { create: qualifications.map((q) => ({ aircraftTypeId: q.aircraftTypeId })) },
     },
     include: {

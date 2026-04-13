@@ -18,6 +18,8 @@ export interface SwapBoardFilters {
 interface TradeBoardFiltersProps {
   filters: SwapBoardFilters;
   onChange: (f: SwapBoardFilters) => void;
+  hasAdvancedFilters?: boolean;
+  onRequireUpgrade?: () => void;
 }
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -30,7 +32,12 @@ function daySummary(
   return `${monthName}: ${days.slice(0, 5).join(", ")}${days.length > 5 ? ` +${days.length - 5}` : ""}`;
 }
 
-export function TradeBoardFilters({ filters, onChange }: TradeBoardFiltersProps) {
+export function TradeBoardFilters({
+  filters,
+  onChange,
+  hasAdvancedFilters = true,
+  onRequireUpgrade,
+}: TradeBoardFiltersProps) {
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(true);
   const now = useMemo(() => new Date(), []);
@@ -54,8 +61,8 @@ export function TradeBoardFilters({ filters, onChange }: TradeBoardFiltersProps)
     filters.lookingForCurrentDays.length > 0 || filters.lookingForNextDays.length > 0;
 
   const filterRow = (
-    <div className="flex flex-wrap gap-4 md:gap-6">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-3 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+      <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Sort</span>
         <select
           value={filters.sortBy}
@@ -65,7 +72,7 @@ export function TradeBoardFilters({ filters, onChange }: TradeBoardFiltersProps)
               sortBy: (e.target.value || "match") as SwapBoardFilters["sortBy"],
             })
           }
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
         >
           <option value="match">Best match first</option>
           <option value="recent">Most recent first</option>
@@ -74,12 +81,13 @@ export function TradeBoardFilters({ filters, onChange }: TradeBoardFiltersProps)
           <option value="date_soon">Soonest date</option>
         </select>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">What</span>
+        <div className="flex flex-col gap-2">
         <select
             value={filters.postType}
             onChange={(e) => onChange({ ...filters, postType: (e.target.value || "") as SwapBoardFilters["postType"] })}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
           >
             <option value="">All post types</option>
             <option value="OFFERING_TRIPS">Flight Swap</option>
@@ -88,7 +96,8 @@ export function TradeBoardFilters({ filters, onChange }: TradeBoardFiltersProps)
           <select
             value={filters.tripType}
             onChange={(e) => onChange({ ...filters, tripType: (e.target.value || "") as SwapBoardFilters["tripType"] })}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+            disabled={!hasAdvancedFilters}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
           >
             <option value="">All trip types</option>
             <option value="LAYOVER">Layovers only</option>
@@ -96,24 +105,29 @@ export function TradeBoardFilters({ filters, onChange }: TradeBoardFiltersProps)
             <option value="MULTI_STOP">Multi-stop only</option>
           </select>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+      </div>
+        <div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-2">
           <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">Where</span>
-          <input
-            type="text"
-            value={filters.destination}
-            onChange={(e) => onChange({ ...filters, destination: e.target.value })}
-            placeholder="Destination (e.g. DXB)"
-            className="w-32 sm:w-36 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500"
-          />
-          <select
-            value={filters.routeType}
-            onChange={(e) => onChange({ ...filters, routeType: (e.target.value || "") as SwapBoardFilters["routeType"] })}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
-          >
-            <option value="">All routes</option>
-            <option value="domestic">Domestic only</option>
-            <option value="international">International only</option>
-          </select>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              type="text"
+              value={filters.destination}
+              onChange={(e) => onChange({ ...filters, destination: e.target.value })}
+              placeholder="Destination (e.g. DXB)"
+              disabled={!hasAdvancedFilters}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500"
+            />
+            <select
+              value={filters.routeType}
+              onChange={(e) => onChange({ ...filters, routeType: (e.target.value || "") as SwapBoardFilters["routeType"] })}
+              disabled={!hasAdvancedFilters}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+            >
+              <option value="">All routes</option>
+              <option value="domestic">Domestic only</option>
+              <option value="international">International only</option>
+            </select>
+          </div>
         </div>
       </div>
   );
@@ -140,7 +154,13 @@ export function TradeBoardFilters({ filters, onChange }: TradeBoardFiltersProps)
       <div className="rounded-lg border border-slate-200 bg-slate-50/50 overflow-hidden">
         <button
           type="button"
-          onClick={() => setDayPickerOpen((o) => !o)}
+          onClick={() => {
+            if (!hasAdvancedFilters) {
+              onRequireUpgrade?.();
+              return;
+            }
+            setDayPickerOpen((o) => !o);
+          }}
           className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left hover:bg-slate-100/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-inset"
           aria-expanded={dayPickerOpen}
         >
@@ -151,6 +171,11 @@ export function TradeBoardFilters({ filters, onChange }: TradeBoardFiltersProps)
               <ChevronRight className="h-4 w-4 text-slate-500 shrink-0" />
             )}
             <span className="text-sm font-medium text-gray-700">Pick days</span>
+            {!hasAdvancedFilters ? (
+              <span className="rounded-full bg-[#E3EFF9] px-2 py-0.5 text-[10px] font-semibold text-[#2668B0]">
+                Premium
+              </span>
+            ) : null}
             <span className="text-xs text-slate-500 font-normal">
               {totalSelected > 0 ? `${totalSelected} day${totalSelected === 1 ? "" : "s"} selected` : ""}
             </span>
@@ -162,33 +187,35 @@ export function TradeBoardFilters({ filters, onChange }: TradeBoardFiltersProps)
             <p className="mb-3 text-xs text-gray-500">
               Show posts with trips on these days (this month and next month).
             </p>
-            <div className="flex flex-wrap gap-8">
-              <div>
-                <p className="mb-2 text-xs font-medium text-slate-600">
-                  {currentMonthLabel} {currentYear}
-                </p>
-                <WtfDayPicker
-                  label=""
-                  selectedDays={filters.lookingForCurrentDays}
-                  scheduledDays={[]}
-                  month={currentMonth}
-                  year={currentYear}
-                  minSelectableDay={today}
-                  onChange={(days) => onChange({ ...filters, lookingForCurrentDays: days })}
-                />
-              </div>
-              <div>
-                <p className="mb-2 text-xs font-medium text-slate-600">
-                  {nextMonthLabel} {nextYear}
-                </p>
-                <WtfDayPicker
-                  label=""
-                  selectedDays={filters.lookingForNextDays}
-                  scheduledDays={[]}
-                  month={nextMonth}
-                  year={nextYear}
-                  onChange={(days) => onChange({ ...filters, lookingForNextDays: days })}
-                />
+            <div className="overflow-x-auto">
+              <div className="flex min-w-max gap-8 pr-2 sm:flex-wrap">
+                <div>
+                  <p className="mb-2 text-xs font-medium text-slate-600">
+                    {currentMonthLabel} {currentYear}
+                  </p>
+                  <WtfDayPicker
+                    label=""
+                    selectedDays={filters.lookingForCurrentDays}
+                    scheduledDays={[]}
+                    month={currentMonth}
+                    year={currentYear}
+                    minSelectableDay={today}
+                    onChange={(days) => onChange({ ...filters, lookingForCurrentDays: days })}
+                  />
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-medium text-slate-600">
+                    {nextMonthLabel} {nextYear}
+                  </p>
+                  <WtfDayPicker
+                    label=""
+                    selectedDays={filters.lookingForNextDays}
+                    scheduledDays={[]}
+                    month={nextMonth}
+                    year={nextYear}
+                    onChange={(days) => onChange({ ...filters, lookingForNextDays: days })}
+                  />
+                </div>
               </div>
             </div>
           </div>

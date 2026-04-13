@@ -66,6 +66,8 @@ export interface CreatePostFlowProps {
   initialDesiredVacationMonths?: number[];
   onSelectLineSwap?: () => void;
   quickPostEnabled?: boolean;
+  canPostVacationSwap?: boolean;
+  onPremiumRequired?: (feature: string, reason: string) => void;
 }
 
 const steps: CreatePostStep[] = ["type", "offering", "wants", "preview"];
@@ -90,6 +92,8 @@ export function CreatePostFlow({
   initialDesiredVacationMonths,
   onSelectLineSwap,
   quickPostEnabled = true,
+  canPostVacationSwap = true,
+  onPremiumRequired,
 }: CreatePostFlowProps) {
   const hasPreselected = initialSelectedTripIds != null && initialSelectedTripIds.length > 0;
   const hasInitialType = initialPostType === "VACATION_SWAP";
@@ -128,14 +132,16 @@ export function CreatePostFlow({
     },
   ]);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentStepIndex = steps.indexOf(step);
 
   const selectedTripObjects = myTrips.filter((t) => selectedTrips.includes(t.id));
 
   async function handleSubmit() {
-    if (!postType) return;
+    if (!postType || isSubmitting) return;
     setSubmitError(null);
+    setIsSubmitting(true);
     try {
       await onSubmit({
         postType,
@@ -160,6 +166,8 @@ export function CreatePostFlow({
       });
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Failed to create post. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -184,6 +192,8 @@ export function CreatePostFlow({
             setStep("offering");
           }}
           onSelectLineSwap={onSelectLineSwap}
+          canPostVacationSwap={canPostVacationSwap}
+          onPremiumRequired={onPremiumRequired}
         />
       )}
 
@@ -222,11 +232,13 @@ export function CreatePostFlow({
                 <QuickPostForm
                   offeredTrips={offeredTrips}
                   wantCriteria={wantCriteria}
+                  selectedDaysOff={selectedDaysOff}
                   month={month}
                   year={year}
                   scheduledDays={scheduledDays}
                   onOfferedTripsChange={setOfferedTrips}
                   onWantCriteriaChange={setWantCriteria}
+                  onSelectedDaysOffChange={setSelectedDaysOff}
                   onNext={() => setStep("preview")}
                   onBack={() => setStep("type")}
                 />
@@ -321,7 +333,9 @@ export function CreatePostFlow({
             vacationEndDay={postType === "VACATION_SWAP" ? vacationEndDay : undefined}
             desiredVacationMonths={postType === "VACATION_SWAP" ? desiredVacationMonths : undefined}
             onPost={handleSubmit}
+            isSubmitting={isSubmitting}
             onBack={() => {
+              if (isSubmitting) return;
               setSubmitError(null);
               if (postType === "VACATION_SWAP") {
                 setStep("offering");

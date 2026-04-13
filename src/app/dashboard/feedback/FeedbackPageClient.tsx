@@ -51,7 +51,7 @@ export function FeedbackPageClient() {
             <select
               value={type}
               onChange={(e) => setType(e.target.value as FeedbackType)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1E6FB9]"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#1E6FB9]"
             >
               <option value="REQUEST">Request</option>
               <option value="QUESTION">Question</option>
@@ -63,7 +63,7 @@ export function FeedbackPageClient() {
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1E6FB9]"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#1E6FB9]"
               placeholder="Short title"
             />
           </label>
@@ -77,7 +77,7 @@ export function FeedbackPageClient() {
             required
             minLength={10}
             rows={6}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-[#1E6FB9]"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 outline-none focus:border-[#1E6FB9]"
             placeholder="Describe your request, issue, or idea..."
           />
         </label>

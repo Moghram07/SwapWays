@@ -58,7 +58,7 @@ export function HowItWorks() {
                 transition={{ delay: i * 0.1 }}
               >
                 <span
-                  className="absolute right-4 top-4 text-5xl font-extrabold tabular-nums text-slate-100"
+                  className="absolute right-4 top-4 text-5xl font-extrabold tabular-nums text-gray-400"
                   aria-hidden
                 >
                   {i + 1}

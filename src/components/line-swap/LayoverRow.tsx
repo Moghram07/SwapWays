@@ -21,7 +21,7 @@ export function LayoverRow({
         value={layover.destination}
         onChange={(e) => onChange({ ...layover, destination: e.target.value.toUpperCase() })}
         placeholder="e.g. LHR"
-        className="w-28 rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-900"
+        className="w-28 rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-gray-900 placeholder:text-gray-400"
       />
       <input
         type="number"
@@ -29,20 +29,20 @@ export function LayoverRow({
         max={99}
         value={layover.hours || ""}
         onChange={(e) => onChange({ ...layover, hours: Number(e.target.value) || 0 })}
-        className="w-16 rounded-lg border border-slate-200 px-2 py-1.5 text-center text-sm text-slate-900"
+        className="w-16 rounded-lg border border-slate-200 px-2 py-1.5 text-center text-sm text-gray-900 placeholder:text-gray-400"
         placeholder="0"
       />
-      <span className="text-xs text-slate-400">h</span>
+      <span className="text-xs text-gray-500">h</span>
       <input
         type="number"
         min={0}
         max={59}
         value={layover.minutes || ""}
         onChange={(e) => onChange({ ...layover, minutes: Number(e.target.value) || 0 })}
-        className="w-16 rounded-lg border border-slate-200 px-2 py-1.5 text-center text-sm text-slate-900"
+        className="w-16 rounded-lg border border-slate-200 px-2 py-1.5 text-center text-sm text-gray-900 placeholder:text-gray-400"
         placeholder="0"
       />
-      <span className="text-xs text-slate-400">m</span>
+      <span className="text-xs text-gray-500">m</span>
       <button type="button" onClick={onRemove} className="ml-1 text-sm text-red-500 hover:text-red-700">
         x
       </button>

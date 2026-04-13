@@ -131,11 +131,11 @@ export function LineSwapForm() {
       <div className="rounded-xl border border-slate-200 p-4">
         <h3 className="mb-3 text-sm font-semibold text-slate-700">My Line</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <input value={lineNumber} onChange={(e) => setLineNumber(e.target.value)} placeholder="Line # (e.g. 404)" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-          <select value={month} onChange={(e) => setMonth(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm">
+          <input value={lineNumber} onChange={(e) => setLineNumber(e.target.value)} placeholder="Line # (e.g. 404)" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
+          <select value={month} onChange={(e) => setMonth(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900">
             {monthOptions.map((m) => <option key={m}>{m}</option>)}
           </select>
-          <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value) || new Date().getFullYear())} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          <input type="number" value={year} onChange={(e) => setYear(Number(e.target.value) || new Date().getFullYear())} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
         </div>
 
         <div className="mt-3">
@@ -159,8 +159,8 @@ export function LineSwapForm() {
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <input type="number" value={daysOffStart} onChange={(e) => setDaysOffStart(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Days off from" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-          <input type="number" value={daysOffEnd} onChange={(e) => setDaysOffEnd(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Days off to" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          <input type="number" value={daysOffStart} onChange={(e) => setDaysOffStart(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Days off from" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
+          <input type="number" value={daysOffEnd} onChange={(e) => setDaysOffEnd(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Days off to" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" checked={hasReserve} onChange={(e) => setHasReserve(e.target.checked)} />
@@ -208,7 +208,7 @@ export function LineSwapForm() {
                         prev.map((l, i) => (i === index ? { ...l, destination: e.target.value } : l))
                       )
                     }
-                    className="w-48 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    className="w-48 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
                   >
                     <option value="">Select destination</option>
                     {airports.map((airport) => (
@@ -227,7 +227,7 @@ export function LineSwapForm() {
                         prev.map((l, i) => (i === index ? { ...l, hours: Number(e.target.value) || 0 } : l))
                       )
                     }
-                    className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-center text-sm"
+                    className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm text-gray-900 placeholder:text-gray-400"
                     placeholder="0"
                   />
                   <span className="text-xs text-slate-500">hrs</span>
@@ -255,14 +255,14 @@ export function LineSwapForm() {
       <div className="rounded-xl border border-slate-200 p-4">
         <h3 className="mb-3 text-sm font-semibold text-slate-700">What I Want</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <input type="number" value={wantDaysOffStart} onChange={(e) => setWantDaysOffStart(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Preferred days off from" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
-          <input type="number" value={wantDaysOffEnd} onChange={(e) => setWantDaysOffEnd(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Preferred days off to" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          <input type="number" value={wantDaysOffStart} onChange={(e) => setWantDaysOffStart(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Preferred days off from" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
+          <input type="number" value={wantDaysOffEnd} onChange={(e) => setWantDaysOffEnd(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Preferred days off to" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
         </div>
         <div className="mt-3">
           <select
             value={wantDestination}
             onChange={(e) => setWantDestination(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
           >
             <option value="">Any destination</option>
             {airports.map((airport) => (
@@ -295,7 +295,7 @@ export function LineSwapForm() {
           <input type="checkbox" checked={wantNoReserve} onChange={(e) => setWantNoReserve(e.target.checked)} />
           No Reserve (RR)
         </label>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Looking for off 2-7 please..." className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Looking for off 2-7 please..." className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
       </div>
 
       <div className="flex items-center justify-between pt-2">

@@ -138,12 +138,12 @@ export function AdminPageClient() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by user, subject, message"
-              className="min-w-72 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+              className="min-w-72 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
             />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-gray-900"
             >
               <option value="">All statuses</option>
               <option value="OPEN">Open</option>

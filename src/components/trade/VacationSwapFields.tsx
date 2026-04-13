@@ -38,7 +38,7 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
         <div className="space-y-2">
           <Label>Vacation month (required)</Label>
           <select
-            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
             value={props.vacationMonth === "" ? "" : props.vacationMonth}
             onChange={(e) => {
               const v = e.target.value;
@@ -56,7 +56,7 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
         <div className="space-y-2">
           <Label>Year (required)</Label>
           <select
-            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
             value={props.vacationYear === "" ? "" : props.vacationYear}
             onChange={(e) => {
               const v = e.target.value;

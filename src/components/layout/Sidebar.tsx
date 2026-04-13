@@ -17,6 +17,7 @@ import {
   Loader2,
   ShieldCheck,
   LifeBuoy,
+  Smartphone,
 } from "lucide-react";
 
 const PRIMARY = "#1E6FB9";
@@ -31,6 +32,7 @@ const baseLinks = [
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell, prefetchUrls: [] as string[] },
   { href: "/dashboard/schedule", label: "Crew Schedule", icon: Calendar, prefetchUrls: ["/api/schedule/events"] },
   { href: "/dashboard/feedback", label: "Help & Feedback", icon: LifeBuoy, prefetchUrls: [] as string[] },
+  { href: "/dashboard/install", label: "Install App", icon: Smartphone, prefetchUrls: [] as string[] },
   { href: "/dashboard/profile", label: "Profile", icon: User, prefetchUrls: ["/api/profile"] },
 ];
 
@@ -41,7 +43,21 @@ const adminLink = {
   prefetchUrls: ["/api/admin/feedback", "/api/admin/stats"],
 };
 
-export function Sidebar({ unreadMessages, isAdmin }: { unreadMessages: number; isAdmin: boolean }) {
+type SidebarAccess = {
+  tier: "FREE" | "PREMIUM";
+  isTrialing: boolean;
+  trialDaysRemaining: number;
+} | undefined;
+
+export function Sidebar({
+  unreadMessages,
+  isAdmin,
+  access,
+}: {
+  unreadMessages: number;
+  isAdmin: boolean;
+  access?: SidebarAccess;
+}) {
   const pathname = usePathname();
   const [navigatingHref, setNavigatingHref] = useState<string | null>(null);
   const links = isAdmin ? [...baseLinks, adminLink] : baseLinks;
@@ -126,6 +142,28 @@ export function Sidebar({ unreadMessages, isAdmin }: { unreadMessages: number; i
           );
         })}
       </nav>
+      <div className="border-t border-slate-100 px-4 py-3">
+        {!access ? null : access.tier === "PREMIUM" ? (
+          <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">⭐</span>
+              <div>
+                <p className="text-xs font-semibold text-slate-900">Premium</p>
+                {access.isTrialing ? (
+                  <p className="text-[10px] text-slate-500">{access.trialDaysRemaining}d left in trial</p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <Link
+            href="/dashboard/upgrade"
+            className="block w-full rounded-lg bg-gradient-to-r from-[#2668B0] to-[#3BA34A] px-3 py-2 text-center text-xs font-semibold text-white hover:opacity-90"
+          >
+            ⭐ Upgrade to Premium
+          </Link>
+        )}
+      </div>
       <div className="border-t border-slate-100 p-4">
         <Link
           href="/"

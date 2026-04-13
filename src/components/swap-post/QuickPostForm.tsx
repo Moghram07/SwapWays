@@ -10,11 +10,13 @@ import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
 interface QuickPostFormProps {
   offeredTrips: QuickPostOfferedTripData[];
   wantCriteria: WantCriteriaData;
+  selectedDaysOff: number[];
   month: number;
   year: number;
   scheduledDays: number[];
   onOfferedTripsChange: (value: QuickPostOfferedTripData[]) => void;
   onWantCriteriaChange: (value: WantCriteriaData) => void;
+  onSelectedDaysOffChange: (value: number[]) => void;
   onBack: () => void;
   onNext: () => void;
 }
@@ -26,7 +28,7 @@ const tripTypeOptions: Array<{ value: QuickPostOfferedTripData["tripType"]; labe
 ];
 
 const wantTypeOptions: Array<{ value: WantCriteriaData["wantType"]; label: string }> = [
-  { value: "LAYOVER", label: "Any layover" },
+  { value: "LAYOVER", label: "Layover" },
   { value: "ROUND_TRIP", label: "Round trip" },
   { value: "ANYTHING", label: "Anything" },
   { value: "DAYS_OFF", label: "Days off" },
@@ -57,11 +59,13 @@ function formatHours(decimal: number): string {
 export function QuickPostForm({
   offeredTrips,
   wantCriteria,
+  selectedDaysOff,
   month,
   year,
   scheduledDays,
   onOfferedTripsChange,
   onWantCriteriaChange,
+  onSelectedDaysOffChange,
   onBack,
   onNext,
 }: QuickPostFormProps) {
@@ -70,17 +74,21 @@ export function QuickPostForm({
   const totalBlockHours = offeredTrips.reduce((sum, trip) => sum + (trip.blockHours ?? 0), 0);
   const canAddMore = offeredTrips.length < MAX_TRIPS_PER_POST;
 
-  const canProceed = offeredTrips.length >= MIN_TRIPS_PER_POST && offeredTrips.every((trip) => {
-    if (!trip.date) return false;
-    if (trip.tripType === "MULTI_STOP") {
-      return trip.destinations.filter(Boolean).length >= 2;
-    }
-    if (!trip.destination) return false;
-    if (trip.tripType === "LAYOVER") {
-      return (trip.layoverHours ?? 0) > 0;
-    }
-    return true;
-  });
+  const canProceed =
+    offeredTrips.length >= MIN_TRIPS_PER_POST &&
+    offeredTrips.every((trip) => {
+      if (!trip.date) return false;
+      if (trip.tripType === "MULTI_STOP") {
+        return trip.destinations.filter(Boolean).length >= 2;
+      }
+      if (!trip.destination) return false;
+      if (trip.tripType === "LAYOVER") {
+        return (trip.layoverHours ?? 0) > 0;
+      }
+      return true;
+    }) &&
+    (wantCriteria.wantType !== "DAYS_OFF" ||
+      (selectedDaysOff.length > 0 && wantCriteria.wtfDays.length > 0));
 
   const updateTrip = (tripId: number | undefined, updates: Partial<QuickPostOfferedTripData>) => {
     onOfferedTripsChange(
@@ -101,7 +109,7 @@ export function QuickPostForm({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Quick Post — like WhatsApp</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Quick Post</h2>
         <p className="text-sm text-slate-500">Offer up to {MAX_TRIPS_PER_POST} trips as one package.</p>
       </div>
 
@@ -167,7 +175,7 @@ export function QuickPostForm({
                   <div className="space-y-2">
                     {trip.destinations.map((dest, idx) => (
                       <div key={`${trip.id ?? index}-stop-${idx}`} className="flex items-center gap-2">
-                        <span className="w-8 text-center text-xs text-slate-400">#{idx + 1}</span>
+                        <span className="w-8 text-center text-xs text-gray-500">#{idx + 1}</span>
                         <select
                           value={dest}
                           onChange={(e) => {
@@ -175,7 +183,7 @@ export function QuickPostForm({
                             next[idx] = e.target.value;
                             updateTrip(trip.id, { destinations: next });
                           }}
-                          className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                          className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
                         >
                           <option value="">Select airport</option>
                           {airports.map((airport) => (
@@ -207,7 +215,7 @@ export function QuickPostForm({
                   >
                     + Add stop
                   </button>
-                  <p className="mt-1 text-xs text-slate-400">e.g. JED → MED → JED → EAM → JED</p>
+                  <p className="mt-1 text-xs text-gray-500">e.g. JED → MED → JED → EAM → JED</p>
                 </div>
               ) : (
                 <div className="mb-4">
@@ -215,7 +223,7 @@ export function QuickPostForm({
                   <select
                     value={trip.destination ?? ""}
                     onChange={(e) => updateTrip(trip.id, { destination: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
                   >
                     <option value="">Select destination</option>
                     {internationalAirports.map((airport) => (
@@ -234,7 +242,7 @@ export function QuickPostForm({
                     type="date"
                     value={trip.date}
                     onChange={(e) => updateTrip(trip.id, { date: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
                   />
                 </div>
                 {trip.tripType === "LAYOVER" && (
@@ -247,7 +255,7 @@ export function QuickPostForm({
                       value={trip.layoverHours ?? ""}
                       onChange={(e) => updateTrip(trip.id, { layoverHours: e.target.value ? Number(e.target.value) : null })}
                       placeholder="e.g. 32"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                 )}
@@ -265,7 +273,7 @@ export function QuickPostForm({
                       value={trip.reportTime ?? ""}
                       onChange={(e) => updateTrip(trip.id, { reportTime: e.target.value })}
                       placeholder="08.30Z"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
@@ -275,7 +283,7 @@ export function QuickPostForm({
                       value={trip.aircraftTypeCode ?? ""}
                       onChange={(e) => updateTrip(trip.id, { aircraftTypeCode: e.target.value })}
                       placeholder="32N"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
@@ -287,7 +295,7 @@ export function QuickPostForm({
                       value={trip.blockHours ?? ""}
                       onChange={(e) => updateTrip(trip.id, { blockHours: e.target.value ? Number(e.target.value) : null })}
                       placeholder="9.5"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                     />
                   </div>
                   <div>
@@ -315,7 +323,7 @@ export function QuickPostForm({
             + Add another trip
           </button>
         ) : (
-          <div className="mt-4 w-full rounded-xl border-2 border-dashed border-slate-200 py-2.5 text-center text-sm text-slate-400">
+          <div className="mt-4 w-full rounded-xl border-2 border-dashed border-slate-200 py-2.5 text-center text-sm text-gray-500">
             Maximum {MAX_TRIPS_PER_POST} trips per post
           </div>
         )}
@@ -352,27 +360,47 @@ export function QuickPostForm({
           </div>
         </div>
 
-        <div className="mb-4">
-          <label className="mb-1 block text-sm font-medium text-slate-700">Want destinations (optional)</label>
-          <DesiredDestinations
-            selected={wantCriteria.wantDestinations}
-            onChange={(d) => onWantCriteriaChange({ ...wantCriteria, wantDestinations: d })}
-            hideLabel
-          />
-        </div>
+        {wantCriteria.wantType !== "DAYS_OFF" ? (
+          <>
+            <div className="mb-4">
+              <label className="mb-1 block text-sm font-medium text-slate-700">Want destinations (optional)</label>
+              <DesiredDestinations
+                selected={wantCriteria.wantDestinations}
+                onChange={(d) => onWantCriteriaChange({ ...wantCriteria, wantDestinations: d })}
+                hideLabel
+              />
+            </div>
 
-        <div className="mb-4">
-          <label className="mb-1 block text-sm font-medium text-slate-700">Exclude destinations (optional)</label>
-          <DesiredDestinations
-            selected={wantCriteria.wantExclude}
-            onChange={(d) => onWantCriteriaChange({ ...wantCriteria, wantExclude: d })}
-            hideLabel
-          />
-        </div>
+            <div className="mb-4">
+              <label className="mb-1 block text-sm font-medium text-slate-700">Exclude destinations (optional)</label>
+              <DesiredDestinations
+                selected={wantCriteria.wantExclude}
+                onChange={(d) => onWantCriteriaChange({ ...wantCriteria, wantExclude: d })}
+                hideLabel
+              />
+            </div>
+          </>
+        ) : (
+          <div className="mb-4 rounded-lg border border-slate-200 p-3">
+            <WtfDayPicker
+              label="Days off I want (required)"
+              selectedDays={selectedDaysOff}
+              scheduledDays={[]}
+              month={month}
+              year={year}
+              minSelectableDay={1}
+              onChange={onSelectedDaysOffChange}
+            />
+          </div>
+        )}
 
         <div className="mb-4 rounded-lg border border-slate-200 p-3">
           <WtfDayPicker
-            label="WTF days (optional)"
+            label={
+              wantCriteria.wantType === "DAYS_OFF"
+                ? "I am willing to fly on (required)"
+                : "WTF days (optional)"
+            }
             selectedDays={wantCriteria.wtfDays}
             scheduledDays={scheduledDays}
             month={month}
@@ -388,7 +416,7 @@ export function QuickPostForm({
             onChange={(e) => onWantCriteriaChange({ ...wantCriteria, notes: e.target.value })}
             placeholder="Any extra note..."
             rows={3}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
           />
         </div>
       </section>

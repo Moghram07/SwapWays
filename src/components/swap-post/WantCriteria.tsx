@@ -87,7 +87,7 @@ export function WantCriteria({
               onChange({ ...criteria, wantMinLayover: e.target.value ? Number(e.target.value) : null })
             }
             placeholder="e.g. 24"
-            className="w-32 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+            className="w-32 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
           />
         </div>
       )}
@@ -176,7 +176,7 @@ export function WantCriteria({
           value={criteria.notes}
           onChange={(e) => onChange({ ...criteria, notes: e.target.value })}
           placeholder="e.g. even short layover is fine, no domestic, prefer East Asia..."
-          className="h-20 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          className="h-20 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
           rows={3}
         />
       </div>

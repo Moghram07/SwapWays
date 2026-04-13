@@ -153,7 +153,7 @@ export function EditTripModal({
                   value={reportTime}
                   onChange={(e) => setReportTime(e.target.value)}
                   placeholder="04:30"
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                 />
               </div>
               {legs.map((leg, index) => {
@@ -172,7 +172,7 @@ export function EditTripModal({
                           value={leg.dep}
                           onChange={(e) => updateLeg(index, "dep", e.target.value)}
                           placeholder="02:30"
-                          className="mt-0.5 block w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                          className="mt-0.5 block w-full rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-900 placeholder:text-gray-400"
                         />
                       </div>
                       <div>
@@ -182,7 +182,7 @@ export function EditTripModal({
                           value={leg.arr}
                           onChange={(e) => updateLeg(index, "arr", e.target.value)}
                           placeholder="06:45"
-                          className="mt-0.5 block w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                          className="mt-0.5 block w-full rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-900 placeholder:text-gray-400"
                         />
                       </div>
                     </div>

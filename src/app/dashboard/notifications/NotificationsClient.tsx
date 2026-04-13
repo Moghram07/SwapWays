@@ -114,7 +114,7 @@ export function NotificationsClient({
 
       {notifications.length === 0 && (
         <div className="rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center">
-          <Bell className="mx-auto h-12 w-12 text-slate-300" strokeWidth={1.5} />
+          <Bell className="mx-auto h-12 w-12 text-gray-400" strokeWidth={1.5} />
           <p className="mt-3 text-slate-600">No notifications yet.</p>
         </div>
       )}

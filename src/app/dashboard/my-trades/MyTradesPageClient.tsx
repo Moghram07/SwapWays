@@ -147,7 +147,7 @@ export function MyTradesPageClient() {
           </div>
         ) : scheduledCards.length === 0 ? (
           <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white py-12 text-center">
-            <Plane className="mx-auto h-10 w-10 text-slate-300" strokeWidth={1.5} />
+            <Plane className="mx-auto h-10 w-10 text-gray-400" strokeWidth={1.5} />
             <p className="mt-3 text-sm text-slate-600">No scheduled flights</p>
             <p className="mt-1 text-xs text-slate-500">Upload your Line schedule to see your roster</p>
             <Link href="/dashboard/schedule" className="mt-3 inline-block">

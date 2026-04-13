@@ -13,9 +13,16 @@ const options: { type: SwapPostType; label: string; icon: React.ElementType; des
 interface PostTypeSelectorProps {
   onSelect: (type: SwapPostType) => void;
   onSelectLineSwap?: () => void;
+  canPostVacationSwap?: boolean;
+  onPremiumRequired?: (feature: string, reason: string) => void;
 }
 
-export function PostTypeSelector({ onSelect, onSelectLineSwap }: PostTypeSelectorProps) {
+export function PostTypeSelector({
+  onSelect,
+  onSelectLineSwap,
+  canPostVacationSwap = true,
+  onPremiumRequired,
+}: PostTypeSelectorProps) {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-slate-900">What would you like to do?</h2>
@@ -24,7 +31,16 @@ export function PostTypeSelector({ onSelect, onSelectLineSwap }: PostTypeSelecto
           <button
             key={type}
             type="button"
-            onClick={() => onSelect(type)}
+            onClick={() => {
+              if (type === "VACATION_SWAP" && !canPostVacationSwap) {
+                onPremiumRequired?.(
+                  "vacation_swap",
+                  "Vacation swaps are a Premium feature. Upgrade to unlock vacation-date trading."
+                );
+                return;
+              }
+              onSelect(type);
+            }}
             className="flex items-start gap-4 rounded-xl border-2 border-slate-200 bg-white p-4 text-left transition-colors hover:border-[#2668B0] hover:bg-slate-50/50"
           >
             <div
@@ -36,6 +52,9 @@ export function PostTypeSelector({ onSelect, onSelectLineSwap }: PostTypeSelecto
             <div>
               <p className="font-medium text-slate-900">{label}</p>
               <p className="mt-0.5 text-sm text-slate-500">{description}</p>
+              {type === "VACATION_SWAP" && !canPostVacationSwap ? (
+                <p className="mt-1 text-xs font-semibold text-[#2668B0]">Premium only</p>
+              ) : null}
             </div>
           </button>
         ))}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { SwapPostType } from "@/types/swapPost";
 import type { WantCriteriaData } from "@/types/swapPost";
 import type { TripOption } from "./TripSelector";
@@ -18,8 +19,9 @@ interface PostPreviewProps {
   vacationStartDay?: number | "";
   vacationEndDay?: number | "";
   desiredVacationMonths?: number[];
-  onPost: () => void;
+  onPost: () => void | Promise<void>;
   onBack: () => void;
+  isSubmitting?: boolean;
 }
 
 export function PostPreview({
@@ -36,7 +38,36 @@ export function PostPreview({
   desiredVacationMonths = [],
   onPost,
   onBack,
+  isSubmitting = false,
 }: PostPreviewProps) {
+  const [isClickAcknowledged, setIsClickAcknowledged] = useState(false);
+  const clickAckTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (clickAckTimerRef.current != null) {
+        window.clearTimeout(clickAckTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handlePostClick = () => {
+    if (isSubmitting || isClickAcknowledged) return;
+    setIsClickAcknowledged(true);
+    if (clickAckTimerRef.current != null) {
+      window.clearTimeout(clickAckTimerRef.current);
+    }
+    // Hold a short visible acknowledgement before network submit starts.
+    clickAckTimerRef.current = window.setTimeout(async () => {
+      clickAckTimerRef.current = null;
+      try {
+        await onPost();
+      } finally {
+        setIsClickAcknowledged(false);
+      }
+    }, 220);
+  };
+
   const offeredTripsFromSchedule = selectedTrips.map((t) => ({
     flightNumber: t.legs[0]?.flightNumber ?? "",
     destination: t.legs[t.legs.length - 1]?.arrivalAirport ?? "",
@@ -130,16 +161,38 @@ export function PostPreview({
       </div>
 
       <div className="flex justify-between pt-2">
-        <button type="button" onClick={onBack} className="text-sm text-slate-500 hover:underline">
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={isSubmitting}
+          className="text-sm text-slate-500 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+        >
           ← Back
         </button>
         <button
           type="button"
-          onClick={onPost}
-          className="rounded-xl px-8 py-3 text-sm font-medium text-white transition-opacity hover:opacity-95"
-          style={{ backgroundColor: "#2668B0" }}
+          onClick={handlePostClick}
+          disabled={isSubmitting || isClickAcknowledged}
+          aria-busy={isSubmitting || isClickAcknowledged}
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-xl px-8 py-3 text-sm font-medium text-white transition-all duration-200 hover:opacity-95 active:scale-[0.98] disabled:cursor-not-allowed sm:w-auto sm:min-w-[190px] ${
+            isClickAcknowledged && !isSubmitting
+              ? "scale-[0.98] bg-[#1f7f43]"
+              : "bg-[#2668B0] disabled:opacity-70"
+          }`}
         >
-          Post to Trade Board
+          {isSubmitting && (
+            <span
+              className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-white"
+              aria-hidden
+            />
+          )}
+          <span>
+            {isSubmitting
+              ? "Posting..."
+              : isClickAcknowledged
+                ? "Submitting..."
+                : "Post to Trade Board"}
+          </span>
         </button>
       </div>
     </div>

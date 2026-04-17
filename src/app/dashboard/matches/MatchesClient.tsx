@@ -8,12 +8,13 @@ import { SwapPostTradeBoardCard } from "@/components/swap-post/TradeBoardCard";
 import { TradeBoardSection } from "@/components/swap-post/TradeBoardSection";
 import { getAirportCity } from "@/utils/airportNames";
 
-type SwapsTab = "mySwaps" | "tradeBoard" | "lineSwap";
+type SwapsTab = "mySwaps" | "tradeBoard" | "lineSwap" | "vacationSwap";
 
 const TAB_LABELS: { id: SwapsTab; label: string }[] = [
   { id: "mySwaps", label: "My Swaps" },
   { id: "tradeBoard", label: "Trade Board" },
   { id: "lineSwap", label: "Line Swap" },
+  { id: "vacationSwap", label: "Vacation Swap" },
 ];
 
 interface MatchRecord {
@@ -418,7 +419,9 @@ export function MatchesClient({ initialMatches, currentUserId }: MatchesClientPr
         </div>
       )}
 
-      {activeTab === "tradeBoard" && <TradeBoardSection />}
+      {activeTab === "tradeBoard" && <TradeBoardSection mode="tradeBoard" />}
+
+      {activeTab === "vacationSwap" && <TradeBoardSection mode="vacationSwap" />}
 
       {activeTab === "lineSwap" && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">

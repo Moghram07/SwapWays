@@ -58,8 +58,15 @@ export async function createFeedback(input: {
       updatedAt: Date;
     }>
   >`
-    INSERT INTO "Feedback" ("id", "userId", "type", "subject", "message")
-    VALUES (${randomUUID()}, ${input.userId}, ${input.type}::"FeedbackType", ${input.subject ?? null}, ${input.message})
+    INSERT INTO "Feedback" ("id", "userId", "type", "subject", "message", "updatedAt")
+    VALUES (
+      ${randomUUID()},
+      ${input.userId},
+      ${input.type}::"FeedbackType",
+      ${input.subject ?? null},
+      ${input.message},
+      NOW()
+    )
     RETURNING "id", "userId", "type", "status", "priority", "subject", "message", "createdAt", "updatedAt"
   `;
   return rows[0] ?? null;

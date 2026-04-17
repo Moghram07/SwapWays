@@ -207,8 +207,8 @@ export async function findSwapPostsForBoard(
     postType?: SwapPostType;
     tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
     destination?: string;
-    lookingForCurrentDays?: number[];
-    lookingForNextDays?: number[];
+    dateFrom?: string;
+    excludeVacation?: boolean;
     routeType?: "DOMESTIC" | "INTERNATIONAL";
     rankId?: string;
   }
@@ -218,12 +218,14 @@ export async function findSwapPostsForBoard(
     userId: { not: string };
     user: { baseId: string; rankId?: string };
     postType?: SwapPostType;
+    NOT?: { postType: SwapPostType };
   } = {
     status: "OPEN",
     userId: { not: currentUserId },
     user: { baseId },
   };
   if (filters?.postType) where.postType = filters.postType;
+  if (filters?.excludeVacation && !filters?.postType) where.NOT = { postType: "VACATION_SWAP" };
   if (filters?.postType === "VACATION_SWAP" && filters?.rankId) {
     where.user.rankId = filters.rankId;
   }
@@ -250,69 +252,24 @@ export async function findSwapPostsForBoard(
     );
   }
 
-  const currentDays = filters?.lookingForCurrentDays ?? [];
-  const nextDays = filters?.lookingForNextDays ?? [];
-  if (currentDays.length > 0 || nextDays.length > 0) {
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-    const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
-
-    filtered = filtered.filter((p) => {
-      if (p.postType === "VACATION_SWAP") {
-        const vMonth = p.vacationMonth ?? 0;
-        const vYear = p.vacationYear ?? 0;
-        const startDay = p.vacationStartDay ?? 1;
-        const endDay = p.vacationEndDay ?? 31;
-        const matchesCurrent =
-          currentDays.length > 0 &&
-          vMonth === currentMonth &&
-          vYear === currentYear &&
-          currentDays.some((d) => d >= startDay && d <= endDay);
-        const matchesNext =
-          nextDays.length > 0 &&
-          vMonth === nextMonth &&
-          vYear === nextYear &&
-          nextDays.some((d) => d >= startDay && d <= endDay);
-        return matchesCurrent || matchesNext;
-      }
-      return p.offeredTrips.some((t) => {
-        const d = new Date(t.departureDate);
-        const month = d.getMonth() + 1;
-        const year = d.getFullYear();
-        const day = d.getDate();
-        const matchesCurrent =
-          currentDays.length > 0 &&
-          month === currentMonth &&
-          year === currentYear &&
-          currentDays.includes(day);
-        const matchesNext =
-          nextDays.length > 0 &&
-          month === nextMonth &&
-          year === nextYear &&
-          nextDays.includes(day);
-        return matchesCurrent || matchesNext;
-      }) ||
-      (() => {
-        if (!p.quickDate) return false;
-        const d = new Date(p.quickDate);
-        const month = d.getMonth() + 1;
-        const year = d.getFullYear();
-        const day = d.getDate();
-        const matchesCurrent =
-          currentDays.length > 0 &&
-          month === currentMonth &&
-          year === currentYear &&
-          currentDays.includes(day);
-        const matchesNext =
-          nextDays.length > 0 &&
-          month === nextMonth &&
-          year === nextYear &&
-          nextDays.includes(day);
-        return matchesCurrent || matchesNext;
-      })();
-    });
+  if (filters?.dateFrom) {
+    const fromDate = new Date(`${filters.dateFrom}T00:00:00.000Z`);
+    if (!Number.isNaN(fromDate.getTime())) {
+      filtered = filtered.filter((p) => {
+        if (p.postType === "VACATION_SWAP") {
+          if (p.vacationStartDate) return new Date(p.vacationStartDate) >= fromDate;
+          if (p.vacationYear && p.vacationMonth && p.vacationStartDay) {
+            const d = new Date(Date.UTC(p.vacationYear, p.vacationMonth - 1, p.vacationStartDay));
+            return d >= fromDate;
+          }
+          return false;
+        }
+        return (
+          p.offeredTrips.some((t) => new Date(t.departureDate) >= fromDate) ||
+          (p.quickDate ? new Date(p.quickDate) >= fromDate : false)
+        );
+      });
+    }
   }
 
   return filtered;

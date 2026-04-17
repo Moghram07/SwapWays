@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { TradeBoardFilters, type SwapBoardFilters } from "@/components/swap-post/TradeBoardFilters";
+import { TradeboardFilterBar, type SwapBoardFilters } from "@/components/swap-post/TradeboardFilterBar";
 import { SwapPostTradeBoardCard } from "@/components/swap-post/TradeBoardCard";
 import { getAirportCity } from "@/utils/airportNames";
-import { TimeFormatToggle } from "@/components/trip/TimeFormatToggle";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { useUserAccess } from "@/hooks/useUserAccess";
 
@@ -14,9 +13,8 @@ const defaultFilters: SwapBoardFilters = {
   tripType: "",
   destination: "",
   sortBy: "match",
-  lookingForCurrentDays: [],
-  lookingForNextDays: [],
   routeType: "",
+  dateFrom: "",
 };
 
 interface BoardPost {
@@ -120,7 +118,7 @@ const domesticCodes = [
   "EAM", "HAS", "DWD", "WAE", "SHW", "RAH", "RAE", "URY", "NUM", "RSI", "ULH",
 ];
 
-export function TradeBoardSection() {
+export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard" | "vacationSwap" }) {
   const router = useRouter();
   const [filters, setFilters] = useState<SwapBoardFilters>(defaultFilters);
   const [posts, setPosts] = useState<BoardPost[]>([]);
@@ -139,14 +137,16 @@ export function TradeBoardSection() {
 
   const fetchBoard = useCallback(() => {
     const params = new URLSearchParams();
-    if (filters.postType) params.set("postType", filters.postType);
+    if (mode === "vacationSwap") {
+      params.set("postType", "VACATION_SWAP");
+    } else {
+      params.set("excludeVacation", "1");
+      if (filters.postType) params.set("postType", filters.postType);
+    }
     if (filters.tripType) params.set("tripType", filters.tripType);
     if (filters.destination) params.set("destination", filters.destination);
     if (filters.sortBy) params.set("sortBy", filters.sortBy);
-    if (filters.lookingForCurrentDays.length > 0)
-      params.set("lookingForCurrentDays", filters.lookingForCurrentDays.join(","));
-    if (filters.lookingForNextDays.length > 0)
-      params.set("lookingForNextDays", filters.lookingForNextDays.join(","));
+    if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
     setLoading(true);
     fetch(`/api/swap-posts/board?${params}`)
       .then(async (r) => {
@@ -160,7 +160,7 @@ export function TradeBoardSection() {
       .then((json) => setPosts(json.data ?? []))
       .catch(() => setPosts([]))
       .finally(() => setLoading(false));
-  }, [filters]);
+  }, [filters, mode]);
 
   useEffect(() => {
     fetchBoard();
@@ -345,7 +345,7 @@ export function TradeBoardSection() {
 
   return (
     <div className="space-y-4">
-      <TradeBoardFilters
+      <TradeboardFilterBar
         filters={filters}
         onChange={setFilters}
         hasAdvancedFilters={access?.hasAdvancedFilters ?? true}
@@ -357,9 +357,6 @@ export function TradeBoardSection() {
           })
         }
       />
-      <div className="pt-1">
-        <TimeFormatToggle />
-      </div>
       {loading ? (
         <p className="py-8 text-center text-slate-600">Loading…</p>
       ) : filtered.length === 0 ? (

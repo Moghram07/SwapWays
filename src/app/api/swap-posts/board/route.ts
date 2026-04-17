@@ -35,29 +35,20 @@ export async function GET(request: Request) {
   const tripType = searchParams.get("tripType") as "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | undefined;
   const destination = searchParams.get("destination") || undefined;
   const sortBy = searchParams.get("sortBy") || "match";
-  const lookingForCurrentDaysRaw = searchParams.get("lookingForCurrentDays") || "";
-  const lookingForNextDaysRaw = searchParams.get("lookingForNextDays") || "";
-  const lookingForCurrentDays =
-    lookingForCurrentDaysRaw === ""
-      ? []
-      : lookingForCurrentDaysRaw.split(",").map((d) => parseInt(d, 10)).filter((n) => !Number.isNaN(n) && n >= 1 && n <= 31);
-  const lookingForNextDays =
-    lookingForNextDaysRaw === ""
-      ? []
-      : lookingForNextDaysRaw.split(",").map((d) => parseInt(d, 10)).filter((n) => !Number.isNaN(n) && n >= 1 && n <= 31);
+  const dateFrom = searchParams.get("dateFrom") || undefined;
+  const excludeVacation = searchParams.get("excludeVacation") === "1";
 
   try {
     const access = await getUserAccess(session.user.id);
     const effectiveTripType = access.hasAdvancedFilters ? tripType : undefined;
     const effectiveDestination = access.hasAdvancedFilters ? destination : undefined;
-    const effectiveCurrentDays = access.hasAdvancedFilters ? lookingForCurrentDays : [];
-    const effectiveNextDays = access.hasAdvancedFilters ? lookingForNextDays : [];
+    const effectiveDateFrom = access.hasAdvancedFilters ? dateFrom : undefined;
     const filters: Parameters<typeof findSwapPostsForBoard>[2] = {
       postType: postType as "OFFERING_TRIPS" | "VACATION_SWAP",
       tripType: effectiveTripType,
       destination: effectiveDestination,
-      lookingForCurrentDays: effectiveCurrentDays,
-      lookingForNextDays: effectiveNextDays,
+      dateFrom: effectiveDateFrom,
+      excludeVacation,
     };
     if (filters.postType === "VACATION_SWAP" && user.rankId) {
       filters.rankId = user.rankId;

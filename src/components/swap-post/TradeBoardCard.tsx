@@ -534,10 +534,6 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
             <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
               Quick
             </span>
-          ) : post.source === "SCHEDULE_PREFILL" ? (
-            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
-              Detailed
-            </span>
           ) : null}
           {typeof post.matchPercent === "number" && post.matchPercent > 0 && (
             <MatchBadge
@@ -612,11 +608,13 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
             if (periodOnly != null || wantLabel != null) {
               return (
                 <div className="rounded-lg border border-violet-200 bg-violet-50/80 px-3 py-2.5 text-sm text-violet-900">
-                  <span className="font-medium">Vacation </span>
-                  <span>{periodOnly ?? "—"}</span>
-                  <span className="mx-2 text-violet-400">→</span>
-                  <span className="font-medium">Looking for </span>
-                  <span>{wantLabel ?? "—"}</span>
+                  <p className="font-semibold">🏖️ Vacation Swap</p>
+                  <p className="mt-1">
+                    <span className="font-medium">Offering:</span> {periodOnly ?? "—"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Looking for:</span> {wantLabel ?? "—"}
+                  </p>
                 </div>
               );
             }
@@ -665,7 +663,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
 
       {post.postType !== "VACATION_SWAP" && (
         <div className="bg-slate-50/50 px-4 py-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Looking For</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Wants</p>
           <WantsDisplay
             wantType={post.wantType}
             wantMinLayover={post.wantMinLayover}

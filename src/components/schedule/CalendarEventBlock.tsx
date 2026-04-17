@@ -6,6 +6,7 @@ import { EventContent } from "./EventContent";
 interface CalendarEventBlockProps {
   event: CalendarTripEvent;
   onClick?: () => void;
+  variant?: "grid" | "agenda";
 }
 
 function getAccentColor(event: CalendarTripEvent): string {
@@ -31,7 +32,7 @@ function getBlockStyles(event: CalendarTripEvent): string {
   return `${base} ${borderClass}`;
 }
 
-export function CalendarEventBlock({ event, onClick }: CalendarEventBlockProps) {
+export function CalendarEventBlock({ event, onClick, variant = "grid" }: CalendarEventBlockProps) {
   const accentColor = getAccentColor(event);
   const blockStyles = getBlockStyles(event);
 
@@ -46,10 +47,12 @@ export function CalendarEventBlock({ event, onClick }: CalendarEventBlockProps) 
           onClick?.();
         }
       }}
-      className={`rounded-md px-2 py-1.5 cursor-pointer text-[11px] leading-tight transition-opacity hover:opacity-90 ${blockStyles}`}
+      className={`cursor-pointer rounded-md px-2 py-1.5 leading-tight transition-opacity hover:opacity-90 ${
+        variant === "agenda" ? "text-xs sm:text-sm" : "text-[11px]"
+      } ${blockStyles}`}
       style={{ borderLeftColor: accentColor }}
     >
-      <EventContent event={event} />
+      <EventContent event={event} variant={variant} />
     </div>
   );
 }

@@ -34,8 +34,6 @@ export function DesiredDestinations({ selected, onChange, hideLabel }: DesiredDe
     }
   }
 
-  const popularCodes = ["CAI", "DXB", "IST", "LHR", "MAD", "KUL", "AMM", "RUH"];
-
   return (
     <div>
       {!hideLabel && (
@@ -110,27 +108,6 @@ export function DesiredDestinations({ selected, onChange, hideLabel }: DesiredDe
         </div>
       )}
 
-      {search.trim().length === 0 && selected.length === 0 && (
-        <div className="mt-2">
-          <p className="mb-1.5 text-xs text-gray-500">Popular</p>
-          <div className="flex flex-wrap gap-1.5">
-            {popularCodes.map((code) => {
-              const airport = allAirports.find((a) => a.code === code);
-              if (!airport) return null;
-              return (
-                <button
-                  key={code}
-                  type="button"
-                  onClick={() => toggle(code)}
-                  className="rounded-full border border-gray-200 px-2.5 py-1 text-xs text-gray-700 hover:border-[#2668B0] hover:bg-gray-100 hover:text-gray-900"
-                >
-                  {code} – {airport.city}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

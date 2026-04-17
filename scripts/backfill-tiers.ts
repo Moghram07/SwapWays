@@ -1,9 +1,16 @@
-import { PrismaClient } from "../src/generated/prisma";
-
-const prisma = new PrismaClient();
+/**
+ * One-time / maintenance: align tier + trial fields from account creation date.
+ * Skips users with ACTIVE paid subscription so Phase 2 subscribers are not overwritten.
+ *
+ * Run with DATABASE_URL set: npx tsx scripts/backfill-tiers.ts
+ */
+import { prisma } from "../src/lib/prisma";
 
 async function main() {
   const users = await prisma.user.findMany({
+    where: {
+      NOT: { subscriptionStatus: "ACTIVE" },
+    },
     select: { id: true, createdAt: true },
   });
 
@@ -36,6 +43,10 @@ main()
   })
   .catch(async (error) => {
     console.error(error);
-    await prisma.$disconnect();
+    try {
+      await prisma.$disconnect();
+    } catch {
+      // ignore
+    }
     process.exit(1);
   });

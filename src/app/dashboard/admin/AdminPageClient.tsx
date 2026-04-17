@@ -16,11 +16,41 @@ type FeedbackItem = {
   userEmail: string;
 };
 
+type AdminStatsOverview = {
+  newUsersThisWeek: number;
+  premiumUsers: number;
+  premiumPercent: number;
+  trialingUsers: number;
+  trialsExpiringThisWeek: number;
+  openSwapPosts: number;
+  openLineSwapPosts: number;
+  activeConversations: number;
+  recentSignups: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    createdAt: string;
+    tier: string;
+    subscriptionStatus: string;
+    rank: { name: string } | null;
+  }>;
+  recentFeedback: Array<{
+    id: string;
+    type: string;
+    status: string;
+    subject: string | null;
+    createdAt: string;
+    user: { firstName: string; email: string };
+  }>;
+};
+
 type AdminStats = {
   users: { total: number; active7d: number; active30d: number };
   traffic: { pageViews7d: number; pageViews30d: number; topPages: Array<{ path: string; views: number }> };
   feedback: { open: number; inProgress: number; closed: number };
   funnel: Array<{ eventName: string; count: number }>;
+  overview?: AdminStatsOverview;
 };
 
 type ApiEnvelope<T> = {
@@ -200,6 +230,78 @@ export function AdminPageClient() {
                   <p className="mt-1 text-2xl font-semibold text-slate-900">{stats.users.active30d}</p>
                 </div>
               </div>
+
+              {stats.overview && (
+                <div className="space-y-4">
+                  <h2 className="text-sm font-semibold text-slate-800">Product overview</h2>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">New users (7d)</p>
+                      <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.newUsersThisWeek}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Premium (paid)</p>
+                      <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.premiumUsers}</p>
+                      <p className="text-xs text-slate-500">{stats.overview.premiumPercent}% of all users</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">In trial</p>
+                      <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.trialingUsers}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Trials expiring (7d)</p>
+                      <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.trialsExpiringThisWeek}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Open swap posts</p>
+                      <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.openSwapPosts}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Open line swaps</p>
+                      <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.openLineSwapPosts}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Active conversations</p>
+                      <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.activeConversations}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <h3 className="text-sm font-semibold text-slate-900">Recent signups</h3>
+                      <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                        {stats.overview.recentSignups.map((u) => (
+                          <li key={u.id} className="flex flex-wrap justify-between gap-2 border-b border-slate-100 pb-2 last:border-0">
+                            <span>
+                              {u.firstName} {u.lastName}{" "}
+                              <span className="text-slate-400">{u.email}</span>
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {u.rank?.name ?? "—"} · {new Date(u.createdAt).toLocaleDateString()}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <h3 className="text-sm font-semibold text-slate-900">Recent feedback</h3>
+                      <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                        {stats.overview.recentFeedback.map((f) => (
+                          <li key={f.id} className="border-b border-slate-100 pb-2 last:border-0">
+                            <span className="font-medium text-slate-900">{f.subject || "(no subject)"}</span>
+                            <span className="ml-2 text-xs text-slate-500">
+                              {f.type} · {f.status}
+                            </span>
+                            <p className="text-xs text-slate-500">
+                              {f.user.firstName} · {new Date(f.createdAt).toLocaleString()}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="rounded-xl border border-slate-200 bg-white p-4">
                 <p className="text-sm font-medium text-slate-900">Page Views</p>

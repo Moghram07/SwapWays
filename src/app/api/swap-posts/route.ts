@@ -9,7 +9,8 @@ import { createNotification } from "@/lib/notifications";
 import { isSwapPostExpired } from "@/lib/swapExpiry";
 import { trackEventServer } from "@/lib/analytics/server";
 import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
-import { getUserAccess } from "@/utils/featureGates";
+import { getPremiumViewerIds, getUserAccess } from "@/utils/featureGates";
+import { HIGH_MATCH_NOTIFICATION_MIN_PERCENT } from "@/constants/subscription";
 
 function normalizeFlightNumber(raw: string | null | undefined): string {
   const s = (raw ?? "").trim();
@@ -480,16 +481,19 @@ export async function POST(request: Request) {
 
     try {
       const matches = await findMatchesForPost(post.id);
+      const highMatches = matches.filter((m) => m.matchPercent >= HIGH_MATCH_NOTIFICATION_MIN_PERCENT).slice(0, 10);
+      const premiumViewerIds = await getPremiumViewerIds(highMatches.map((m) => m.viewerId));
       await Promise.all(
-        matches.slice(0, 10).map((m) =>
-          createNotification({
+        highMatches.map((m) => {
+          if (!premiumViewerIds.has(m.viewerId)) return Promise.resolve();
+          return createNotification({
             userId: m.viewerId,
             type: "MATCH_FOUND",
             title: "New match found",
             message: `A new swap post matches your profile (${Math.round(m.matchPercent)}%).`,
             data: { postId: m.postId, matchPercent: m.matchPercent, failReason: m.failReason },
-          })
-        )
+          });
+        })
       );
     } catch (matchErr) {
       console.error("[swap-posts] post-created matching failed", matchErr);

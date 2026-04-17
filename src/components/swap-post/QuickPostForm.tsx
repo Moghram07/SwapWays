@@ -235,7 +235,11 @@ export function QuickPostForm({
                 </div>
               )}
 
-              <div className={`mb-4 grid gap-3 ${trip.tripType === "LAYOVER" ? "grid-cols-2" : "grid-cols-1"}`}>
+              <div
+                className={`mb-4 grid gap-3 ${
+                  trip.tripType === "LAYOVER" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+                }`}
+              >
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700">Date</label>
                   <input
@@ -247,7 +251,7 @@ export function QuickPostForm({
                 </div>
                 {trip.tripType === "LAYOVER" && (
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Layover duration (hours)</label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Layover hours</label>
                     <input
                       type="number"
                       min={1}

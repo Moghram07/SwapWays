@@ -1,12 +1,13 @@
 import { PrismaClient } from "@/generated/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { ensurePgbouncerParamForPooler } from "@/lib/prismaDatabaseUrl";
 import { assertProductionEnvSafety, getRequiredEnv } from "@/lib/env";
 
-// Use a pooled DATABASE_URL (e.g. Supabase port 6543) and ?connection_limit=10 to avoid
-// "connection forcibly closed by the remote host" (code 10054) after actions like canceling a swap.
+// Use a pooled DATABASE_URL (e.g. Supabase port 6543). `ensurePgbouncerParamForPooler` adds
+// `pgbouncer=true` when needed so prepared statements work with the transaction pooler.
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 assertProductionEnvSafety(["DATABASE_URL"]);
-const connectionString = getRequiredEnv("DATABASE_URL");
+const connectionString = ensurePgbouncerParamForPooler(getRequiredEnv("DATABASE_URL"));
 
 const adapter = new PrismaPg({ connectionString });
 

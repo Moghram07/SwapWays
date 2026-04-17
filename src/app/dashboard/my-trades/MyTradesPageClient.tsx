@@ -125,14 +125,14 @@ export function MyTradesPageClient() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">My Flights</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl sm:tracking-tight">My Flights</h1>
+          <p className="text-sm text-slate-500">
             {totalFlights} flight{totalFlights !== 1 ? "s" : ""}
           </p>
         </div>
-        <div className="origin-top-right scale-110">
+        <div className="flex flex-shrink-0 items-center gap-2">
           <TimeFormatToggle />
         </div>
       </div>

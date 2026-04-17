@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { forbiddenResponse, getCurrentUserAccess, unauthorizedResponse } from "@/lib/admin";
+import { requireAdmin } from "@/lib/admin";
 import {
   listFeedback,
   updateFeedback,
@@ -27,9 +27,8 @@ function isMissingRelationError(e: unknown, relationName: string) {
 }
 
 export async function GET(request: Request) {
-  const access = await getCurrentUserAccess();
-  if (!access.session?.user?.id) return unauthorizedResponse();
-  if (!access.isAdmin) return forbiddenResponse();
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
   const statusRaw = (searchParams.get("status") || "").toUpperCase();
@@ -63,9 +62,8 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const access = await getCurrentUserAccess();
-  if (!access.session?.user?.id) return unauthorizedResponse();
-  if (!access.isAdmin) return forbiddenResponse();
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") return error("Invalid JSON body", 400);

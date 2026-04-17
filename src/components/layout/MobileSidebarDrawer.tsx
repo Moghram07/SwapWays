@@ -15,6 +15,7 @@ import {
   X,
   ShieldCheck,
   LifeBuoy,
+  Smartphone,
 } from "lucide-react";
 
 const PRIMARY = "#1E6FB9";
@@ -29,6 +30,7 @@ const baseLinks = [
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
   { href: "/dashboard/schedule", label: "Crew Schedule", icon: Calendar },
   { href: "/dashboard/feedback", label: "Help & Feedback", icon: LifeBuoy },
+  { href: "/dashboard/install", label: "Install App", icon: Smartphone },
   { href: "/dashboard/profile", label: "Profile", icon: User },
 ];
 

@@ -21,6 +21,41 @@ export interface UserAccess {
 const FREE_NOTES_PREVIEW_LENGTH = 40;
 const ACTIVE_CONVERSATION_STATUSES = ["ACTIVE", "SWAP_PROPOSED", "SWAP_ACCEPTED"] as const;
 
+function computeIsPremium(
+  user: {
+    tier: "FREE" | "PREMIUM";
+    trialEndsAt: Date;
+    subscriptionStatus: string;
+  },
+  now: Date
+): boolean {
+  const isTrialing =
+    user.subscriptionStatus === "TRIALING" && user.trialEndsAt.getTime() > now.getTime();
+  const hasPaidSubscription = user.subscriptionStatus === "ACTIVE";
+  return user.tier === "PREMIUM" && (isTrialing || hasPaidSubscription);
+}
+
+/**
+ * Batch-resolve which user IDs currently have Premium-equivalent access (trial or paid ACTIVE).
+ * Used when notifying multiple viewers without N separate getUserAccess calls.
+ */
+export async function getPremiumViewerIds(userIds: string[]): Promise<Set<string>> {
+  const unique = [...new Set(userIds)].filter(Boolean);
+  if (unique.length === 0) return new Set();
+
+  const now = new Date();
+  const users = await prisma.user.findMany({
+    where: { id: { in: unique } },
+    select: { id: true, tier: true, trialEndsAt: true, subscriptionStatus: true },
+  });
+
+  const premium = new Set<string>();
+  for (const u of users) {
+    if (computeIsPremium(u, now)) premium.add(u.id);
+  }
+  return premium;
+}
+
 export async function getUserAccess(userId: string): Promise<UserAccess> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -38,8 +73,7 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
   const now = new Date();
   const isTrialing =
     user.subscriptionStatus === "TRIALING" && user.trialEndsAt.getTime() > now.getTime();
-  const hasPaidSubscription = user.subscriptionStatus === "ACTIVE";
-  const isPremium = user.tier === "PREMIUM" && (isTrialing || hasPaidSubscription);
+  const isPremium = computeIsPremium(user, now);
   const trialDaysRemaining = isTrialing
     ? Math.ceil((user.trialEndsAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
     : 0;

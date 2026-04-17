@@ -4,10 +4,10 @@ import type { MessageWithSender } from "@/hooks/useMessages";
 import { SystemMessage } from "./SystemMessage";
 
 function formatMessageTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString("en-US", {
-    hour: "numeric",
+  return new Date(dateStr).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
+    hour12: false,
   });
 }
 

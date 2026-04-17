@@ -78,9 +78,7 @@ export function zuluToLocal(
 
   const localTime = `${localHours.toString().padStart(2, "0")}:${localMins.toString().padStart(2, "0")}`;
 
-  const period = localHours >= 12 ? "PM" : "AM";
-  const displayHour = localHours === 0 ? 12 : localHours > 12 ? localHours - 12 : localHours;
-  const label = `${displayHour}:${localMins.toString().padStart(2, "0")} ${period}`;
+  const label = localTime;
 
   const offsetSign = utcOffset >= 0 ? "+" : "";
   const offsetStr = Number.isInteger(utcOffset)

@@ -3,7 +3,8 @@ import "dotenv/config";
 import { config } from "dotenv";
 config({ path: ".env.local", override: true });
 
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
+import { prismaCliDatabaseUrl } from "./src/lib/prismaDatabaseUrl";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -11,6 +12,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    // Uses DIRECT_URL when set (recommended for Supabase migrations); otherwise DATABASE_URL
+    // with pooler-safe query params. See `src/lib/prismaDatabaseUrl.ts`.
+    url: prismaCliDatabaseUrl(),
   },
 });

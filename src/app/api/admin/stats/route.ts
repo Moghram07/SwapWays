@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { forbiddenResponse, getCurrentUserAccess, unauthorizedResponse } from "@/lib/admin";
+import { requireAdmin } from "@/lib/admin";
 
 type CountRow = { count: bigint };
 type TopPageRow = { path: string | null; views: bigint };
@@ -18,9 +18,8 @@ function isMissingRelationError(e: unknown, relationName: string) {
 }
 
 export async function GET() {
-  const access = await getCurrentUserAccess();
-  if (!access.session?.user?.id) return unauthorizedResponse();
-  if (!access.isAdmin) return forbiddenResponse();
+  const auth = await requireAdmin();
+  if (!auth.ok) return auth.response;
 
   try {
     const now = new Date();
@@ -28,6 +27,7 @@ export async function GET() {
     d7.setDate(d7.getDate() - 7);
     const d30 = new Date(now);
     d30.setDate(d30.getDate() - 30);
+    const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     const [
       totalUsers,
@@ -40,6 +40,15 @@ export async function GET() {
       pageViews30,
       topPages,
       funnelRows,
+      newUsersThisWeek,
+      premiumPaidUsers,
+      trialingUsers,
+      trialsExpiringThisWeek,
+      openSwapPosts,
+      openLineSwapPosts,
+      activeConversations,
+      recentSignups,
+      recentFeedback,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.$queryRaw<CountRow[]>`SELECT COUNT(*)::bigint AS count FROM "Feedback" WHERE "status" = 'OPEN'::"FeedbackStatus"`,
@@ -80,12 +89,56 @@ export async function GET() {
           AND "createdAt" >= ${d30}
         GROUP BY "eventName"
       `,
+      prisma.user.count({ where: { createdAt: { gte: d7 } } }),
+      prisma.user.count({
+        where: { tier: "PREMIUM", subscriptionStatus: "ACTIVE" },
+      }),
+      prisma.user.count({ where: { subscriptionStatus: "TRIALING" } }),
+      prisma.user.count({
+        where: {
+          subscriptionStatus: "TRIALING",
+          trialEndsAt: { gte: now, lte: weekAhead },
+        },
+      }),
+      prisma.swapPost.count({ where: { status: "OPEN" } }),
+      prisma.lineSwapPost.count({ where: { status: "OPEN" } }),
+      prisma.conversation.count({ where: { status: "ACTIVE" } }),
+      prisma.user.findMany({
+        take: 8,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          createdAt: true,
+          tier: true,
+          subscriptionStatus: true,
+          rank: { select: { name: true } },
+        },
+      }),
+      prisma.feedback.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          subject: true,
+          createdAt: true,
+          user: { select: { firstName: true, email: true } },
+        },
+      }),
     ]);
 
     const funnel = CORE_EVENTS.map((eventName) => ({
       eventName,
       count: Number(funnelRows.find((r) => r.eventName === eventName)?.count ?? BigInt(0)),
     }));
+
+    const premiumPaid = premiumPaidUsers;
+    const premiumPercent =
+      totalUsers > 0 ? Math.round((premiumPaid / totalUsers) * 100) : 0;
 
     return json({
       generatedAt: now.toISOString(),
@@ -105,6 +158,18 @@ export async function GET() {
         closed: Number(feedbackClosed[0]?.count ?? BigInt(0)),
       },
       funnel,
+      overview: {
+        newUsersThisWeek,
+        premiumUsers: premiumPaid,
+        premiumPercent,
+        trialingUsers,
+        trialsExpiringThisWeek,
+        openSwapPosts,
+        openLineSwapPosts,
+        activeConversations,
+        recentSignups,
+        recentFeedback,
+      },
     });
   } catch (e) {
     if (isMissingRelationError(e, "AppEvent") || isMissingRelationError(e, "Feedback")) {
@@ -116,6 +181,18 @@ export async function GET() {
         traffic: { pageViews7d: 0, pageViews30d: 0, topPages: [] as Array<{ path: string; views: number }> },
         feedback: { open: 0, inProgress: 0, closed: 0 },
         funnel: CORE_EVENTS.map((eventName) => ({ eventName, count: 0 })),
+        overview: {
+          newUsersThisWeek: 0,
+          premiumUsers: 0,
+          premiumPercent: 0,
+          trialingUsers: 0,
+          trialsExpiringThisWeek: 0,
+          openSwapPosts: 0,
+          openLineSwapPosts: 0,
+          activeConversations: 0,
+          recentSignups: [] as unknown[],
+          recentFeedback: [] as unknown[],
+        },
       });
     }
     return NextResponse.json(

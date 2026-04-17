@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, List } from "lucide-react";
 import type { CalendarDayData } from "@/utils/calendarBuilder";
 import { CalendarDayCell } from "./CalendarDayCell";
+import { CalendarAgendaView } from "./CalendarAgendaView";
 
 interface CalendarMonthProps {
   refreshKey?: number;
@@ -14,6 +15,7 @@ export function CalendarMonth({ refreshKey }: CalendarMonthProps) {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [days, setDays] = useState<CalendarDayData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mobileView, setMobileView] = useState<"agenda" | "grid">("agenda");
 
   useEffect(() => {
     setLoading(true);
@@ -28,9 +30,7 @@ export function CalendarMonth({ refreshKey }: CalendarMonthProps) {
   }, [month, year, refreshKey]);
 
   const firstDay = new Date(year, month - 1, 1);
-  const lastDay = new Date(year, month - 1 + 1, 0);
   const startPad = firstDay.getDay();
-  const daysInMonth = lastDay.getDate();
   const primaryDays = days.filter((d) => !d.isOverflow);
   const overflowDays = days.filter((d) => d.isOverflow);
   const totalDayCells = primaryDays.length + overflowDays.length;
@@ -77,53 +77,111 @@ export function CalendarMonth({ refreshKey }: CalendarMonthProps) {
         </div>
       </div>
 
+      <div className="mb-4 flex gap-2 md:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileView("agenda")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium ${
+            mobileView === "agenda" ? "bg-[#2668B0] text-white" : "bg-gray-100 text-gray-600"
+          }`}
+        >
+          <List className="h-4 w-4" />
+          List
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileView("grid")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium ${
+            mobileView === "grid" ? "bg-[#2668B0] text-white" : "bg-gray-100 text-gray-600"
+          }`}
+        >
+          <CalendarDays className="h-4 w-4" />
+          Grid
+        </button>
+      </div>
+
       {loading ? (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">
           Loading…
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
-            {dayLabels.map((d) => (
-              <div
-                key={d}
-                className="border-r border-slate-200 py-2 text-center text-xs font-medium text-slate-600 last:border-r-0"
-              >
-                {d}
-              </div>
-            ))}
+        <>
+          <div className="md:hidden">
+            {mobileView === "agenda" ? (
+              <CalendarAgendaView days={days} month={month} />
+            ) : (
+              <CalendarGrid
+                dayLabels={dayLabels}
+                startPad={startPad}
+                primaryDays={primaryDays}
+                overflowDays={overflowDays}
+                totalDayCells={totalDayCells}
+                totalCells={totalCells}
+              />
+            )}
           </div>
-          <div className="grid grid-cols-7">
-            {Array.from({ length: totalCells }, (_, i) => {
-              let dayData: CalendarDayData | undefined;
-              if (i < startPad) {
-                dayData = undefined;
-              } else if (i < startPad + primaryDays.length) {
-                dayData = primaryDays[i - startPad];
-              } else if (i < startPad + totalDayCells) {
-                dayData = overflowDays[i - startPad - primaryDays.length];
-              }
-              if (!dayData) {
-                return (
-                  <div
-                    key={i}
-                    className="min-h-[120px] border-r border-b border-slate-100 bg-slate-50/50 last:border-r-0"
-                  />
-                );
-              }
-              return (
-                <CalendarDayCell
-                  key={i}
-                  day={dayData}
-                  onTripClick={(tripNumber) => {
-                    // Optional: navigate or open trip detail
-                  }}
-                />
-              );
-            })}
+
+          <div className="hidden md:block">
+            <CalendarGrid
+              dayLabels={dayLabels}
+              startPad={startPad}
+              primaryDays={primaryDays}
+              overflowDays={overflowDays}
+              totalDayCells={totalDayCells}
+              totalCells={totalCells}
+            />
           </div>
-        </div>
+        </>
       )}
+    </div>
+  );
+}
+
+interface CalendarGridProps {
+  dayLabels: string[];
+  startPad: number;
+  primaryDays: CalendarDayData[];
+  overflowDays: CalendarDayData[];
+  totalDayCells: number;
+  totalCells: number;
+}
+
+function CalendarGrid({
+  dayLabels,
+  startPad,
+  primaryDays,
+  overflowDays,
+  totalDayCells,
+  totalCells,
+}: CalendarGridProps) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+        {dayLabels.map((d) => (
+          <div
+            key={d}
+            className="border-r border-slate-200 py-2 text-center text-xs font-medium text-slate-600 last:border-r-0"
+          >
+            {d}
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7">
+        {Array.from({ length: totalCells }, (_, i) => {
+          let dayData: CalendarDayData | undefined;
+          if (i < startPad) {
+            dayData = undefined;
+          } else if (i < startPad + primaryDays.length) {
+            dayData = primaryDays[i - startPad];
+          } else if (i < startPad + totalDayCells) {
+            dayData = overflowDays[i - startPad - primaryDays.length];
+          }
+          if (!dayData) {
+            return <div key={i} className="min-h-[120px] border-r border-b border-slate-100 bg-slate-50/50 last:border-r-0" />;
+          }
+          return <CalendarDayCell key={i} day={dayData} />;
+        })}
+      </div>
     </div>
   );
 }

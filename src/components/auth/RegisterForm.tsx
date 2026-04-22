@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export function RegisterForm() {
   const [baseId, setBaseId] = useState("");
   const [qualificationIds, setQualificationIds] = useState<string[]>([]);
   const [phone, setPhone] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -34,10 +35,26 @@ export function RegisterForm() {
   const bases = selectedConfig?.bases ?? [];
   const aircraftTypes = selectedConfig?.aircraftTypes ?? [];
 
+  useEffect(() => {
+    const value = new URLSearchParams(window.location.search).get("ref");
+    if (value) {
+      setReferralCode(value.toUpperCase());
+    }
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
+    fetch("/api/analytics/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventName: "registration_started",
+        path: "/register",
+        properties: { airlineCode: airlineId },
+      }),
+    }).catch(() => {});
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -52,6 +69,7 @@ export function RegisterForm() {
         baseId,
         qualificationIds,
         phone: phone || undefined,
+        referralCode: referralCode || undefined,
       }),
     });
     const json = await res.json().catch(() => ({}));
@@ -102,13 +120,13 @@ export function RegisterForm() {
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="email">Airline email</Label>
+        <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder={`@${selectedConfig?.emailDomain ?? ""}`}
+          placeholder="you@example.com"
           required
         />
       </div>
@@ -184,6 +202,15 @@ export function RegisterForm() {
       <div className="space-y-2">
         <Label htmlFor="phone">Phone (optional)</Label>
         <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="referralCode">Referral code (optional)</Label>
+        <Input
+          id="referralCode"
+          value={referralCode}
+          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+          placeholder="Crew referral code"
+        />
       </div>
       <div className="flex gap-2">
         <Button type="button" variant="outline" onClick={() => setStep(1)}>

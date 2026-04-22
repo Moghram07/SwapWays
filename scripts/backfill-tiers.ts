@@ -1,6 +1,8 @@
 /**
- * One-time / maintenance: align tier + trial fields from account creation date.
- * Skips users with ACTIVE paid subscription so Phase 2 subscribers are not overwritten.
+ * One-time / maintenance: normalize users to the Phase 1 10/20/50 trial model.
+ * - Base trial: 10 days from trialStartedAt (or createdAt)
+ * - Cap: 50 days maximum from trialStartedAt
+ * - Verification source: schedule presence
  *
  * Run with DATABASE_URL set: npx tsx scripts/backfill-tiers.ts
  */
@@ -8,18 +10,40 @@ import { prisma } from "../src/lib/prisma";
 
 async function main() {
   const users = await prisma.user.findMany({
-    where: {
-      NOT: { subscriptionStatus: "ACTIVE" },
+    select: {
+      id: true,
+      createdAt: true,
+      trialStartedAt: true,
+      trialEndsAt: true,
+      subscriptionStatus: true,
+      tier: true,
+      trialExtended: true,
+      referredBy: true,
+      schedules: {
+        select: { id: true, createdAt: true },
+        orderBy: { createdAt: "asc" },
+        take: 1,
+      },
     },
-    select: { id: true, createdAt: true },
   });
 
   let updated = 0;
+  const dayMs = 24 * 60 * 60 * 1000;
+  const baseDays = 10;
+  const maxDays = 50;
   const now = Date.now();
 
   for (const user of users) {
-    const trialStartedAt = user.createdAt;
-    const trialEndsAt = new Date(trialStartedAt.getTime() + 90 * 24 * 60 * 60 * 1000);
+    if (user.subscriptionStatus === "ACTIVE") continue;
+    const trialStartedAt = user.trialStartedAt ?? user.createdAt;
+    const minTrialEndsAt = new Date(trialStartedAt.getTime() + baseDays * dayMs);
+    const capEndsAt = new Date(trialStartedAt.getTime() + maxDays * dayMs);
+    const boundedCurrentEndsAt = user.trialEndsAt > capEndsAt ? capEndsAt : user.trialEndsAt;
+    const trialEndsAt = boundedCurrentEndsAt > minTrialEndsAt ? boundedCurrentEndsAt : minTrialEndsAt;
+    const firstSchedule = user.schedules[0];
+    const isVerified = !!firstSchedule;
+    const verifiedAt = firstSchedule?.createdAt ?? null;
+    const trialExtended = user.trialExtended || isVerified;
     const isTrialing = trialEndsAt.getTime() > now;
 
     await prisma.user.update({
@@ -29,6 +53,10 @@ async function main() {
         subscriptionStatus: isTrialing ? "TRIALING" : "EXPIRED",
         trialStartedAt,
         trialEndsAt,
+        isVerified,
+        verifiedAt,
+        trialExtended,
+        referredBy: user.referredBy ?? null,
       },
     });
     updated += 1;

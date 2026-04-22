@@ -21,7 +21,9 @@
     "db:cleanup:saudia-fleet": "node scripts/cleanup-saudia-aircraft-fleet.mjs",
     "load:smoke": "k6 run scripts/load/k6-smoke.js",
     "load:staged": "k6 run scripts/load/k6-staged.js",
-    "favicon": "node scripts/generate-favicon.mjs"
+    "favicon": "node scripts/generate-favicon.mjs",
+    "launch:check": "node scripts/launch-readiness.mjs",
+    "launch:gate": "npm run launch:check && npm run ci:gate"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",

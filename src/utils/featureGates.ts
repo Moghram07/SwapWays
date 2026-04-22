@@ -4,6 +4,7 @@ export type AccessTier = "FREE" | "PREMIUM";
 
 export interface UserAccess {
   tier: AccessTier;
+  isVerified: boolean;
   isTrialing: boolean;
   trialDaysRemaining: number;
   canPostLineSwap: boolean;
@@ -63,6 +64,7 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
       tier: true,
       trialEndsAt: true,
       subscriptionStatus: true,
+      isVerified: true,
     },
   });
 
@@ -83,10 +85,11 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
 
   return {
     tier: isPremium ? "PREMIUM" : "FREE",
+    isVerified: user.isVerified,
     isTrialing,
     trialDaysRemaining,
-    canPostLineSwap: isPremium,
-    canPostVacationSwap: isPremium,
+    canPostLineSwap: isPremium && user.isVerified,
+    canPostVacationSwap: isPremium && user.isVerified,
     canSeeExactMatch: isPremium,
     canSeeFullNotes: isPremium,
     canStartNewConversation,

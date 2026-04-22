@@ -9,7 +9,6 @@ import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { useUserAccess } from "@/hooks/useUserAccess";
 
 const defaultFilters: SwapBoardFilters = {
-  postType: "",
   tripType: "",
   destination: "",
   sortBy: "match",
@@ -141,7 +140,6 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
       params.set("postType", "VACATION_SWAP");
     } else {
       params.set("excludeVacation", "1");
-      if (filters.postType) params.set("postType", filters.postType);
     }
     if (filters.tripType) params.set("tripType", filters.tripType);
     if (filters.destination) params.set("destination", filters.destination);

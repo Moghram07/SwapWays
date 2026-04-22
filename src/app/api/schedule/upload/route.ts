@@ -6,6 +6,8 @@ import { parseScheduleFromText } from "@/services/schedule/scheduleParser";
 import * as scheduleRepo from "@/repositories/scheduleRepository";
 import { trackEventServer } from "@/lib/analytics/server";
 import { getUserAccess } from "@/utils/featureGates";
+import { grantTrialReward } from "@/services/subscription/trialRewards";
+import { prisma } from "@/lib/prisma";
 
 export const maxDuration = 60;
 
@@ -65,7 +67,7 @@ export async function POST(request: Request) {
         const pdfParse = pdfModule.default ?? pdfModule;
         const data = await pdfParse(buffer);
         rawText = (data && typeof data === "object" && "text" in data ? data.text : "") || "";
-      } catch (e) {
+      } catch {
         return NextResponse.json(
           { error: "Parse error", message: "Failed to extract text from PDF" },
           { status: 422 }
@@ -77,7 +79,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-  } catch (e) {
+  } catch {
     return NextResponse.json(
       { error: "Bad request", message: "Invalid form data" },
       { status: 400 }
@@ -126,6 +128,45 @@ export async function POST(request: Request) {
       path: "/dashboard/schedule",
       properties: { month: parsed.month, year: parsed.year, tripCount: parsed.trips.length, legCount },
     }).catch(() => {});
+    const rewardResult = await grantTrialReward({
+      userId: session.user.id,
+      type: "SCHEDULE_UPLOAD",
+      requestedDays: 10,
+      metadata: { scheduleId: schedule.id, month: parsed.month, year: parsed.year },
+    });
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        isVerified: true,
+        verifiedAt: new Date(),
+      },
+    });
+    await trackEventServer({
+      eventName: "user_schedule_verified",
+      userId: session.user.id,
+      path: "/dashboard/schedule",
+      properties: { scheduleId: schedule.id },
+    }).catch(() => {});
+    if (rewardResult.granted) {
+      await trackEventServer({
+        eventName: "trial_extended_schedule",
+        userId: session.user.id,
+        path: "/dashboard/schedule",
+        properties: {
+          daysGranted: rewardResult.daysGranted,
+          trialEndsAt: rewardResult.trialEndsAt.toISOString(),
+          capped: rewardResult.capped,
+        },
+      }).catch(() => {});
+      if (rewardResult.capped) {
+        await trackEventServer({
+          eventName: "trial_capped_50_days",
+          userId: session.user.id,
+          path: "/dashboard/schedule",
+          properties: { trigger: "SCHEDULE_UPLOAD" },
+        }).catch(() => {});
+      }
+    }
 
     return NextResponse.json({
       data: {
@@ -135,6 +176,7 @@ export async function POST(request: Request) {
         lineNumber: parsed.lineNumber,
         tripCount: parsed.trips.length,
         legCount,
+        trialReward: rewardResult,
       },
       error: null,
       message: "Schedule uploaded successfully",

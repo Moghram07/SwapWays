@@ -99,6 +99,11 @@ model User {
   tier          UserTier @default(PREMIUM)
   trialStartedAt DateTime @default(now())
   trialEndsAt    DateTime @default(now())
+  trialExtended  Boolean  @default(false)
+  isVerified     Boolean  @default(false)
+  verifiedAt     DateTime?
+  referredBy     String?
+  referralBonusCount Int  @default(0)
   subscriptionStatus SubscriptionStatus @default(TRIALING)
   subscribedAt   DateTime?
   subscriptionRenewsAt DateTime?
@@ -123,9 +128,56 @@ model User {
   feedbackItems          Feedback[]
   assignedFeedback       Feedback[] @relation("feedbackAssignee")
   appEvents              AppEvent[]
+  emailVerificationCodes EmailVerificationCode[]
+  trialRewards           TrialReward[]
+  referralsMade          Referral[] @relation("referrer")
+  referralsReceived      Referral[] @relation("referred")
+  referralCode           String?    @unique
 
   @@unique([airlineId, crewId])
   @@index([subscriptionStatus, trialEndsAt])
+}
+
+model EmailVerificationCode {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int      @default(0)
+  resendCount Int      @default(0)
+  lastSentAt  DateTime @default(now())
+  consumedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model TrialReward {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        TrialRewardType
+  daysGranted Int
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+
+  @@unique([userId, type])
+  @@index([userId, createdAt])
+}
+
+model Referral {
+  id             String         @id @default(cuid())
+  referrerUserId String
+  referrer       User           @relation("referrer", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  referredUserId String
+  referred       User           @relation("referred", fields: [referredUserId], references: [id], onDelete: Cascade)
+  bonusDays      Int            @default(10)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([referredUserId])
+  @@index([referrerUserId, createdAt])
 }
 
 model UserQualification {
@@ -682,6 +734,11 @@ enum FeedbackPriority {
   LOW
   NORMAL
   HIGH
+}
+
+enum TrialRewardType {
+  SCHEDULE_UPLOAD
+  REFERRAL
 }
 
 // Email verification (NextAuth / custom)

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { findAirlineByCode, findAirlineByEmailDomain } from "@/repositories/airlineRepository";
+import { findAirlineByCode } from "@/repositories/airlineRepository";
 import { findUserByEmail } from "@/repositories/userRepository";
 import { createUser } from "@/repositories/userRepository";
 import { isValidEmail } from "@/utils/validation";
@@ -18,6 +18,26 @@ function normalizeAircraftFamily(code: string): string {
   return c;
 }
 
+function makeReferralCode(firstName: string): string {
+  const prefix = firstName.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 4) || "CREW";
+  const suffix = Math.floor(1000 + Math.random() * 9000).toString();
+  return `${prefix}${suffix}`;
+}
+
+async function createUniqueReferralCode(firstName: string) {
+  for (let i = 0; i < 10; i += 1) {
+    const candidate = makeReferralCode(firstName);
+    const exists = await prisma.user.findUnique({
+      where: { referralCode: candidate },
+      select: { id: true },
+    });
+    if (!exists) return candidate;
+  }
+  return `${Date.now().toString(36).toUpperCase()}${Math.floor(Math.random() * 1000)
+    .toString()
+    .padStart(3, "0")}`;
+}
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const {
@@ -31,6 +51,7 @@ export async function POST(request: Request) {
     baseId,
     qualificationIds,
     phone,
+    referralCode,
   } = body as {
     email?: string;
     password?: string;
@@ -42,6 +63,7 @@ export async function POST(request: Request) {
     baseId?: string;
     qualificationIds?: string[];
     phone?: string;
+    referralCode?: string;
   };
 
   if (!email || !password || !firstName || !lastName || !crewId || !airlineCode || !rankId || !baseId) {
@@ -77,16 +99,6 @@ export async function POST(request: Request) {
   const normalizedEmail = email.toLowerCase().trim();
   const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
   const isAdmin = !!adminEmail && normalizedEmail === adminEmail;
-  const allowAnyEmail = process.env.ALLOW_ANY_EMAIL_FOR_TESTING === "true" || process.env.NODE_ENV === "development";
-  if (!allowAnyEmail && !isAdmin) {
-    const domainCheck = await findAirlineByEmailDomain(email.split("@")[1]);
-    if (!domainCheck || domainCheck.id !== airline.id) {
-      return NextResponse.json(
-        { data: null, error: "Validation failed", message: "Email domain does not match airline" },
-        { status: 422 }
-      );
-    }
-  }
   const rank = await prisma.rank.findFirst({ where: { airlineId: airline.id, code: rankId } });
   const base = await prisma.base.findFirst({ where: { airlineId: airline.id, airportCode: baseId } });
   if (!rank || !base) {
@@ -116,7 +128,22 @@ export async function POST(request: Request) {
 
   const qualifications = Array.from(chosenByFamily.values()).map((t) => ({ aircraftTypeId: t.id }));
   const trialStartedAt = new Date();
-  const trialEndsAt = new Date(trialStartedAt.getTime() + 90 * 24 * 60 * 60 * 1000);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const baseTrialDays = 10;
+  const referredTrialDays = 20;
+  const maxTrialDays = 50;
+  const ownReferralCode = await createUniqueReferralCode(firstName);
+  const normalizedReferralCode = referralCode?.trim().toUpperCase();
+  const referrer =
+    normalizedReferralCode && normalizedReferralCode.length > 0
+      ? await prisma.user.findUnique({
+          where: { referralCode: normalizedReferralCode },
+          select: { id: true, email: true, trialStartedAt: true, trialEndsAt: true, referralBonusCount: true },
+        })
+      : null;
+  const isValidReferrer = !!referrer && referrer.email.toLowerCase() !== normalizedEmail;
+  const initialTrialDays = isValidReferrer ? referredTrialDays : baseTrialDays;
+  const trialEndsAt = new Date(trialStartedAt.getTime() + initialTrialDays * dayMs);
   const user = await createUser({
     email: normalizedEmail,
     passwordHash,
@@ -132,14 +159,66 @@ export async function POST(request: Request) {
     subscriptionStatus: "TRIALING",
     trialStartedAt,
     trialEndsAt,
+    isVerified: false,
+    trialExtended: false,
+    referredBy: isValidReferrer && referrer ? referrer.id : null,
+    referralCode: ownReferralCode,
     qualifications,
   });
+  if (isValidReferrer && referrer) {
+    await prisma.referral.create({
+      data: {
+        referrerUserId: referrer.id,
+        referredUserId: user.id,
+        bonusDays: 10,
+      },
+    });
+    if (referrer.referralBonusCount < 3) {
+      const referrerCapEndsAt = new Date(referrer.trialStartedAt.getTime() + maxTrialDays * dayMs);
+      const referrerProposed = referrer.trialEndsAt.getTime() + 10 * dayMs;
+      const referrerNextEndsAt = new Date(Math.min(referrerCapEndsAt.getTime(), referrerProposed));
+      await prisma.user.update({
+        where: { id: referrer.id },
+        data: {
+          trialEndsAt: referrerNextEndsAt,
+          referralBonusCount: { increment: 1 },
+          tier: "PREMIUM",
+          subscriptionStatus: "TRIALING",
+        },
+      });
+      await trackEventServer({
+        eventName: "trial_extended_referral",
+        userId: referrer.id,
+        path: "/register",
+        properties: {
+          referredUserId: user.id,
+          daysGranted: Math.max(
+            0,
+            Math.round((referrerNextEndsAt.getTime() - referrer.trialEndsAt.getTime()) / dayMs)
+          ),
+          referralBonusCount: referrer.referralBonusCount + 1,
+          trialEndsAt: referrerNextEndsAt.toISOString(),
+        },
+      }).catch(() => {});
+    }
+    await trackEventServer({
+      eventName: "referral_signup_linked",
+      userId: referrer.id,
+      path: "/register",
+      properties: { referredUserId: user.id },
+    }).catch(() => {});
+  }
   await trackEventServer({
     eventName: "user_registered",
     userId: user.id,
     path: "/register",
     properties: { airlineCode },
   }).catch(() => {});
-  const { passwordHash: _, ...safe } = user;
-  return NextResponse.json({ data: safe, error: null, message: "Registered" });
+  const safe = { ...user };
+  delete (safe as { passwordHash?: string }).passwordHash;
+  return NextResponse.json({
+    data: { ...safe, verificationRequired: false },
+    error: null,
+    message: "Registered successfully.",
+  });
 }

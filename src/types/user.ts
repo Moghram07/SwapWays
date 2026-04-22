@@ -35,6 +35,12 @@ export interface CreateUserInput {
   subscribedAt?: Date;
   subscriptionRenewsAt?: Date;
   cancelledAt?: Date;
+  referralCode?: string;
+  referredBy?: string | null;
+  trialExtended?: boolean;
+  isVerified?: boolean;
+  verifiedAt?: Date | null;
+  referralBonusCount?: number;
 }
 
 export interface UpdateUserInput {

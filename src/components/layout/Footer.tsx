@@ -16,16 +16,16 @@ export function Footer() {
             <span className="text-lg font-semibold text-white">Swap Ways</span>
           </Link>
           <div className="flex gap-8 text-sm text-white/60">
-            <Link href="#" className="transition-colors hover:text-white/90">
+            <Link href="/privacy" className="transition-colors hover:text-white/90">
               Privacy
             </Link>
-            <Link href="#" className="transition-colors hover:text-white/90">
+            <Link href="/terms" className="transition-colors hover:text-white/90">
               Terms
             </Link>
-            <Link href="#" className="transition-colors hover:text-white/90">
+            <Link href="/support" className="transition-colors hover:text-white/90">
               Support
             </Link>
-            <Link href="#" className="transition-colors hover:text-white/90">
+            <Link href="/contact" className="transition-colors hover:text-white/90">
               Contact
             </Link>
           </div>

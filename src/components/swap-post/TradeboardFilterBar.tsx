@@ -1,12 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { SwapPostType } from "@/types/swapPost";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { TimeFormatToggle } from "@/components/trip/TimeFormatToggle";
 
 export interface SwapBoardFilters {
-  postType: SwapPostType | "";
   tripType: "" | "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
   destination: string;
   sortBy: "match" | "recent" | "date_soon";
@@ -30,10 +28,7 @@ export function TradeboardFilterBar({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const activeFilterCount = useMemo(
-    () =>
-      [filters.postType, filters.tripType, filters.destination.trim(), filters.routeType, filters.dateFrom].filter(
-        Boolean
-      ).length,
+    () => [filters.tripType, filters.destination.trim(), filters.routeType, filters.dateFrom].filter(Boolean).length,
     [filters]
   );
 
@@ -86,18 +81,6 @@ export function TradeboardFilterBar({
       {isExpanded && (
         <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-xs text-slate-500">Post type</label>
-              <select
-                value={filters.postType || ""}
-                onChange={(e) => onChange({ ...filters, postType: (e.target.value || "") as SwapPostType | "" })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
-              >
-                <option value="">All post types</option>
-                <option value="OFFERING_TRIPS">Offering flights</option>
-              </select>
-            </div>
-
             <div>
               <label className="mb-1 block text-xs text-slate-500">Trip type</label>
               <select
@@ -159,7 +142,6 @@ export function TradeboardFilterBar({
                 onClick={() =>
                   onChange({
                     ...filters,
-                    postType: "",
                     tripType: "",
                     destination: "",
                     routeType: "",

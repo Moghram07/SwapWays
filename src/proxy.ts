@@ -1,56 +1,20 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
+import { consumeRateLimit } from "@/lib/rateLimit";
 
 const RATE_WINDOW_MS = 60_000;
 const GLOBAL_API_LIMIT_PER_MINUTE = 240;
 const REGISTER_LIMIT_PER_MINUTE = 12;
 const LOGIN_LIMIT_PER_MINUTE = 20;
 const FEEDBACK_WRITE_LIMIT_PER_MINUTE = 20;
+const CONTACT_WRITE_LIMIT_PER_MINUTE = 12;
 const MATCH_REFRESH_LIMIT_PER_MINUTE = 6;
 const MESSAGE_WRITE_LIMIT_PER_MINUTE = 60;
-
-const globalState = globalThis as unknown as {
-  __swapWaysRateLimitStore?: Map<string, RateLimitEntry>;
-};
-
-function getStore(): Map<string, RateLimitEntry> {
-  if (!globalState.__swapWaysRateLimitStore) {
-    globalState.__swapWaysRateLimitStore = new Map<string, RateLimitEntry>();
-  }
-  return globalState.__swapWaysRateLimitStore;
-}
 
 function getClientIp(request: NextRequest): string {
   const xff = request.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0]?.trim() || "unknown";
   return request.headers.get("x-real-ip") || "unknown";
-}
-
-function consumeRateLimit(key: string, limit: number): { allowed: boolean; retryAfterSec: number } {
-  const now = Date.now();
-  const store = getStore();
-  const existing = store.get(key);
-
-  if (!existing || existing.resetAt <= now) {
-    store.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return { allowed: true, retryAfterSec: Math.ceil(RATE_WINDOW_MS / 1000) };
-  }
-
-  if (existing.count >= limit) {
-    return {
-      allowed: false,
-      retryAfterSec: Math.max(1, Math.ceil((existing.resetAt - now) / 1000)),
-    };
-  }
-
-  existing.count += 1;
-  store.set(key, existing);
-  return { allowed: true, retryAfterSec: Math.max(1, Math.ceil((existing.resetAt - now) / 1000)) };
 }
 
 function applySecurityHeaders(request: NextRequest, response: NextResponse) {
@@ -98,7 +62,7 @@ function tooManyRequests(retryAfterSec: number): NextResponse {
   return response;
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   if (pathname === "/4" || pathname.startsWith("/4/")) {
     const url = request.nextUrl.clone();
@@ -111,8 +75,12 @@ export function proxy(request: NextRequest) {
   const method = request.method.toUpperCase();
 
   if (isApi) {
-    const globalKey = `global:${ip}`;
-    const globalResult = consumeRateLimit(globalKey, GLOBAL_API_LIMIT_PER_MINUTE);
+    const globalResult = await consumeRateLimit({
+      namespace: "global",
+      key: ip,
+      limit: GLOBAL_API_LIMIT_PER_MINUTE,
+      windowMs: RATE_WINDOW_MS,
+    });
     if (!globalResult.allowed) {
       const response = tooManyRequests(globalResult.retryAfterSec);
       applySecurityHeaders(request, response);
@@ -120,8 +88,12 @@ export function proxy(request: NextRequest) {
     }
 
     if (pathname === "/api/auth/register") {
-      const registerKey = `register:${ip}`;
-      const registerResult = consumeRateLimit(registerKey, REGISTER_LIMIT_PER_MINUTE);
+      const registerResult = await consumeRateLimit({
+        namespace: "register",
+        key: ip,
+        limit: REGISTER_LIMIT_PER_MINUTE,
+        windowMs: RATE_WINDOW_MS,
+      });
       if (!registerResult.allowed) {
         const response = tooManyRequests(registerResult.retryAfterSec);
         applySecurityHeaders(request, response);
@@ -130,8 +102,12 @@ export function proxy(request: NextRequest) {
     }
 
     if (pathname === "/api/auth/callback/credentials") {
-      const loginKey = `login:${ip}`;
-      const loginResult = consumeRateLimit(loginKey, LOGIN_LIMIT_PER_MINUTE);
+      const loginResult = await consumeRateLimit({
+        namespace: "login",
+        key: ip,
+        limit: LOGIN_LIMIT_PER_MINUTE,
+        windowMs: RATE_WINDOW_MS,
+      });
       if (!loginResult.allowed) {
         const response = tooManyRequests(loginResult.retryAfterSec);
         applySecurityHeaders(request, response);
@@ -140,8 +116,12 @@ export function proxy(request: NextRequest) {
     }
 
     if (pathname === "/api/swap-posts/match-refresh") {
-      const refreshKey = `match-refresh:${ip}`;
-      const refreshResult = consumeRateLimit(refreshKey, MATCH_REFRESH_LIMIT_PER_MINUTE);
+      const refreshResult = await consumeRateLimit({
+        namespace: "match-refresh",
+        key: ip,
+        limit: MATCH_REFRESH_LIMIT_PER_MINUTE,
+        windowMs: RATE_WINDOW_MS,
+      });
       if (!refreshResult.allowed) {
         const response = tooManyRequests(refreshResult.retryAfterSec);
         applySecurityHeaders(request, response);
@@ -151,8 +131,12 @@ export function proxy(request: NextRequest) {
 
     if (method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE") {
       if (pathname === "/api/feedback") {
-        const feedbackKey = `feedback-write:${ip}`;
-        const feedbackResult = consumeRateLimit(feedbackKey, FEEDBACK_WRITE_LIMIT_PER_MINUTE);
+        const feedbackResult = await consumeRateLimit({
+          namespace: "feedback-write",
+          key: ip,
+          limit: FEEDBACK_WRITE_LIMIT_PER_MINUTE,
+          windowMs: RATE_WINDOW_MS,
+        });
         if (!feedbackResult.allowed) {
           const response = tooManyRequests(feedbackResult.retryAfterSec);
           applySecurityHeaders(request, response);
@@ -160,9 +144,27 @@ export function proxy(request: NextRequest) {
         }
       }
 
+      if (pathname === "/api/contact") {
+        const contactResult = await consumeRateLimit({
+          namespace: "contact-write",
+          key: ip,
+          limit: CONTACT_WRITE_LIMIT_PER_MINUTE,
+          windowMs: RATE_WINDOW_MS,
+        });
+        if (!contactResult.allowed) {
+          const response = tooManyRequests(contactResult.retryAfterSec);
+          applySecurityHeaders(request, response);
+          return response;
+        }
+      }
+
       if (pathname.startsWith("/api/conversations/") && pathname.endsWith("/messages")) {
-        const messagesKey = `messages-write:${ip}`;
-        const messagesResult = consumeRateLimit(messagesKey, MESSAGE_WRITE_LIMIT_PER_MINUTE);
+        const messagesResult = await consumeRateLimit({
+          namespace: "messages-write",
+          key: ip,
+          limit: MESSAGE_WRITE_LIMIT_PER_MINUTE,
+          windowMs: RATE_WINDOW_MS,
+        });
         if (!messagesResult.allowed) {
           const response = tooManyRequests(messagesResult.retryAfterSec);
           applySecurityHeaders(request, response);

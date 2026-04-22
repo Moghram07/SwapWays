@@ -5,7 +5,7 @@ export async function createUser(data: CreateUserInput & { qualifications: { air
   const { qualifications, ...userData } = data;
   const trialStartedAt = userData.trialStartedAt ?? new Date();
   const trialEndsAt =
-    userData.trialEndsAt ?? new Date(trialStartedAt.getTime() + 90 * 24 * 60 * 60 * 1000);
+    userData.trialEndsAt ?? new Date(trialStartedAt.getTime() + 10 * 24 * 60 * 60 * 1000);
   return prisma.user.create({
     data: {
       ...userData,

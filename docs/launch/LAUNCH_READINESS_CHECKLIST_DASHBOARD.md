@@ -24,6 +24,7 @@ Use this page as the single source of truth for launch sign-off.
 | Gate | Required command(s) | Owner | Sign-off date | Evidence / Link |
 |---|---|---|---|---|
 | CI quality gate | `npm run ci:gate` | Engineering |  | [CI workflow](../../.github/workflows/ci.yml) |
+| Launch env + quality gate | `npm run launch:gate` | Engineering |  | Includes env baseline + lint/test/build |
 | Staging release gate | GitHub Action: `Release Gates` (`target_environment=staging`) | Release lead |  | [Release gate workflow](../../.github/workflows/release-gates.yml) |
 | Production release gate | GitHub Action: `Release Gates` (`target_environment=production`) | Release lead |  | [Release gate workflow](../../.github/workflows/release-gates.yml) |
 | Migration status check | `npm run db:migrate:status` | Backend |  | [Release pipeline doc](RELEASE_PIPELINE_AND_GATES.md) |

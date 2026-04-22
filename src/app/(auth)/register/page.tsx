@@ -8,7 +8,9 @@ export default function RegisterPage() {
       <Card className="w-full max-w-lg border-slate-200 shadow-md">
         <CardHeader className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Create account</h1>
-          <p className="text-sm text-slate-600">Register with your airline email and crew details.</p>
+          <p className="text-sm text-slate-600">
+            Start with a 10-day trial, upload your schedule to verify, and unlock bonus days with referrals.
+          </p>
         </CardHeader>
         <CardContent>
           <RegisterForm />

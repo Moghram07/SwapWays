@@ -72,8 +72,10 @@ export default function PostToTradeBoardPage() {
   const searchParams = useSearchParams();
   const tripId = searchParams.get("tripId");
   const typeParam = searchParams.get("type");
+  const viewParam = searchParams.get("view");
   const isLineSwapMode = typeParam === "line-swap";
   const editId = searchParams.get("edit");
+  const forceChooser = viewParam === "chooser";
   const initialPostType = typeParam === "vacation" ? "VACATION_SWAP" : undefined;
   const [myTrips, setMyTrips] = useState<TripOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -265,15 +267,16 @@ export default function PostToTradeBoardPage() {
         </div>
       ) : (
         <CreatePostFlow
+          key={`${tripId ?? "none"}-${typeParam ?? "none"}-${editId ?? "none"}-${viewParam ?? "none"}`}
           myTrips={myTrips}
           scheduledDays={scheduledDays}
           month={month}
           year={year}
           userDisplay={userDisplay}
           onSubmit={handleSubmit}
-          initialSelectedTripIds={initialSelectedTripIds}
-          initialPostType={(editPost?.postType as import("@/types/swapPost").SwapPostType) ?? initialPostType}
-          initialPostId={editId ?? undefined}
+          initialSelectedTripIds={forceChooser ? undefined : initialSelectedTripIds}
+          initialPostType={forceChooser ? undefined : (editPost?.postType as import("@/types/swapPost").SwapPostType) ?? initialPostType}
+          initialPostId={forceChooser ? undefined : editId ?? undefined}
           initialWantCriteria={initialWantCriteria}
           initialSelectedDaysOff={editPost?.offeredDaysOff}
           initialVacationYear={editPost?.vacationYear != null ? editPost.vacationYear : undefined}

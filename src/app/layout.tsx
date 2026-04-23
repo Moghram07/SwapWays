@@ -37,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body suppressHydrationWarning className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}>
         <SessionProvider>
           <AnalyticsProvider />
           <ConditionalShell>

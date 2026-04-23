@@ -50,7 +50,7 @@ export function UpgradeModal({ isOpen, onClose, feature = "", reason = "" }: Upg
 
           <div className="mb-4 rounded-xl border border-gray-200 p-4">
             <div className="mb-3 flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-gray-900">30 SR</span>
+              <span className="text-2xl font-bold text-gray-900">35 SR</span>
               <span className="text-sm text-gray-500">/ month</span>
             </div>
             <ul className="space-y-2 text-sm text-gray-600">

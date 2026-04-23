@@ -12,6 +12,12 @@ const fetcher = async (url: string) => {
 
 type ConversationsResponse = {
   data?: ConversationSummary[];
+  meta?: {
+    tier?: "FREE" | "PREMIUM";
+    canStartNewConversation?: boolean;
+    conversationStartLimitReached?: boolean;
+    allowedConversationId?: string | null;
+  };
 };
 
 type ProfileResponse = {
@@ -27,6 +33,7 @@ export function MessagesPageClient() {
 
   const currentUserId = profileJson?.data?.id ?? "";
   const conversations = convJson?.data ?? [];
+  const conversationMeta = convJson?.meta;
 
   if (isLoading) {
     return (
@@ -42,6 +49,7 @@ export function MessagesPageClient() {
       currentUserId={currentUserId}
       initialConversations={conversations}
       initialSelectedId={selectedId}
+      conversationMeta={conversationMeta}
     />
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import useSWR from "swr";
+import { useState } from "react";
 import { CalendarDays, ArrowLeftRight, Bell, MessageCircle, ChevronRight } from "lucide-react";
 
 const PRIMARY = "#1E6FB9";
@@ -13,6 +14,12 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
+const optionalFetcher = async (url: string) => {
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) return null;
+  return res.json();
+};
+
 type OverviewResponse = {
   data: {
     schedule: { lineNumber: string; month: number; year: number } | null;
@@ -21,7 +28,8 @@ type OverviewResponse = {
     unreadMessages: number;
     topMatches: Array<{
       postId: string;
-      matchPercent: number;
+      matchPercent: number | null;
+      matchTier: "low" | "medium" | "high" | "none";
       reasons: string[];
       flightNumber: string | null;
       destination: string | null;
@@ -29,6 +37,16 @@ type OverviewResponse = {
       posterRank: string;
       posterBase: string;
     }>;
+  };
+};
+
+type ReferralMeResponse = {
+  data: {
+    referralCode: string;
+    referralLink: string | null;
+    usedReferrals: number;
+    remainingReferrals: number;
+    trialCapReached: boolean;
   };
 };
 
@@ -46,18 +64,51 @@ function tripTypeDotClass(tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | nu
   return "bg-slate-400";
 }
 
+function tierLabel(tier: "low" | "medium" | "high" | "none"): string {
+  if (tier === "high") return "Great match";
+  if (tier === "medium") return "Good match";
+  if (tier === "low") return "Low match";
+  return "Match";
+}
+
 function StatCardSkeleton() {
   return <div className="h-36 animate-pulse rounded-2xl border border-slate-200 bg-slate-100" />;
 }
 
 export function DashboardPageClient() {
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const { data: overviewJson, isLoading } = useSWR<OverviewResponse>("/api/dashboard/overview", fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60000,
+  });
+  const { data: referralJson } = useSWR<ReferralMeResponse | null>("/api/referrals/me", optionalFetcher, {
     revalidateOnFocus: false,
     dedupingInterval: 60000,
   });
 
   const payload = overviewJson?.data;
   const topMatches = payload?.topMatches ?? [];
+  const referral = referralJson?.data;
+  const showReferralCard = Boolean(referral && !referral.trialCapReached && referral.usedReferrals < 3);
+  const whatsappHref = referral?.referralLink
+    ? `https://wa.me/?text=${encodeURIComponent(`Join me on Swap Ways: ${referral.referralLink}`)}`
+    : "#";
+  const emailHref = referral?.referralLink
+    ? `mailto:?subject=${encodeURIComponent("Join me on Swap Ways")}&body=${encodeURIComponent(
+        `Use my invite link to sign up on Swap Ways:\n\n${referral.referralLink}`
+      )}`
+    : "#";
+
+  async function copyReferralLink() {
+    if (!referral?.referralLink) return;
+    try {
+      await navigator.clipboard.writeText(referral.referralLink);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+    setTimeout(() => setCopyState("idle"), 1800);
+  }
 
   return (
     <div className="space-y-8">
@@ -162,6 +213,53 @@ export function DashboardPageClient() {
         )}
       </div>
 
+      {showReferralCard ? (
+        <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-slate-900">Invite Crew, Extend Trial</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                You have used {referral?.usedReferrals}/3 referral rewards. Invite crew members to earn +10 days per
+                signup, up to the 50-day free cap.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-medium text-slate-500">Referral code</p>
+              <p className="mt-1 text-sm font-semibold tracking-wide text-slate-900">{referral?.referralCode}</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-medium text-slate-500">Referral link</p>
+              <p className="mt-1 truncate text-sm text-slate-800">{referral?.referralLink ?? "Unavailable"}</p>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={copyReferralLink}
+              className="rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800"
+            >
+              {copyState === "copied" ? "Copied!" : copyState === "failed" ? "Copy failed" : "Copy invite link"}
+            </button>
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-md border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Share on WhatsApp
+            </a>
+            <a
+              href={emailHref}
+              className="rounded-md border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Share by Email
+            </a>
+          </div>
+        </section>
+      ) : null}
+
       <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-base font-semibold text-slate-900">Top Matches for You</h2>
         {isLoading ? (
@@ -189,7 +287,10 @@ export function DashboardPageClient() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-slate-900">
                         <span className={`mr-2 inline-block h-2.5 w-2.5 rounded-full ${tripTypeDotClass(match.tripType)}`} />
-                        {Math.round(match.matchPercent)}% match · {flightLabel} {destination} {tripLabel} · {match.posterRank} · {match.posterBase}
+                        {match.matchPercent != null
+                          ? `${Math.round(match.matchPercent)}% match`
+                          : tierLabel(match.matchTier)}{" "}
+                        · {flightLabel} {destination} {tripLabel} · {match.posterRank} · {match.posterBase}
                       </p>
                     </div>
                     <span className="ml-4 shrink-0 text-xs font-medium text-slate-600">

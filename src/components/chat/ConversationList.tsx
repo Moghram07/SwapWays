@@ -3,9 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ConversationListItem } from "./ConversationListItem";
+import { trackClientEvent } from "@/lib/analytics/client";
 
 interface ConversationSummary {
   id: string;
+  status?: string;
   initiatorId: string;
   tradeOwnerId?: string | null;
   tradeOwner?: { firstName: string } | null;
@@ -22,11 +24,25 @@ interface ConversationListProps {
   selectedId: string | null;
   onSelect: (id: string) => void;
   initialConversations?: ConversationSummary[];
+  conversationMeta?: {
+    tier?: "FREE" | "PREMIUM";
+    canStartNewConversation?: boolean;
+    conversationStartLimitReached?: boolean;
+    allowedConversationId?: string | null;
+  };
   onDeleted?: (deletedId: string) => void;
 }
 
-export function ConversationList({ currentUserId, selectedId, onSelect, initialConversations, onDeleted }: ConversationListProps) {
+export function ConversationList({
+  currentUserId,
+  selectedId,
+  onSelect,
+  initialConversations,
+  conversationMeta,
+  onDeleted,
+}: ConversationListProps) {
   const [conversations, setConversations] = useState<ConversationSummary[]>(initialConversations ?? []);
+  const [meta, setMeta] = useState(conversationMeta ?? {});
 
   useEffect(() => {
     fetch("/api/conversations")
@@ -36,6 +52,7 @@ export function ConversationList({ currentUserId, selectedId, onSelect, initialC
       })
       .then((json) => {
         if (json?.data) setConversations(json.data);
+        if (json?.meta) setMeta(json.meta);
       })
       .catch(() => setConversations([]));
   }, []);
@@ -63,6 +80,9 @@ export function ConversationList({ currentUserId, selectedId, onSelect, initialC
       </div>
     );
   }
+  const limitReached = Boolean(meta.conversationStartLimitReached);
+  const allowedConversationId = meta.allowedConversationId ?? conversations[0]?.id ?? null;
+  const blurEnabled = meta.tier === "FREE" && limitReached;
 
   return (
     <ul className="p-2 space-y-1" role="listbox" aria-label="Conversations">
@@ -71,6 +91,7 @@ export function ConversationList({ currentUserId, selectedId, onSelect, initialC
         const other = conv.tradeOwner ?? conv.postOwner;
         const otherName = isInitiator ? (other?.firstName ?? "Crew") : conv.initiator.firstName;
         const lastMsg = conv.messages[0]?.content ?? null;
+        const isLocked = blurEnabled && conv.id !== allowedConversationId;
         return (
           <li key={conv.id}>
             <ConversationListItem
@@ -80,6 +101,22 @@ export function ConversationList({ currentUserId, selectedId, onSelect, initialC
               lastMessageAt={conv.lastMessageAt}
               unreadCount={conv.unreadCount ?? 0}
               isActive={selectedId === conv.id}
+              isLocked={isLocked}
+              onLockedClick={() => {
+                trackClientEvent({
+                  eventName: "blurred_card_clicked",
+                  path: "/dashboard/messages",
+                  properties: { conversationId: conv.id },
+                }).catch(() => {});
+              }}
+              onUpgradeClick={() => {
+                trackClientEvent({
+                  eventName: "upgrade_cta_clicked",
+                  path: "/dashboard/messages",
+                  properties: { source: "conversation_list_lock" },
+                }).catch(() => {});
+                window.location.href = "/dashboard/upgrade";
+              }}
               onClick={() => onSelect(conv.id)}
               onDelete={handleDelete}
             />

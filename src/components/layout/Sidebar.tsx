@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { mutate } from "swr";
 import {
@@ -59,12 +59,13 @@ export function Sidebar({
   access?: SidebarAccess;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [navigatingHref, setNavigatingHref] = useState<string | null>(null);
   const links = isAdmin ? [...baseLinks, adminLink] : baseLinks;
 
   useEffect(() => {
     setNavigatingHref(null);
-  }, [pathname]);
+  }, [pathname, searchParams]);
 
   function warmCache(url: string) {
     void mutate(
@@ -115,7 +116,20 @@ export function Sidebar({
               key={label}
               href={href}
               onMouseEnter={() => prefetchUrls.forEach(warmCache)}
-              onClick={() => setNavigatingHref(href)}
+              onClick={(e) => {
+                if (isActive) {
+                  if (href === "/dashboard/add-trade") {
+                    e.preventDefault();
+                    setNavigatingHref(null);
+                    window.location.assign(`/dashboard/add-trade?view=chooser&reset=${Date.now()}`);
+                    return;
+                  }
+                  e.preventDefault();
+                  setNavigatingHref(null);
+                  return;
+                }
+                setNavigatingHref(href);
+              }}
               className={`flex items-center gap-4 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-[#E3EFF9] text-[#2668B0]"

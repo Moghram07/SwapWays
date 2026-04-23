@@ -219,7 +219,7 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
               reason: json?.message ?? "Upgrade to Premium for unlimited parallel conversations.",
             });
           }
-          throw new Error(json.error ?? "Could not start conversation. Try again.");
+          throw new Error(json?.message ?? "Could not start conversation. Try again.");
         }
         return json;
       })
@@ -347,11 +347,12 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
         filters={filters}
         onChange={setFilters}
         hasAdvancedFilters={access?.hasAdvancedFilters ?? true}
+        canUseMatchSort={access?.canSeeExactMatch ?? true}
         onRequireUpgrade={() =>
           setUpgradeModal({
             open: true,
             feature: "advanced_filters",
-            reason: "Advanced Trade Board filters are available on Premium.",
+            reason: "This filter is available on Premium.",
           })
         }
       />

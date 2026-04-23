@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { isSwapPostExpired } from "@/lib/swapExpiry";
 import { findSwapPostsForBoard } from "@/repositories/swapPostRepository";
 import { getTradeboardForViewer } from "@/services/matching/matchEngine";
+import { getMatchTier, getUserAccess } from "@/utils/featureGates";
 
 function json(data: unknown) {
   return NextResponse.json({ data, error: null, message: null });
@@ -25,12 +26,14 @@ export async function GET() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [
+    access,
     schedule,
     activeSwaps,
     matchNotifications,
     unreadMessages,
     topMatches,
   ] = await Promise.all([
+    getUserAccess(userId),
     prisma.schedule.findFirst({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -71,13 +74,18 @@ export async function GET() {
     activeSwaps,
     newMatches,
     unreadMessages,
-    topMatches,
+    topMatches: topMatches.map((item) => ({
+      ...item,
+      matchTier: getMatchTier(item.matchPercent ?? 0),
+      matchPercent: access.canSeeExactMatch ? item.matchPercent : null,
+    })),
   });
 }
 
 type TopMatchItem = {
   postId: string;
-  matchPercent: number;
+  matchPercent: number | null;
+  matchTier: "low" | "medium" | "high" | "none";
   reasons: string[];
   flightNumber: string | null;
   destination: string | null;
@@ -110,6 +118,7 @@ async function getTopMatchesForUser(userId: string, limit: number): Promise<TopM
       return {
         postId: post.id,
         matchPercent: match?.matchPercent ?? 0,
+        matchTier: getMatchTier(match?.matchPercent ?? 0),
         reasons: match?.reasons ?? [],
         flightNumber: offered?.flightNumber ?? null,
         destination: offered?.destination ?? null,

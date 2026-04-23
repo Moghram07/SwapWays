@@ -19,12 +19,9 @@ export default function UpgradePage() {
 
       <div className="mx-auto mb-8 max-w-md rounded-2xl border-2 border-[#2668B0] bg-white p-8 shadow-lg">
         <div className="mb-6 text-center">
-          <span className="mb-3 inline-block rounded-full bg-[#E3EFF9] px-3 py-1 text-xs font-semibold text-[#2668B0]">
-            MOST POPULAR
-          </span>
           <h2 className="mb-1 text-2xl font-bold text-gray-900">Premium</h2>
           <div className="flex items-baseline justify-center gap-1">
-            <span className="text-4xl font-bold text-gray-900">30</span>
+            <span className="text-4xl font-bold text-gray-900">35</span>
             <span className="text-gray-500">SR / month</span>
           </div>
         </div>

@@ -7,8 +7,8 @@ export default function TermsPage() {
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-12">
       <PageViewTracker eventName="terms_page_viewed" path="/terms" />
-      <h1 className="text-3xl font-bold text-slate-900">Terms of Use</h1>
-      <p className="mt-2 text-sm text-slate-500">Effective date: {lastUpdated}</p>
+      <h1 className="text-3xl font-bold text-white">Terms of Use</h1>
+      <p className="mt-2 text-sm text-slate-300">Effective date: {lastUpdated}</p>
 
       <div className="mt-6 space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm text-slate-700">
         <section>

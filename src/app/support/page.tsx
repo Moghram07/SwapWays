@@ -7,9 +7,9 @@ export default function SupportPage() {
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-12">
       <PageViewTracker eventName="support_page_viewed" path="/support" />
-      <h1 className="text-3xl font-bold text-slate-900">Support</h1>
-      <p className="mt-2 text-sm text-slate-500">Last updated: {lastUpdated}</p>
-      <p className="mt-4 text-slate-700">
+      <h1 className="text-3xl font-bold text-white">Support</h1>
+      <p className="mt-2 text-sm text-slate-300">Last updated: {lastUpdated}</p>
+      <p className="mt-4 text-slate-200">
         Need help with signup, verification, schedule upload, or your trial? Start here, then contact us if you still
         need assistance.
       </p>
@@ -17,10 +17,10 @@ export default function SupportPage() {
       <section className="mt-8 space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">Quick FAQ</h2>
         <div>
-          <h3 className="font-semibold text-slate-900">I did not receive my verification code.</h3>
+          <h3 className="font-semibold text-slate-900">How do I verify my account?</h3>
           <p className="text-slate-700">
-            Wait one minute, check spam/junk, then resend from the verification page. Make sure you used your airline
-            email correctly.
+            Account verification is completed when you successfully upload your schedule. If upload parsing fails, use
+            the Contact form and include a short description of the issue.
           </p>
         </div>
         <div>
@@ -33,8 +33,8 @@ export default function SupportPage() {
         <div>
           <h3 className="font-semibold text-slate-900">How does the trial extension work?</h3>
           <p className="text-slate-700">
-            Every verified user gets 15 days. You can unlock up to 30 total days through qualified actions such as
-            schedule upload and referral milestones.
+            You start with 10 days free. Referred signups start with 20 days, schedule upload adds +10 once, and each
+            successful referral adds +10 (up to 3 referrals), capped at 50 total days.
           </p>
         </div>
       </section>

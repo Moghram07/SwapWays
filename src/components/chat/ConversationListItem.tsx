@@ -10,7 +10,10 @@ interface ConversationListItemProps {
   lastMessageAt: string;
   unreadCount: number;
   isActive: boolean;
+  isLocked?: boolean;
   onClick: () => void;
+  onLockedClick?: () => void;
+  onUpgradeClick?: () => void;
   onDelete?: (id: string) => void;
 }
 
@@ -21,7 +24,10 @@ export function ConversationListItem({
   lastMessageAt,
   unreadCount,
   isActive,
+  isLocked = false,
   onClick,
+  onLockedClick,
+  onUpgradeClick,
   onDelete,
 }: ConversationListItemProps) {
   const initial = (otherName || "?").charAt(0).toUpperCase();
@@ -34,12 +40,22 @@ export function ConversationListItem({
         type="button"
         role="option"
         aria-selected={isActive}
-        onClick={onClick}
+        onClick={() => {
+          if (isLocked) {
+            onLockedClick?.();
+            return;
+          }
+          onClick();
+        }}
         className={`min-h-[52px] w-full text-left px-4 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 ${
-          isActive ? "bg-[var(--primary)]/10 text-[var(--primary)]" : "hover:bg-slate-100"
+          isLocked
+            ? "opacity-80"
+            : isActive
+              ? "bg-[var(--primary)]/10 text-[var(--primary)]"
+              : "hover:bg-slate-100"
         }`}
       >
-        <div className="flex items-start gap-3">
+        <div className={`flex items-start gap-3 ${isLocked ? "blur-[2px]" : ""}`}>
           <span
             className="shrink-0 w-9 h-9 rounded-full bg-[var(--primary)]/20 text-[var(--primary)] flex items-center justify-center text-sm font-semibold"
             aria-hidden
@@ -64,6 +80,20 @@ export function ConversationListItem({
           )}
         </div>
       </button>
+      {isLocked && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-white/30">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUpgradeClick?.();
+            }}
+            className="pointer-events-auto rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-slate-800"
+          >
+            Upgrade to unlock
+          </button>
+        </div>
+      )}
       {onDelete && (
         <button
           type="button"

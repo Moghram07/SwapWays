@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { TimeFormatToggle } from "@/components/trip/TimeFormatToggle";
 
@@ -16,6 +16,7 @@ interface TradeboardFilterBarProps {
   filters: SwapBoardFilters;
   onChange: (next: SwapBoardFilters) => void;
   hasAdvancedFilters?: boolean;
+  canUseMatchSort?: boolean;
   onRequireUpgrade?: () => void;
 }
 
@@ -23,9 +24,15 @@ export function TradeboardFilterBar({
   filters,
   onChange,
   hasAdvancedFilters = true,
+  canUseMatchSort = true,
   onRequireUpgrade,
 }: TradeboardFilterBarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  useEffect(() => {
+    if (!canUseMatchSort && filters.sortBy === "match") {
+      onChange({ ...filters, sortBy: "recent" });
+    }
+  }, [canUseMatchSort, filters, onChange]);
 
   const activeFilterCount = useMemo(
     () => [filters.tripType, filters.destination.trim(), filters.routeType, filters.dateFrom].filter(Boolean).length,
@@ -65,10 +72,20 @@ export function TradeboardFilterBar({
 
         <select
           value={filters.sortBy}
-          onChange={(e) => onChange({ ...filters, sortBy: e.target.value as SwapBoardFilters["sortBy"] })}
+          onChange={(e) => {
+            const nextSort = e.target.value as SwapBoardFilters["sortBy"];
+            if (nextSort === "match" && !canUseMatchSort) {
+              onRequireUpgrade?.();
+              onChange({ ...filters, sortBy: "recent" });
+              return;
+            }
+            onChange({ ...filters, sortBy: nextSort });
+          }}
           className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
         >
-          <option value="match">Best match</option>
+          <option value="match" disabled={!canUseMatchSort}>
+            Best match{!canUseMatchSort ? " (Premium)" : ""}
+          </option>
           <option value="recent">Most recent</option>
           <option value="date_soon">Soonest date</option>
         </select>

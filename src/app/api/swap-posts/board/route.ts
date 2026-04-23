@@ -34,12 +34,13 @@ export async function GET(request: Request) {
   const postType = searchParams.get("postType") || undefined;
   const tripType = searchParams.get("tripType") as "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | undefined;
   const destination = searchParams.get("destination") || undefined;
-  const sortBy = searchParams.get("sortBy") || "match";
+  const requestedSortBy = searchParams.get("sortBy") || "match";
   const dateFrom = searchParams.get("dateFrom") || undefined;
   const excludeVacation = searchParams.get("excludeVacation") === "1";
 
   try {
     const access = await getUserAccess(session.user.id);
+    const sortBy = access.canSeeExactMatch ? requestedSortBy : requestedSortBy === "match" ? "recent" : requestedSortBy;
     const effectiveTripType = access.hasAdvancedFilters ? tripType : undefined;
     const effectiveDestination = access.hasAdvancedFilters ? destination : undefined;
     const effectiveDateFrom = access.hasAdvancedFilters ? dateFrom : undefined;

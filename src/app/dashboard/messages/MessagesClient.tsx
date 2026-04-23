@@ -22,12 +22,19 @@ interface MessagesClientProps {
   currentUserId: string;
   initialConversations: ConversationSummary[];
   initialSelectedId: string | null;
+  conversationMeta?: {
+    tier?: "FREE" | "PREMIUM";
+    canStartNewConversation?: boolean;
+    conversationStartLimitReached?: boolean;
+    allowedConversationId?: string | null;
+  };
 }
 
 export function MessagesClient({
   currentUserId,
   initialConversations,
   initialSelectedId,
+  conversationMeta,
 }: MessagesClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -68,6 +75,7 @@ export function MessagesClient({
               selectedId={selectedId}
               onSelect={handleSelect}
               initialConversations={initialConversations}
+              conversationMeta={conversationMeta}
               onDeleted={handleDeleted}
             />
           </div>

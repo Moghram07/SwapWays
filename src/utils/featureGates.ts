@@ -7,6 +7,8 @@ export interface UserAccess {
   isVerified: boolean;
   isTrialing: boolean;
   trialDaysRemaining: number;
+  freeConversationDailyLimit: number;
+  freeConversationStartsRemaining: number;
   canPostLineSwap: boolean;
   canPostVacationSwap: boolean;
   canSeeExactMatch: boolean;
@@ -20,7 +22,6 @@ export interface UserAccess {
 }
 
 const FREE_NOTES_PREVIEW_LENGTH = 40;
-const ACTIVE_CONVERSATION_STATUSES = ["ACTIVE", "SWAP_PROPOSED", "SWAP_ACCEPTED"] as const;
 
 function computeIsPremium(
   user: {
@@ -82,12 +83,20 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
 
   const canUploadSchedule = isPremium ? true : await checkFreeUploadLimit(userId);
   const canStartNewConversation = isPremium ? true : await checkFreeConversationLimit(userId);
+  const freeConversationDailyLimit = 1;
+  const freeConversationStartsRemaining = isPremium
+    ? Number.POSITIVE_INFINITY
+    : canStartNewConversation
+      ? 1
+      : 0;
 
   return {
     tier: isPremium ? "PREMIUM" : "FREE",
     isVerified: user.isVerified,
     isTrialing,
     trialDaysRemaining,
+    freeConversationDailyLimit,
+    freeConversationStartsRemaining,
     canPostLineSwap: isPremium && user.isVerified,
     canPostVacationSwap: isPremium && user.isVerified,
     canSeeExactMatch: isPremium,
@@ -102,13 +111,15 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
 }
 
 async function checkFreeConversationLimit(userId: string): Promise<boolean> {
-  const activeCount = await prisma.conversation.count({
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const startedToday = await prisma.conversation.count({
     where: {
-      OR: [{ initiatorId: userId }, { tradeOwnerId: userId }, { postOwnerId: userId }],
-      status: { in: [...ACTIVE_CONVERSATION_STATUSES] },
+      initiatorId: userId,
+      createdAt: { gte: startOfDay },
     },
   });
-  return activeCount === 0;
+  return startedToday < 1;
 }
 
 async function checkFreeUploadLimit(userId: string): Promise<boolean> {

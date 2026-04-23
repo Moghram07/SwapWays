@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { findConversationsByUserId } from "@/repositories/conversationRepository";
 import { createNotification } from "@/lib/notifications";
 import { getUserAccess } from "@/utils/featureGates";
+import { trackEventServer } from "@/lib/analytics/server";
 
 function unauthorized() {
   return NextResponse.json({ data: null, error: "Unauthorized", message: "Please sign in" }, { status: 401 });
@@ -60,13 +61,19 @@ export async function POST(request: Request) {
     }
 
     if (!access.canStartNewConversation) {
+      await trackEventServer({
+        eventName: "free_limit_hit",
+        userId: session.user.id,
+        path: "/api/conversations",
+        properties: { limit: "daily_conversation_start", source: "swap_post" },
+      }).catch(() => {});
       return NextResponse.json(
         {
           data: null,
           error: "CONVERSATION_LIMIT_REACHED",
           feature: "multiple_conversations",
           message:
-            "Free tier is limited to 1 active conversation. Close your current conversation or upgrade to Premium for unlimited conversations.",
+            "Free tier allows 1 new conversation per day. You can still reply in existing conversations, or upgrade to Premium for unlimited starts.",
         },
         { status: 403 }
       );
@@ -163,13 +170,19 @@ export async function POST(request: Request) {
   }
 
   if (!access.canStartNewConversation) {
+    await trackEventServer({
+      eventName: "free_limit_hit",
+      userId: session.user.id,
+      path: "/api/conversations",
+      properties: { limit: "daily_conversation_start", source: "trade" },
+    }).catch(() => {});
     return NextResponse.json(
       {
         data: null,
         error: "CONVERSATION_LIMIT_REACHED",
         feature: "multiple_conversations",
         message:
-          "Free tier is limited to 1 active conversation. Close your current conversation or upgrade to Premium for unlimited conversations.",
+          "Free tier allows 1 new conversation per day. You can still reply in existing conversations, or upgrade to Premium for unlimited starts.",
       },
       { status: 403 }
     );
@@ -242,12 +255,24 @@ export async function GET() {
   const access = await getUserAccess(session.user.id);
 
   const withUnread = await findConversationsByUserId(session.user.id);
-  if (access.canViewConversationHistory) {
-    return json(withUnread);
-  }
-  return json(
-    withUnread.filter((conversation) =>
-      ["ACTIVE", "SWAP_PROPOSED", "SWAP_ACCEPTED"].includes(conversation.status)
-    )
-  );
+  const activeConversationStatuses = new Set(["ACTIVE", "SWAP_PROPOSED", "SWAP_ACCEPTED"]);
+  const visibleConversations = access.canViewConversationHistory
+    ? withUnread
+    : withUnread.filter((conversation) => activeConversationStatuses.has(conversation.status));
+  const allowedConversationId = visibleConversations[0]?.id ?? null;
+  const conversationStartLimitReached =
+    access.tier === "FREE" && !access.canStartNewConversation;
+  return NextResponse.json({
+    data: visibleConversations,
+    meta: {
+      tier: access.tier,
+      canStartNewConversation: access.canStartNewConversation,
+      conversationStartLimitReached,
+      allowedConversationId,
+      freeConversationStartsRemaining: access.freeConversationStartsRemaining,
+      freeConversationDailyLimit: access.freeConversationDailyLimit,
+    },
+    error: null,
+    message: null,
+  });
 }

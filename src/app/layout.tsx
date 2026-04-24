@@ -4,6 +4,7 @@ import { SessionProvider } from "@/components/providers/SessionProvider";
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
 import { ConditionalShell } from "@/components/layout/ConditionalShell";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { ChunkLoadRecovery } from "@/components/ChunkLoadRecovery";
 import "./globals.css";
 
 const inter = Inter({
@@ -40,6 +41,7 @@ export default function RootLayout({
       <body suppressHydrationWarning className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}>
         <SessionProvider>
           <AnalyticsProvider />
+          <ChunkLoadRecovery />
           <ConditionalShell>
             {children}
             <ServiceWorkerRegistration />

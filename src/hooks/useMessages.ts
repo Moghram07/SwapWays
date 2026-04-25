@@ -26,15 +26,15 @@ export function useMessages(
   const [messages, setMessages] = useState<MessageWithSender[]>([]);
   const onConversationClosed = options?.onConversationClosed;
   const pausePollingRef = options?.pausePollingRef;
-  const lastMessageId = useRef<string | null>(null);
+  const lastMessageCursor = useRef<{ id: string; createdAt: string } | null>(null);
 
   const fetchMessages = useCallback(async () => {
     if (!conversationId) return;
     if (pausePollingRef?.current) return;
     try {
-      const url = lastMessageId.current
-        ? `/api/conversations/${conversationId}/messages?after=${lastMessageId.current}`
-        : `/api/conversations/${conversationId}/messages`;
+      const url = lastMessageCursor.current
+        ? `/api/conversations/${conversationId}/messages?after=${lastMessageCursor.current.id}&afterCreatedAt=${encodeURIComponent(lastMessageCursor.current.createdAt)}&limit=50`
+        : `/api/conversations/${conversationId}/messages?limit=50`;
       const res = await fetch(url);
       if (!res.ok) {
         console.error("fetchMessages failed", res.status, res.statusText);
@@ -45,13 +45,16 @@ export function useMessages(
       if (!data || data.length === 0) return;
 
       setMessages((prev) => {
-        if (prev.length === 0 || !lastMessageId.current) {
-          lastMessageId.current = data[data.length - 1].id;
+        if (prev.length === 0 || !lastMessageCursor.current) {
+          const last = data[data.length - 1];
+          lastMessageCursor.current = { id: last.id, createdAt: last.createdAt };
           return data;
         }
-        const newOnes = data.filter((m: MessageWithSender) => !prev.some((p) => p.id === m.id));
+        const existingIds = new Set(prev.map((p) => p.id));
+        const newOnes = data.filter((m: MessageWithSender) => !existingIds.has(m.id));
         if (newOnes.length === 0) return prev;
-        lastMessageId.current = newOnes[newOnes.length - 1].id;
+        const last = newOnes[newOnes.length - 1];
+        lastMessageCursor.current = { id: last.id, createdAt: last.createdAt };
         return [...prev, ...newOnes];
       });
     } catch (err) {
@@ -64,14 +67,14 @@ export function useMessages(
 
     if (!conversationId) {
       setMessages([]);
-      lastMessageId.current = null;
+      lastMessageCursor.current = null;
       return;
     }
-    lastMessageId.current = null;
+    lastMessageCursor.current = null;
     void fetchMessages();
 
     const poll = () => {
-      if (pausePollingRef?.current) {
+      if (pausePollingRef?.current || !document.hasFocus()) {
         timer = setTimeout(poll, 5000);
         return;
       }
@@ -107,8 +110,8 @@ export function useMessages(
               sender: { id: currentUserId, firstName: "You" },
             },
           ]);
-          if (json.data.id) {
-            lastMessageId.current = json.data.id;
+          if (json.data.id && json.data.createdAt) {
+            lastMessageCursor.current = { id: json.data.id, createdAt: json.data.createdAt };
           }
         } else if (!res.ok) {
           const msg = json.message ?? res.statusText;

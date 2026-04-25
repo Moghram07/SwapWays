@@ -204,7 +204,8 @@ export async function findTradesBrowse(
     baseId: string;
   },
   page: number,
-  limit: number
+  limit: number,
+  options?: { includeTotal?: boolean }
 ) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -227,16 +228,14 @@ export async function findTradesBrowse(
     if (filters.dateFrom) (where.departureDate as Record<string, Date>).gte = filters.dateFrom;
     if (filters.dateTo) (where.departureDate as Record<string, Date>).lte = filters.dateTo;
   }
-  const [items, total] = await Promise.all([
-    prisma.trade.findMany({
-      where,
-      orderBy: { departureDate: "asc" },
-      skip: (page - 1) * limit,
-      take: limit,
-      select: tradeWithUserSelect,
-    }),
-    prisma.trade.count({ where }),
-  ]);
+  const items = await prisma.trade.findMany({
+    where,
+    orderBy: { departureDate: "asc" },
+    skip: (page - 1) * limit,
+    take: limit,
+    select: tradeWithUserSelect,
+  });
+  const total = options?.includeTotal ? await prisma.trade.count({ where }) : null;
   return { items, total };
 }
 

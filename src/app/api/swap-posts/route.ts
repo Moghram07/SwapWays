@@ -4,13 +4,14 @@ import { authOptions } from "@/lib/auth";
 import { createSwapPost, findSwapPostsByUserId } from "@/repositories/swapPostRepository";
 import { prisma } from "@/lib/prisma";
 import { classifyTrip, getUniqueDestinations } from "@/utils/tripClassifier";
-import { findMatchesForPost } from "@/services/matching/matchEngine";
+import { findMatchesForPost, invalidateMatchCacheForPosts } from "@/services/matching/matchEngine";
 import { createNotification } from "@/lib/notifications";
 import { isSwapPostExpired } from "@/lib/swapExpiry";
 import { trackEventServer } from "@/lib/analytics/server";
 import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
 import { getPremiumViewerIds, getUserAccess } from "@/utils/featureGates";
 import { HIGH_MATCH_NOTIFICATION_MIN_PERCENT } from "@/constants/subscription";
+import { withTiming } from "@/lib/apiTimer";
 
 function normalizeFlightNumber(raw: string | null | undefined): string {
   const s = (raw ?? "").trim();
@@ -118,36 +119,38 @@ function normalizeManualOfferedTrips(
 }
 
 export async function GET(request: Request) {
+  const timer = withTiming("GET /api/swap-posts");
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return unauthorized();
+  if (!session?.user?.id) return timer.end(unauthorized());
   const { searchParams } = new URL(request.url);
   if (searchParams.get("mine") !== "1") {
-    return error("Use ?mine=1 to fetch your swap posts", 400);
+    return timer.end(error("Use ?mine=1 to fetch your swap posts", 400));
   }
   try {
     const posts = await findSwapPostsByUserId(session.user.id);
     const now = new Date();
-    return json(posts.filter((post) => !isSwapPostExpired(post, now)));
+    return timer.end(json(posts.filter((post) => !isSwapPostExpired(post, now))));
   } catch (err) {
     const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : null;
     if (code === "P2021") {
       console.error("[swap-posts GET] Database table missing.");
-      return NextResponse.json(
+      return timer.end(NextResponse.json(
         { data: null, error: "ServerConfig", message: "Not available. Please try again later." },
         { status: 503 }
-      );
+      ));
     }
     console.error("[swap-posts GET]", err);
-    return NextResponse.json(
+    return timer.end(NextResponse.json(
       { data: null, error: "ServerError", message: "Failed to load your posts." },
       { status: 500 }
-    );
+    ));
   }
 }
 
 export async function POST(request: Request) {
+  const timer = withTiming("POST /api/swap-posts");
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return unauthorized();
+  if (!session?.user?.id) return timer.end(unauthorized());
   const access = await getUserAccess(session.user.id);
 
   let body: {
@@ -205,16 +208,16 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return error("Invalid JSON", 400);
+    return timer.end(error("Invalid JSON", 400));
   }
 
   const postType = body.postType as "OFFERING_TRIPS" | "VACATION_SWAP" | undefined;
   const validTypes = ["OFFERING_TRIPS", "VACATION_SWAP"];
   if (!postType || !validTypes.includes(postType)) {
-    return error("postType is required and must be one of: " + validTypes.join(", "), 400);
+    return timer.end(error("postType is required and must be one of: " + validTypes.join(", "), 400));
   }
   if (postType === "VACATION_SWAP" && !access.canPostVacationSwap) {
-    return NextResponse.json(
+    return timer.end(NextResponse.json(
       {
         data: null,
         error: "PREMIUM_REQUIRED",
@@ -222,7 +225,7 @@ export async function POST(request: Request) {
         message: "Vacation swaps are a Premium feature. Upgrade to post vacation swaps.",
       },
       { status: 403 }
-    );
+    ));
   }
 
   if (postType === "VACATION_SWAP") {
@@ -350,9 +353,28 @@ export async function POST(request: Request) {
           id: { in: selectedTrips },
           schedule: { userId: session.user.id },
         },
-        include: {
-          legs: { orderBy: { legOrder: "asc" } },
-          layovers: { orderBy: { afterLegOrder: "asc" } },
+        select: {
+          id: true,
+          tripNumber: true,
+          startDate: true,
+          creditHours: true,
+          blockHours: true,
+          tafb: true,
+          reportTime: true,
+          legs: {
+            orderBy: { legOrder: "asc" },
+            select: {
+              legOrder: true,
+              flightNumber: true,
+              aircraftTypeCode: true,
+              departureAirport: true,
+              arrivalAirport: true,
+            },
+          },
+          layovers: {
+            orderBy: { afterLegOrder: "asc" },
+            select: { airport: true, durationDecimal: true },
+          },
         },
       });
 
@@ -514,20 +536,21 @@ export async function POST(request: Request) {
       },
     }).catch(() => {});
 
-    return json(post);
+    await invalidateMatchCacheForPosts([post.id]).catch(() => {});
+    return timer.end(json(post));
   } catch (err) {
     const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : null;
     if (code === "P2021") {
       console.error("[swap-posts] Database table missing. Run: npx prisma db push");
-      return NextResponse.json(
+      return timer.end(NextResponse.json(
         { data: null, error: "ServerConfig", message: "Posting is not available right now. Please try again later." },
         { status: 503 }
-      );
+      ));
     }
     console.error("[swap-posts]", err);
-    return NextResponse.json(
+    return timer.end(NextResponse.json(
       { data: null, error: "ServerError", message: "Failed to create post. Please try again." },
       { status: 500 }
-    );
+    ));
   }
 }

@@ -2,10 +2,11 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isSwapPostExpired } from "@/lib/swapExpiry";
-import { findSwapPostsForBoard } from "@/repositories/swapPostRepository";
-import { getTradeboardForViewer } from "@/services/matching/matchEngine";
 import { getMatchTier, getUserAccess } from "@/utils/featureGates";
+import { withTiming } from "@/lib/apiTimer";
+
+const OVERVIEW_CACHE_TTL_MS = 20_000;
+const overviewCache = new Map<string, { expiresAt: number; payload: unknown }>();
 
 function json(data: unknown) {
   return NextResponse.json({ data, error: null, message: null });
@@ -19,21 +20,36 @@ function unauthorized() {
 }
 
 export async function GET() {
+  const timer = withTiming("GET /api/dashboard/overview");
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return unauthorized();
+  if (!session?.user?.id) return timer.end(unauthorized());
 
   const userId = session.user.id;
+  const cached = overviewCache.get(userId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return timer.end(json(cached.payload));
+  }
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [
     access,
+    user,
     schedule,
     activeSwaps,
-    matchNotifications,
+    newMatches,
     unreadMessages,
     topMatches,
+    usedReferrals,
   ] = await Promise.all([
     getUserAccess(userId),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        referralCode: true,
+        trialStartedAt: true,
+        trialEndsAt: true,
+      },
+    }),
     prisma.schedule.findFirst({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -43,14 +59,13 @@ export async function GET() {
       prisma.swapPost.count({ where: { userId, status: "OPEN" } }),
       prisma.lineSwapPost.count({ where: { userId, status: "OPEN" } }),
     ]).then(([trips, lines]) => trips + lines),
-    prisma.notification.findMany({
+    prisma.notification.count({
       where: {
         userId,
         type: "MATCH_FOUND",
         isRead: false,
         createdAt: { gte: sevenDaysAgo },
       },
-      select: { data: true },
     }),
     prisma.message.count({
       where: {
@@ -62,24 +77,36 @@ export async function GET() {
       },
     }),
     getTopMatchesForUser(userId, 3),
+    prisma.referral.count({
+      where: { referrerUserId: userId },
+    }),
   ]);
 
-  const newMatches = matchNotifications.reduce((count, n) => {
-    const score = extractMatchPercent(n.data);
-    return score > 50 ? count + 1 : count;
-  }, 0);
-
-  return json({
+  const trialCapReached = usedReferrals >= 3;
+  const referralCode = user?.referralCode ?? null;
+  const referralLink = referralCode
+    ? `${process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? ""}/register?ref=${referralCode}`
+    : null;
+  const payload = {
     schedule,
     activeSwaps,
     newMatches,
     unreadMessages,
+    referral: {
+      referralCode,
+      referralLink,
+      usedReferrals,
+      remainingReferrals: Math.max(0, 3 - usedReferrals),
+      trialCapReached,
+    },
     topMatches: topMatches.map((item) => ({
       ...item,
       matchTier: getMatchTier(item.matchPercent ?? 0),
       matchPercent: access.canSeeExactMatch ? item.matchPercent : null,
     })),
-  });
+  };
+  overviewCache.set(userId, { expiresAt: Date.now() + OVERVIEW_CACHE_TTL_MS, payload });
+  return timer.end(json(payload));
 }
 
 type TopMatchItem = {
@@ -95,47 +122,61 @@ type TopMatchItem = {
 };
 
 async function getTopMatchesForUser(userId: string, limit: number): Promise<TopMatchItem[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { baseId: true, rankId: true },
+  const cached = await prisma.matchCache.findMany({
+    where: { viewerId: userId, matchPercent: { gte: 40 } },
+    orderBy: { matchPercent: "desc" },
+    take: limit * 3,
+    select: { postId: true, matchPercent: true, reasons: true },
   });
-  if (!user?.baseId) return [];
+  if (cached.length === 0) return [];
 
-  const posts = await findSwapPostsForBoard(userId, user.baseId, { rankId: user.rankId });
-  const openPosts = posts.filter((post) => !isSwapPostExpired(post, new Date()));
-  if (openPosts.length === 0) return [];
+  const posts = await prisma.swapPost.findMany({
+    where: {
+      id: { in: cached.map((c) => c.postId) },
+      status: "OPEN",
+      userId: { not: userId },
+    },
+    select: {
+      id: true,
+      offeredTrips: {
+        select: {
+          flightNumber: true,
+          destination: true,
+          tripType: true,
+          departureDate: true,
+        },
+        take: 1,
+      },
+      user: {
+        select: {
+          rank: { select: { name: true } },
+          base: { select: { name: true } },
+        },
+      },
+    },
+  });
+  const postMap = new Map(posts.map((p) => [p.id, p]));
 
-  const matches = await getTradeboardForViewer(
-    userId,
-    openPosts.map((post) => post.id)
-  );
-  const matchMap = new Map(matches.map((m) => [m.postId, m]));
-
-  return openPosts
-    .map((post) => {
-      const match = matchMap.get(post.id);
-      const offered = post.offeredTrips[0];
-      return {
-        postId: post.id,
-        matchPercent: match?.matchPercent ?? 0,
-        matchTier: getMatchTier(match?.matchPercent ?? 0),
-        reasons: match?.reasons ?? [],
-        flightNumber: offered?.flightNumber ?? null,
-        destination: offered?.destination ?? null,
-        tripType: offered?.tripType ?? null,
-        posterRank: post.user.rank.name,
-        posterBase: post.user.base.name,
-      };
-    })
-    .filter((item) => item.matchPercent >= 40)
-    .sort((a, b) => b.matchPercent - a.matchPercent)
-    .slice(0, limit);
-}
-
-function extractMatchPercent(data: unknown): number {
-  if (!data || typeof data !== "object") return 0;
-  if (!("matchPercent" in data)) return 0;
-  const value = (data as { matchPercent?: unknown }).matchPercent;
-  return typeof value === "number" ? value : Number(value) || 0;
+  const results: TopMatchItem[] = [];
+  for (const cacheItem of cached) {
+    const post = postMap.get(cacheItem.postId);
+    if (!post) continue;
+    const offered = post.offeredTrips[0];
+    const tripDate = offered?.departureDate ?? null;
+    if (tripDate && tripDate.getTime() < Date.now()) continue;
+    results.push({
+      postId: post.id,
+      matchPercent: cacheItem.matchPercent,
+      matchTier: getMatchTier(cacheItem.matchPercent),
+      reasons: cacheItem.reasons,
+      flightNumber: offered?.flightNumber ?? null,
+      destination: offered?.destination ?? null,
+      tripType: offered?.tripType ?? null,
+      posterRank: post.user.rank.name,
+      posterBase: post.user.base.name,
+    });
+    if (results.length >= limit) break;
+  }
+  return results;
 }
 

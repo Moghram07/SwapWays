@@ -341,6 +341,20 @@ model Match {
   confirmedAt    DateTime?
 }
 
+model MatchCache {
+  id           String   @id @default(cuid())
+  postId        String
+  viewerId      String
+  matchPercent  Int
+  reasons       String[]
+  calculatedAt  DateTime @default(now())
+
+  @@unique([postId, viewerId])
+  @@index([viewerId])
+  @@index([viewerId, matchPercent])
+  @@index([postId])
+}
+
 // ============================================
 // SCHEDULE (Phase 2)
 // ============================================

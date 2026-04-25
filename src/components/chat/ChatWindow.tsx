@@ -176,14 +176,10 @@ export function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
     );
   }
 
-  if (!conversation) {
-    return <ChatLoadingSkeleton />;
-  }
-
-  const isClosed = conversation.status === "EXPIRED" || conversation.status === "DECLINED";
+  const isClosed = conversation?.status === "EXPIRED" || conversation?.status === "DECLINED";
   const lastSwapProposedMsg = [...messages].reverse().find((m) => m.systemAction === "SWAP_PROPOSED");
   const lastSwapProposedByInitiator = lastSwapProposedMsg
-    ? lastSwapProposedMsg.senderId === conversation.initiatorId
+    ? lastSwapProposedMsg.senderId === conversation?.initiatorId
     : false;
 
   const handlePropose = async () => {
@@ -202,33 +198,43 @@ export function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
     refetchConversation();
   };
 
-  const isInitiator = conversation.initiatorId === currentUserId;
+  const isInitiator = conversation?.initiatorId === currentUserId;
   const { myTrip, theirTrip, currentOfferId } = mapTripsForChat(currentUserId ?? "", {
-    initiatorId: conversation.initiatorId,
-    tradeOwnerId: conversation.tradeOwnerId,
-    postOwnerId: conversation.postOwnerId,
-    offeredTripId: conversation.offeredTripId,
-    trade: conversation.trade,
-    swapPost: conversation.swapPost,
-    offeredTrip: conversation.offeredTrip,
-    offeredTrips: conversation.offeredTrips,
+    initiatorId: conversation?.initiatorId ?? "",
+    tradeOwnerId: conversation?.tradeOwnerId,
+    postOwnerId: conversation?.postOwnerId,
+    offeredTripId: conversation?.offeredTripId,
+    trade: conversation?.trade,
+    swapPost: conversation?.swapPost,
+    offeredTrip: conversation?.offeredTrip,
+    offeredTrips: conversation?.offeredTrips,
   });
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-white">
-      <ChatHeader conversation={conversation as ConversationForHeader} currentUserId={currentUserId ?? ""} />
+      {conversation ? (
+        <ChatHeader conversation={conversation as ConversationForHeader} currentUserId={currentUserId ?? ""} />
+      ) : (
+        <div className="border-b border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+          Loading conversation details...
+        </div>
+      )}
       <div className="shrink-0 px-4 pt-2 pb-1">
-        <TripComparisonBar
-          theirTrip={theirTrip as never}
-          yourTrip={myTrip as never}
-          isInitiator={isInitiator}
-          conversationId={conversationId}
-          currentOfferId={currentOfferId}
-          onOfferChanged={refetchConversation}
-          onDropdownOpenChange={(open) => {
-            isDropdownOpenRef.current = open;
-          }}
-        />
+        {conversation ? (
+          <TripComparisonBar
+            theirTrip={theirTrip as never}
+            yourTrip={myTrip as never}
+            isInitiator={isInitiator}
+            conversationId={conversationId}
+            currentOfferId={currentOfferId}
+            onOfferChanged={refetchConversation}
+            onDropdownOpenChange={(open) => {
+              isDropdownOpenRef.current = open;
+            }}
+          />
+        ) : (
+          <div className="h-12 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
+        )}
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {messages.map((msg) => (
@@ -246,21 +252,23 @@ export function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
           placeholder="Type a message..."
         />
       )}
-      <SwapProposalBar
-        conversation={{
-          id: conversation.id,
-          status: conversation.status,
-          initiatorId: conversation.initiatorId,
-          offeredTripId: conversation.offeredTripId,
-          offeredTrips: conversation.offeredTrips,
-        }}
-        currentUserId={currentUserId ?? ""}
-        lastSwapProposedByInitiator={lastSwapProposedByInitiator}
-        onPropose={handlePropose}
-        onAccept={handleAccept}
-        onDecline={handleDecline}
-        onOfferChanged={refetchConversation}
-      />
+      {conversation ? (
+        <SwapProposalBar
+          conversation={{
+            id: conversation.id,
+            status: conversation.status,
+            initiatorId: conversation.initiatorId,
+            offeredTripId: conversation.offeredTripId,
+            offeredTrips: conversation.offeredTrips,
+          }}
+          currentUserId={currentUserId ?? ""}
+          lastSwapProposedByInitiator={lastSwapProposedByInitiator}
+          onPropose={handlePropose}
+          onAccept={handleAccept}
+          onDecline={handleDecline}
+          onOfferChanged={refetchConversation}
+        />
+      ) : null}
     </div>
   );
 }

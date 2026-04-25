@@ -1,11 +1,12 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
-import { findUserById } from "@/repositories/userRepository";
 import { findSwapPostsForBoard } from "@/repositories/swapPostRepository";
 import { getTradeboardForViewer } from "@/services/matching/matchEngine";
 import { isSwapPostExpired } from "@/lib/swapExpiry";
 import { getMatchTier, getUserAccess, truncateNotesForFree } from "@/utils/featureGates";
+import { withTiming } from "@/lib/apiTimer";
+import { prisma } from "@/lib/prisma";
 
 function unauthorized() {
   return NextResponse.json(
@@ -19,15 +20,19 @@ function json(data: unknown) {
 }
 
 export async function GET(request: Request) {
+  const timer = withTiming("GET /api/swap-posts/board");
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return unauthorized();
+  if (!session?.user?.id) return timer.end(unauthorized());
 
-  const user = await findUserById(session.user.id);
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { baseId: true, rankId: true },
+  });
   if (!user?.baseId) {
-    return NextResponse.json(
+    return timer.end(NextResponse.json(
       { data: null, error: "Forbidden", message: "No base assigned" },
       { status: 403 }
-    );
+    ));
   }
 
   const { searchParams } = new URL(request.url);
@@ -35,6 +40,8 @@ export async function GET(request: Request) {
   const tripType = searchParams.get("tripType") as "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | undefined;
   const destination = searchParams.get("destination") || undefined;
   const requestedSortBy = searchParams.get("sortBy") || "match";
+  const cursor = searchParams.get("cursor");
+  const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit") || "20")));
   const dateFrom = searchParams.get("dateFrom") || undefined;
   const excludeVacation = searchParams.get("excludeVacation") === "1";
 
@@ -60,7 +67,8 @@ export async function GET(request: Request) {
     );
     const matchResults = await getTradeboardForViewer(
       session.user.id,
-      posts.map((p) => p.id)
+      posts.map((p) => p.id),
+      { maxCompute: 0 }
     );
     const matchMap = new Map(matchResults.map((m) => [m.postId, m]));
 
@@ -114,22 +122,28 @@ export async function GET(request: Request) {
       return bScore - aScore;
     });
 
-    return json(
-      sorted.map(({ __sortBlock: _block, __sortDate: _date, ...item }) => item)
+    const clean = sorted.map(({ __sortBlock: _block, __sortDate: _date, ...item }) => item);
+    const startIndex = cursor ? clean.findIndex((item) => item.id === cursor) + 1 : 0;
+    const pageSlice = clean.slice(startIndex, startIndex + limit + 1);
+    const hasMore = pageSlice.length > limit;
+    const data = hasMore ? pageSlice.slice(0, limit) : pageSlice;
+    const nextCursor = hasMore ? data[data.length - 1]?.id ?? null : null;
+    return timer.end(
+      NextResponse.json({ data, nextCursor, hasMore, error: null, message: null })
     );
   } catch (err) {
     const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : null;
     if (code === "P2021") {
       console.error("[swap-posts/board] Database table missing. Run: npx prisma db push");
-      return NextResponse.json(
+      return timer.end(NextResponse.json(
         { data: null, error: "ServerConfig", message: "Trade board is not available. Please try again later." },
         { status: 503 }
-      );
+      ));
     }
     console.error("[swap-posts/board]", err);
-    return NextResponse.json(
+    return timer.end(NextResponse.json(
       { data: null, error: "ServerError", message: "Failed to load trade board." },
       { status: 500 }
-    );
+    ));
   }
 }

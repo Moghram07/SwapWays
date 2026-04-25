@@ -97,6 +97,30 @@ const swapPostSelect = {
   },
 } as const;
 
+const swapPostBoardSelect = {
+  ...swapPostSelect,
+  offeredTrips: {
+    select: {
+      id: true,
+      scheduleTripId: true,
+      flightNumber: true,
+      destination: true,
+      destinations: true,
+      departureDate: true,
+      tripType: true,
+      creditHours: true,
+      tafb: true,
+      reportTime: true,
+      aircraftType: true,
+      blockHours: true,
+      hasLayover: true,
+      layoverCity: true,
+      layoverHours: true,
+      isManualEntry: true,
+    },
+  },
+} as const;
+
 export async function createSwapPost(
   userId: string,
   data: {
@@ -234,7 +258,7 @@ export async function findSwapPostsForBoard(
     where,
     take: 20,
     orderBy: { createdAt: "desc" },
-    select: swapPostSelect,
+    select: swapPostBoardSelect,
   });
 
   let filtered = posts;

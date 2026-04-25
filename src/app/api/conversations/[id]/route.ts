@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getUserAccess } from "@/utils/featureGates";
+import { withTiming } from "@/lib/apiTimer";
+
+const CONVERSATION_CACHE_TTL_MS = 15_000;
+const conversationCache = new Map<string, { expiresAt: number; payload: unknown }>();
 
 function unauthorized() {
   return NextResponse.json(
@@ -19,16 +23,51 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const timer = withTiming("GET /api/conversations/[id]");
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return unauthorized();
+  if (!session?.user?.id) return timer.end(unauthorized());
 
   const { id } = await params;
-  const access = await getUserAccess(session.user.id);
+  const cacheKey = `${session.user.id}:${id}`;
+  const cached = conversationCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return timer.end(NextResponse.json({ data: cached.payload, error: null, message: null }));
+  }
 
   try {
-    const conversation = await prisma.conversation.findUnique({
+    const scheduleTripMiniSelect = {
+      id: true,
+      tripNumber: true,
+      startDate: true,
+      reportTime: true,
+      legs: {
+        select: {
+          flightNumber: true,
+          departureAirport: true,
+          arrivalAirport: true,
+          legOrder: true,
+          departureTime: true,
+          arrivalTime: true,
+        },
+        orderBy: { legOrder: "asc" as const },
+      },
+      layovers: {
+        select: { id: true },
+        take: 1,
+      },
+    } as const;
+
+    const conversationBase = await prisma.conversation.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        status: true,
+        tradeId: true,
+        swapPostId: true,
+        initiatorId: true,
+        tradeOwnerId: true,
+        postOwnerId: true,
+        offeredTripId: true,
         initiator: {
           select: {
             id: true,
@@ -53,102 +92,23 @@ export async function GET(
             base: { select: { name: true } },
           },
         },
-        trade: {
-          include: {
-            scheduleTrip: {
-              include: {
-                legs: {
-                  select: {
-                    flightNumber: true,
-                    departureAirport: true,
-                    arrivalAirport: true,
-                    legOrder: true,
-                    departureTime: true,
-                    arrivalTime: true,
-                  },
-                  orderBy: { legOrder: "asc" },
-                },
-                layovers: {
-                  select: { airport: true, durationDecimal: true, afterLegOrder: true },
-                  orderBy: { afterLegOrder: "asc" },
-                },
-              },
-            },
-          },
-        },
-        offeredTrip: {
-          include: {
-            legs: {
-              select: {
-                flightNumber: true,
-                departureAirport: true,
-                arrivalAirport: true,
-                legOrder: true,
-                departureTime: true,
-                arrivalTime: true,
-              },
-              orderBy: { legOrder: "asc" },
-            },
-            layovers: {
-              select: { airport: true, durationDecimal: true, afterLegOrder: true },
-              orderBy: { afterLegOrder: "asc" },
-            },
-          },
-        },
-        swapPost: {
-          include: {
-            offeredTrips: {
-              include: {
-                scheduleTrip: {
-                  include: {
-                    legs: {
-                      select: {
-                        flightNumber: true,
-                        departureAirport: true,
-                        arrivalAirport: true,
-                        legOrder: true,
-                        departureTime: true,
-                        arrivalTime: true,
-                      },
-                      orderBy: { legOrder: "asc" },
-                    },
-                    layovers: {
-                      select: { airport: true, durationDecimal: true, afterLegOrder: true },
-                      orderBy: { afterLegOrder: "asc" },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        offeredTrips: {
-          include: {
-            scheduleTrip: {
-              include: {
-                legs: { select: { flightNumber: true, departureAirport: true, arrivalAirport: true, legOrder: true, departureTime: true, arrivalTime: true }, orderBy: { legOrder: "asc" } },
-                layovers: { select: { airport: true, durationDecimal: true, afterLegOrder: true }, orderBy: { afterLegOrder: "asc" } },
-              },
-            },
-          },
-        },
       },
     });
 
-    if (!conversation) return error("Not found", 404);
+    if (!conversationBase) return timer.end(error("Not found", 404));
 
     const isParticipant =
-      conversation.initiatorId === session.user.id ||
-      conversation.tradeOwnerId === session.user.id ||
-      conversation.postOwnerId === session.user.id;
+      conversationBase.initiatorId === session.user.id ||
+      conversationBase.tradeOwnerId === session.user.id ||
+      conversationBase.postOwnerId === session.user.id;
 
-    if (!isParticipant) return error("Unauthorized", 403);
+    if (!isParticipant) return timer.end(error("Unauthorized", 403));
 
-    if (
-      !access.canViewConversationHistory &&
-      !["ACTIVE", "SWAP_PROPOSED", "SWAP_ACCEPTED"].includes(conversation.status)
-    ) {
-      return NextResponse.json(
+    const isActiveLike = ["ACTIVE", "SWAP_PROPOSED", "SWAP_ACCEPTED"].includes(conversationBase.status);
+    if (!isActiveLike) {
+      const access = await getUserAccess(session.user.id);
+      if (!access.canViewConversationHistory) {
+      return timer.end(NextResponse.json(
         {
           data: null,
           error: "PREMIUM_REQUIRED",
@@ -157,19 +117,71 @@ export async function GET(
             "Free tier can only view active conversations. Upgrade to Premium to access full conversation history.",
         },
         { status: 403 }
-      );
+      ));
+      }
     }
 
-    return NextResponse.json({
+    const [tradeScheduleTrip, swapPost, offeredTrip, offeredTripLink] = await Promise.all([
+      conversationBase.tradeId
+        ? prisma.trade.findUnique({
+            where: { id: conversationBase.tradeId },
+            select: { scheduleTrip: { select: scheduleTripMiniSelect } },
+          })
+        : Promise.resolve(null),
+      conversationBase.swapPostId
+        ? prisma.swapPost.findUnique({
+            where: { id: conversationBase.swapPostId },
+            select: {
+              offeredTrips: {
+                select: {
+                  scheduleTrip: {
+                    select: scheduleTripMiniSelect,
+                  },
+                },
+                take: 1,
+              },
+            },
+          })
+        : Promise.resolve(null),
+      conversationBase.offeredTripId
+        ? prisma.scheduleTrip.findUnique({
+            where: { id: conversationBase.offeredTripId },
+            select: scheduleTripMiniSelect,
+          })
+        : Promise.resolve(null),
+      prisma.conversationOffer.findFirst({
+        where: { conversationId: conversationBase.id },
+        select: {
+          scheduleTripId: true,
+          scheduleTrip: {
+            select: scheduleTripMiniSelect,
+          },
+        },
+      }),
+    ]);
+
+    const conversation = {
+      ...conversationBase,
+      trade: tradeScheduleTrip ? { scheduleTrip: tradeScheduleTrip.scheduleTrip } : null,
+      swapPost,
+      offeredTrip,
+      offeredTrips: offeredTripLink ? [offeredTripLink] : [],
+    };
+    conversationCache.set(cacheKey, {
+      expiresAt: Date.now() + CONVERSATION_CACHE_TTL_MS,
+      payload: conversation,
+    });
+
+    return timer.end(NextResponse.json({
       data: conversation,
       error: null,
       message: null,
-    });
+    }));
   } catch {
-    return NextResponse.json(
+    return timer.end(NextResponse.json(
       { data: null, error: "ServiceUnavailable", message: "Conversation temporarily unavailable. Please try again." },
       { status: 503 }
-    );
+    ));
   }
 }
 

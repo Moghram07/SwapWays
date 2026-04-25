@@ -230,11 +230,62 @@ export async function calculateSwapPostMatch(
 
 export async function getTradeboardForViewer(
   viewerId: string,
-  postIds: string[]
+  postIds: string[],
+  options?: { maxCompute?: number }
 ): Promise<SwapPostMatchResult[]> {
-  const results = await Promise.all(
-    postIds.map((postId) => calculateSwapPostMatch(viewerId, postId))
-  );
+  if (postIds.length === 0) return [];
+  let cached: Array<{ postId: string; viewerId: string; matchPercent: number; reasons: string[] }> = [];
+  let calculated: SwapPostMatchResult[] = [];
+  try {
+    cached = await prisma.matchCache.findMany({
+      where: { viewerId, postId: { in: postIds } },
+      select: { postId: true, viewerId: true, matchPercent: true, reasons: true },
+    });
+    const cachedByPost = new Map(cached.map((c) => [c.postId, c]));
+    const missingPostIds = postIds.filter((id) => !cachedByPost.has(id));
+    const limitedMissingPostIds =
+      options?.maxCompute != null ? missingPostIds.slice(0, Math.max(0, options.maxCompute)) : missingPostIds;
+    calculated = await Promise.all(
+      limitedMissingPostIds.map((postId) => calculateSwapPostMatch(viewerId, postId))
+    );
+    if (calculated.length > 0) {
+      await Promise.all(
+        calculated.map((item) =>
+          prisma.matchCache.upsert({
+            where: { postId_viewerId: { postId: item.postId, viewerId: item.viewerId } },
+            create: {
+              postId: item.postId,
+              viewerId: item.viewerId,
+              matchPercent: Math.round(item.matchPercent),
+              reasons: item.reasons,
+            },
+            update: {
+              matchPercent: Math.round(item.matchPercent),
+              reasons: item.reasons,
+              calculatedAt: new Date(),
+            },
+          })
+        )
+      );
+    }
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
+    if (code !== "P2021") throw error;
+    // MatchCache table not migrated yet: fallback to on-demand matching.
+    calculated = await Promise.all(postIds.map((postId) => calculateSwapPostMatch(viewerId, postId)));
+  }
+
+  const cachedResults: SwapPostMatchResult[] = cached.map((item) => ({
+    postId: item.postId,
+    viewerId,
+    matchPercent: item.matchPercent,
+    breakdown: emptyBreakdown(),
+    matchingTrips: [],
+    reasons: item.reasons,
+    failReason: null,
+    bestTripIndex: null,
+  }));
+  const results = [...cachedResults, ...calculated];
 
   results.sort((a, b) => {
     if (a.matchPercent > 0 && b.matchPercent === 0) return -1;
@@ -242,6 +293,25 @@ export async function getTradeboardForViewer(
     return b.matchPercent - a.matchPercent;
   });
   return results;
+}
+
+export async function invalidateMatchCacheForPosts(postIds: string[]) {
+  if (postIds.length === 0) return;
+  try {
+    await prisma.matchCache.deleteMany({ where: { postId: { in: postIds } } });
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
+    if (code !== "P2021") throw error;
+  }
+}
+
+export async function invalidateMatchCacheForViewer(viewerId: string) {
+  try {
+    await prisma.matchCache.deleteMany({ where: { viewerId } });
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
+    if (code !== "P2021") throw error;
+  }
 }
 
 export async function findMatchesForPost(postId: string): Promise<SwapPostMatchResult[]> {

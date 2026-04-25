@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ConversationListItem } from "./ConversationListItem";
 import { trackClientEvent } from "@/lib/analytics/client";
@@ -43,19 +43,6 @@ export function ConversationList({
 }: ConversationListProps) {
   const [conversations, setConversations] = useState<ConversationSummary[]>(initialConversations ?? []);
   const [meta, setMeta] = useState(conversationMeta ?? {});
-
-  useEffect(() => {
-    fetch("/api/conversations")
-      .then((r) => {
-        if (!r.ok) return null;
-        return r.json();
-      })
-      .then((json) => {
-        if (json?.data) setConversations(json.data);
-        if (json?.meta) setMeta(json.meta);
-      })
-      .catch(() => setConversations([]));
-  }, []);
 
   const handleDelete = async (id: string) => {
     const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });

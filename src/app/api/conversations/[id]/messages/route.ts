@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
 import { trackEventServer } from "@/lib/analytics/server";
+import { withTiming } from "@/lib/apiTimer";
 
 function unauthorized() {
   return NextResponse.json({ data: null, error: "Unauthorized", message: "Please sign in" }, { status: 401 });
@@ -21,46 +22,88 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const timer = withTiming("GET /api/conversations/[id]/messages");
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return unauthorized();
+  if (!session?.user?.id) return timer.end(unauthorized());
 
   const { id } = await params;
   const { searchParams } = new URL(_request.url);
   const limitParam = searchParams.get("limit");
-  const limit = limitParam ? Math.min(100, Math.max(1, parseInt(limitParam, 10))) : 100;
+  const limit = limitParam ? Math.min(80, Math.max(1, parseInt(limitParam, 10))) : 50;
   const afterId = searchParams.get("after");
+  const afterCreatedAt = searchParams.get("afterCreatedAt");
 
   try {
     const conversation = await prisma.conversation.findUnique({
       where: { id },
+      select: {
+        id: true,
+        initiatorId: true,
+        tradeOwnerId: true,
+        postOwnerId: true,
+        initiator: { select: { id: true, firstName: true } },
+        tradeOwner: { select: { id: true, firstName: true } },
+        postOwner: { select: { id: true, firstName: true } },
+      },
     });
 
-    if (!conversation) return error("Not found", 404);
+    if (!conversation) return timer.end(error("Not found", 404));
 
     const isParticipant =
       conversation.initiatorId === session.user.id ||
       conversation.tradeOwnerId === session.user.id ||
       conversation.postOwnerId === session.user.id;
 
-    if (!isParticipant) return error("Unauthorized", 403);
+    if (!isParticipant) return timer.end(error("Unauthorized", 403));
 
-    let messages;
+    const senderNames = new Map<string, string>();
+    if (conversation.initiator) senderNames.set(conversation.initiator.id, conversation.initiator.firstName);
+    if (conversation.tradeOwner) senderNames.set(conversation.tradeOwner.id, conversation.tradeOwner.firstName);
+    if (conversation.postOwner) senderNames.set(conversation.postOwner.id, conversation.postOwner.firstName);
+
+    let messages: Array<{
+      id: string;
+      content: string;
+      messageType: string;
+      systemAction: string | null;
+      senderId: string;
+      createdAt: Date;
+    }>;
     if (afterId) {
+      const afterDate = afterCreatedAt ? new Date(afterCreatedAt) : null;
       messages = await prisma.message.findMany({
         where: {
           conversationId: id,
-          id: { gt: afterId },
+          ...(afterDate && !Number.isNaN(afterDate.getTime())
+            ? {
+                OR: [
+                  { createdAt: { gt: afterDate } },
+                  { createdAt: afterDate, id: { gt: afterId } },
+                ],
+              }
+            : { id: { gt: afterId } }),
         },
-        include: {
-          sender: { select: { id: true, firstName: true } },
+        select: {
+          id: true,
+          content: true,
+          messageType: true,
+          systemAction: true,
+          senderId: true,
+          createdAt: true,
         },
         orderBy: { createdAt: "asc" },
+        take: limit,
       });
     } else {
       const messagesDesc = await prisma.message.findMany({
         where: { conversationId: id },
-        include: {
-          sender: { select: { id: true, firstName: true } },
+        select: {
+          id: true,
+          content: true,
+          messageType: true,
+          systemAction: true,
+          senderId: true,
+          createdAt: true,
         },
         orderBy: { createdAt: "desc" },
         take: limit,
@@ -68,23 +111,35 @@ export async function GET(
       messages = messagesDesc.reverse();
     }
 
-    prisma.message
-      .updateMany({
-        where: {
-          conversationId: id,
-          senderId: { not: session.user.id },
-          isRead: false,
-        },
-        data: { isRead: true },
-      })
-      .catch(() => {});
+    if (messages.some((m) => m.senderId !== session.user.id)) {
+      prisma.message
+        .updateMany({
+          where: {
+            conversationId: id,
+            senderId: { not: session.user.id },
+            isRead: false,
+          },
+          data: { isRead: true },
+        })
+        .catch(() => {});
+    }
 
-    return json(messages);
+    return timer.end(
+      json(
+        messages.map((m) => ({
+          ...m,
+          sender: {
+            id: m.senderId,
+            firstName: senderNames.get(m.senderId) ?? "Crew",
+          },
+        }))
+      )
+    );
   } catch {
-    return NextResponse.json(
+    return timer.end(NextResponse.json(
       { data: null, error: "ServiceUnavailable", message: "Messages temporarily unavailable. Please try again." },
       { status: 503 }
-    );
+    ));
   }
 }
 
@@ -92,34 +147,42 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const timer = withTiming("POST /api/conversations/[id]/messages");
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return unauthorized();
+  if (!session?.user?.id) return timer.end(unauthorized());
 
   const { id } = await params;
   let body: { content?: string; messageType?: string; systemAction?: string };
   try {
     body = await request.json();
   } catch {
-    return error("Invalid JSON", 400);
+    return timer.end(error("Invalid JSON", 400));
   }
 
   const { content, messageType, systemAction } = body;
 
   const conversation = await prisma.conversation.findUnique({
     where: { id },
+    select: {
+      id: true,
+      status: true,
+      initiatorId: true,
+      tradeOwnerId: true,
+      postOwnerId: true,
+    },
   });
 
-  if (!conversation) return error("Not found", 404);
+  if (!conversation) return timer.end(error("Not found", 404));
 
   const isParticipant =
     conversation.initiatorId === session.user.id ||
     conversation.tradeOwnerId === session.user.id ||
     conversation.postOwnerId === session.user.id;
 
-  if (!isParticipant) return error("Unauthorized", 403);
+  if (!isParticipant) return timer.end(error("Unauthorized", 403));
 
   if (conversation.status === "EXPIRED" || conversation.status === "DECLINED") {
-    return error("This conversation is closed", 400);
+    return timer.end(error("This conversation is closed", 400));
   }
 
   const message = await prisma.$transaction(async (tx) => {
@@ -163,5 +226,5 @@ export async function POST(
     properties: { conversationId: id, messageType: message.messageType },
   }).catch(() => {});
 
-  return json(message);
+  return timer.end(json(message));
 }

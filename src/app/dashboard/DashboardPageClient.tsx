@@ -15,18 +15,19 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-const optionalFetcher = async (url: string) => {
-  const res = await fetch(url, { credentials: "include" });
-  if (!res.ok) return null;
-  return res.json();
-};
-
 type OverviewResponse = {
   data: {
     schedule: { lineNumber: string; month: number; year: number } | null;
     activeSwaps: number;
     newMatches: number;
     unreadMessages: number;
+    referral: {
+      referralCode: string | null;
+      referralLink: string | null;
+      usedReferrals: number;
+      remainingReferrals: number;
+      trialCapReached: boolean;
+    };
     topMatches: Array<{
       postId: string;
       matchPercent: number | null;
@@ -38,16 +39,6 @@ type OverviewResponse = {
       posterRank: string;
       posterBase: string;
     }>;
-  };
-};
-
-type ReferralMeResponse = {
-  data: {
-    referralCode: string;
-    referralLink: string | null;
-    usedReferrals: number;
-    remainingReferrals: number;
-    trialCapReached: boolean;
   };
 };
 
@@ -83,15 +74,11 @@ export function DashboardPageClient() {
     revalidateOnFocus: false,
     dedupingInterval: 60000,
   });
-  const { data: referralJson } = useSWR<ReferralMeResponse | null>("/api/referrals/me", optionalFetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 60000,
-  });
 
   const payload = overviewJson?.data;
   const topMatches = payload?.topMatches ?? [];
   const isFreeTier = access?.tier === "FREE";
-  const referral = referralJson?.data;
+  const referral = payload?.referral;
   const showReferralCard = Boolean(referral && !referral.trialCapReached && referral.usedReferrals < 3);
   const whatsappHref = referral?.referralLink
     ? `https://wa.me/?text=${encodeURIComponent(`Join me on Swap Ways: ${referral.referralLink}`)}`

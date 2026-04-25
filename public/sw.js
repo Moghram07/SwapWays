@@ -1,9 +1,9 @@
 // Service worker for basic offline support without caching dynamic Next build assets.
 // Important: never cache /_next/* files aggressively, otherwise CSS/JS can go stale.
 
-const CACHE_NAME = "swapways-shell-v6";
+const CACHE_NAME = "swapways-shell-v7";
 
-const SHELL_URLS = ["/", "/dashboard"];
+const SHELL_URLS = ["/"];
 
 function isSameOrigin(url) {
   return url.origin === self.location.origin;
@@ -19,6 +19,10 @@ function isNavigation(request) {
 
 function isApiRequest(url) {
   return url.pathname.startsWith("/api/");
+}
+
+function isDashboardPath(url) {
+  return url.pathname === "/dashboard" || url.pathname.startsWith("/dashboard/");
 }
 
 /** Never cache favicons / PWA icons — stale SW cache kept showing the old Vercel tab icon. */
@@ -61,8 +65,8 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (!isSameOrigin(url)) return;
 
-  // API data must always be fresh (e.g. My Swaps right after posting).
-  if (isApiRequest(url)) {
+  // Authenticated data and pages must always be fresh (avoid stale role-based UI).
+  if (isApiRequest(url) || isDashboardPath(url)) {
     event.respondWith(fetch(request));
     return;
   }

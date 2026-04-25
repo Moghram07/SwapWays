@@ -33,7 +33,9 @@
   --color-border-default: var(--border-default);
   --color-border-muted: var(--border-muted);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono);
+  /* System stack for monospace — avoids a second font download on mobile */
+  --font-mono: ui-monospace, SFMono-Regular, "SF Pro Mono", Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
 }
 
 @media (prefers-color-scheme: dark) {

@@ -55,10 +55,13 @@ export function UpgradeModal({ isOpen, onClose, feature = "", reason = "" }: Upg
             </div>
             <ul className="space-y-2 text-sm text-gray-600">
               <PremiumFeatureItem>Exact match percentages</PremiumFeatureItem>
-              <PremiumFeatureItem>Unlimited conversations</PremiumFeatureItem>
+              <PremiumFeatureItem>Unblurred "Top matches for you" card</PremiumFeatureItem>
+              <PremiumFeatureItem>Unlimited conversations + full history</PremiumFeatureItem>
               <PremiumFeatureItem>Post line swaps & vacation swaps</PremiumFeatureItem>
+              <PremiumFeatureItem>Unlimited schedule uploads per month</PremiumFeatureItem>
               <PremiumFeatureItem>Full notes on all swap cards</PremiumFeatureItem>
               <PremiumFeatureItem>Posts stay active until trip date</PremiumFeatureItem>
+              <PremiumFeatureItem>Best match sort + advanced filters</PremiumFeatureItem>
               <PremiumFeatureItem>Priority placement on Trade Board</PremiumFeatureItem>
               <PremiumFeatureItem>Push notifications for top matches</PremiumFeatureItem>
             </ul>

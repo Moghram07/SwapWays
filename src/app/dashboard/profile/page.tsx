@@ -29,6 +29,7 @@ export default async function ProfilePage() {
     getBasesByAirlineId(user.airlineId),
     getAircraftTypesByAirlineId(user.airlineId),
   ]);
+  const profileBases = bases.filter((b) => b.airportCode === "JED" || b.airportCode === "RUH");
 
   const fleetAircraftTypes =
     user.airline.code === "SV"
@@ -95,7 +96,7 @@ export default async function ProfilePage() {
             qualificationIds: selectedQualificationIds,
           }}
           ranks={ranks.map((r) => ({ id: r.id, code: r.code, name: r.name }))}
-          bases={bases.map((b) => ({ id: b.id, name: b.name, airportCode: b.airportCode }))}
+          bases={profileBases.map((b) => ({ id: b.id, name: b.name, airportCode: b.airportCode }))}
           aircraftTypes={fleetAircraftTypes}
         />
       </div>

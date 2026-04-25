@@ -126,7 +126,7 @@ export function MobileSidebarDrawer({
           })}
         </nav>
         <div className="border-t border-slate-100 px-4 py-3">
-          {!access ? null : access.tier === "PREMIUM" ? (
+          {access?.tier === "PREMIUM" ? (
             <div className="rounded-lg bg-slate-50 px-3 py-2">
               <p className="text-xs font-semibold text-slate-900">⭐ Premium</p>
               {access.isTrialing ? (

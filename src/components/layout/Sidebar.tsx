@@ -157,7 +157,7 @@ export function Sidebar({
         })}
       </nav>
       <div className="border-t border-slate-100 px-4 py-3">
-        {!access ? null : access.tier === "PREMIUM" ? (
+        {access?.tier === "PREMIUM" ? (
           <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
             <div className="flex items-center gap-2">
               <span className="text-lg">⭐</span>

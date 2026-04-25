@@ -105,7 +105,6 @@ export default function PostToTradeBoardPage() {
   const [myTrips, setMyTrips] = useState<TripOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [editPost, setEditPost] = useState<EditPostData | null>(null);
-  const [editLoading, setEditLoading] = useState(!!editId);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>("line_swap");
   const [upgradeReason, setUpgradeReason] = useState<string>(
@@ -117,52 +116,65 @@ export default function PostToTradeBoardPage() {
   const year = now.getFullYear();
 
   useEffect(() => {
-    if (!editId) {
-      setEditLoading(false);
-      return;
-    }
-    fetch(`/api/swap-posts/${editId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => {
-        if (json?.data) setEditPost(json.data as EditPostData);
-      })
-      .catch(() => setEditPost(null))
-      .finally(() => setEditLoading(false));
-  }, [editId]);
+    let cancelled = false;
+    setLoading(true);
+    if (!editId) setEditPost(null);
 
-  useEffect(() => {
-    fetch("/api/schedule/my-trips")
+    const mapTrips = (json: { data?: unknown[] }) => {
+      const data = (json.data ?? []) as {
+        id: string;
+        tripNumber: string;
+        startDate: string;
+        creditHours: number;
+        tripType: string;
+        legs: { flightNumber: string; departureAirport: string; arrivalAirport: string }[];
+        layovers: { airport: string; durationDecimal: number }[];
+      }[];
+      return data.map((t) => ({
+        id: t.id,
+        tripNumber: t.tripNumber,
+        startDate: new Date(t.startDate),
+        creditHours: t.creditHours ?? 0,
+        tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP",
+        legs: t.legs ?? [],
+        layovers: t.layovers ?? [],
+      }));
+    };
+
+    const tripsP = fetch("/api/schedule/my-trips")
       .then((r) => r.json())
       .then((json) => {
-        const data = json.data ?? [];
-        const options: TripOption[] = data.map(
-          (t: {
-            id: string;
-            tripNumber: string;
-            startDate: string;
-            creditHours: number;
-            tripType: string;
-            legs: { flightNumber: string; departureAirport: string; arrivalAirport: string }[];
-            layovers: { airport: string; durationDecimal: number }[];
-          }) => ({
-            id: t.id,
-            tripNumber: t.tripNumber,
-            startDate: new Date(t.startDate),
-            creditHours: t.creditHours ?? 0,
-            tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP",
-            legs: t.legs ?? [],
-            layovers: t.layovers ?? [],
-          })
-        );
-        setMyTrips(options);
+        if (!cancelled) setMyTrips(mapTrips(json));
       })
-      .catch(() => setMyTrips([]))
-      .finally(() => setLoading(false));
-  }, []);
+      .catch(() => {
+        if (!cancelled) setMyTrips([]);
+      });
+
+    const editP = editId
+      ? fetch(`/api/swap-posts/${editId}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((json) => {
+            if (cancelled) return;
+            if (json?.data) setEditPost(json.data as EditPostData);
+            else setEditPost(null);
+          })
+          .catch(() => {
+            if (!cancelled) setEditPost(null);
+          })
+      : Promise.resolve();
+
+    void Promise.all([tripsP, editP]).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editId]);
 
   const scheduledDays = getScheduledDaysFromTrips(myTrips, month, year);
 
-  if (status === "loading" || loading || (editId && editLoading)) {
+  if (status === "loading" || loading) {
     return (
       <div className="flex items-center justify-center py-12 text-slate-500">
         Loading…

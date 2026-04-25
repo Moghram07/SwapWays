@@ -28,14 +28,16 @@ export default function UpgradePage() {
 
         <ul className="mb-6 space-y-3">
           <FeatureRow icon="🎯">Exact match percentages with detailed breakdown</FeatureRow>
+          <FeatureRow icon="🧭">Unblurred & actionable "Top matches for you" card</FeatureRow>
           <FeatureRow icon="💬">Unlimited parallel conversations</FeatureRow>
+          <FeatureRow icon="🧾">Full conversation history across all threads</FeatureRow>
           <FeatureRow icon="📋">Post line swaps (whole-month trades)</FeatureRow>
           <FeatureRow icon="🏖️">Post vacation swaps</FeatureRow>
           <FeatureRow icon="📝">Full notes visible on all swap cards</FeatureRow>
           <FeatureRow icon="📅">Posts stay active until trip date (not 7 days)</FeatureRow>
           <FeatureRow icon="⭐">Priority placement on Trade Board</FeatureRow>
           <FeatureRow icon="🔔">Push notifications for 70%+ matches</FeatureRow>
-          <FeatureRow icon="🔍">Advanced Trade Board filters</FeatureRow>
+          <FeatureRow icon="🔍">Best-match sorting + advanced Trade Board filters</FeatureRow>
           <FeatureRow icon="📂">Unlimited schedule uploads per month</FeatureRow>
         </ul>
 
@@ -53,11 +55,14 @@ export default function UpgradePage() {
         <ul className="space-y-1.5 text-left text-sm text-gray-700">
           <li>✓ Post unlimited trip swaps</li>
           <li>✓ Browse Trade Board</li>
-          <li>✓ 1 active conversation at a time</li>
+          <li>✓ Start 1 new conversation per day (replies still allowed in your active chat)</li>
           <li>✓ Upload 1 schedule per month</li>
           <li>✓ Basic match indicators (low/medium/high)</li>
           <li className="text-gray-500">✗ Line & vacation swaps</li>
+          <li className="text-gray-500">✗ Best-match sorting + advanced filters</li>
           <li className="text-gray-500">✗ Exact match percentages</li>
+          <li className="text-gray-500">✗ Top matches card details (blurred)</li>
+          <li className="text-gray-500">✗ Conversation history across older threads</li>
           <li className="text-gray-500">✗ Full notes on posts</li>
         </ul>
       </div>

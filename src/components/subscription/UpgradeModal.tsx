@@ -55,7 +55,7 @@ export function UpgradeModal({ isOpen, onClose, feature = "", reason = "" }: Upg
             </div>
             <ul className="space-y-2 text-sm text-gray-600">
               <PremiumFeatureItem>Exact match percentages</PremiumFeatureItem>
-              <PremiumFeatureItem>Unblurred "Top matches for you" card</PremiumFeatureItem>
+              <PremiumFeatureItem>Unblurred “Top matches for you” card</PremiumFeatureItem>
               <PremiumFeatureItem>Unlimited conversations + full history</PremiumFeatureItem>
               <PremiumFeatureItem>Post line swaps & vacation swaps</PremiumFeatureItem>
               <PremiumFeatureItem>Unlimited schedule uploads per month</PremiumFeatureItem>

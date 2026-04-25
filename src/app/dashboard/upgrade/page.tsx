@@ -28,7 +28,7 @@ export default function UpgradePage() {
 
         <ul className="mb-6 space-y-3">
           <FeatureRow icon="🎯">Exact match percentages with detailed breakdown</FeatureRow>
-          <FeatureRow icon="🧭">Unblurred & actionable "Top matches for you" card</FeatureRow>
+          <FeatureRow icon="🧭">Unblurred & actionable “Top matches for you” card</FeatureRow>
           <FeatureRow icon="💬">Unlimited parallel conversations</FeatureRow>
           <FeatureRow icon="🧾">Full conversation history across all threads</FeatureRow>
           <FeatureRow icon="📋">Post line swaps (whole-month trades)</FeatureRow>

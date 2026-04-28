@@ -130,6 +130,11 @@ model User {
   appEvents              AppEvent[]
   emailVerificationCodes EmailVerificationCode[]
   trialRewards           TrialReward[]
+  adminActionsPerformed  AdminAction[] @relation("adminActionActor")
+  adminActionsTargeted   AdminAction[] @relation("adminActionTarget")
+  sessions               UserSession[]
+  flags                  AccountFlag[]
+  feedbackMessages       FeedbackMessage[] @relation("feedbackSender")
   referralsMade          Referral[] @relation("referrer")
   referralsReceived      Referral[] @relation("referred")
   referralCode           String?    @unique
@@ -164,6 +169,56 @@ model TrialReward {
 
   @@unique([userId, type])
   @@index([userId, createdAt])
+}
+
+model AdminAction {
+  id           String   @id @default(cuid())
+  adminUserId  String
+  adminUser    User     @relation("adminActionActor", fields: [adminUserId], references: [id], onDelete: Cascade)
+  adminEmail   String
+  action       String
+  targetUserId String?
+  targetUser   User?    @relation("adminActionTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+  reason       String?
+  details      String?
+  createdAt    DateTime @default(now())
+
+  @@index([adminUserId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([action, createdAt])
+}
+
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress    String
+  userAgent    String
+  city         String?
+  country      String?
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, ipAddress])
+  @@index([userId])
+  @@index([lastActiveAt])
+}
+
+model AccountFlag {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       FlagType
+  details    String
+  isResolved Boolean  @default(false)
+  resolvedBy String?
+  resolvedAt DateTime?
+  adminNotes String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([isResolved])
+  @@index([createdAt])
 }
 
 model Referral {
@@ -574,6 +629,9 @@ model Feedback {
   adminNote  String?
   assigneeId String?
   assignee   User?            @relation("feedbackAssignee", fields: [assigneeId], references: [id])
+  messages   FeedbackMessage[]
+  hasUnreadByUser  Boolean    @default(false)
+  hasUnreadByAdmin Boolean    @default(false)
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
   resolvedAt DateTime?
@@ -582,6 +640,20 @@ model Feedback {
   @@index([status, createdAt])
   @@index([type, createdAt])
   @@index([assigneeId, status])
+}
+
+model FeedbackMessage {
+  id         String   @id @default(cuid())
+  feedbackId String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User     @relation("feedbackSender", fields: [senderId], references: [id])
+  isAdmin    Boolean  @default(false)
+  message    String
+  createdAt  DateTime @default(now())
+
+  @@index([feedbackId])
+  @@index([createdAt])
 }
 
 model AppEvent {
@@ -695,7 +767,16 @@ enum NotificationType {
   NEW_MESSAGE
   SWAP_PROPOSED
   SWAP_ACCEPTED
+  ACCOUNT_WARNING
+  FEEDBACK_REPLY
   SYSTEM
+}
+
+enum FlagType {
+  CONCURRENT_SESSIONS
+  LOCATION_JUMP
+  SUSPICIOUS_POSTING
+  MANUAL
 }
 
 enum ConversationStatus {
@@ -752,6 +833,7 @@ enum FeedbackPriority {
 
 enum TrialRewardType {
   SCHEDULE_UPLOAD
+  INSTALL_APP
   REFERRAL
 }
 

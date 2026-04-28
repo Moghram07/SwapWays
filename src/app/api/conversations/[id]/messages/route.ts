@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { createNotification } from "@/lib/notifications";
 import { trackEventServer } from "@/lib/analytics/server";
 import { withTiming } from "@/lib/apiTimer";
+import { requireSameOrigin } from "@/lib/csrf";
+import { trackSession } from "@/lib/sessionTracker";
 
 function unauthorized() {
   return NextResponse.json({ data: null, error: "Unauthorized", message: "Please sign in" }, { status: 401 });
@@ -25,6 +27,7 @@ export async function GET(
   const timer = withTiming("GET /api/conversations/[id]/messages");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return timer.end(unauthorized());
+  await trackSession(session.user.id, _request);
 
   const { id } = await params;
   const { searchParams } = new URL(_request.url);
@@ -148,6 +151,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const timer = withTiming("POST /api/conversations/[id]/messages");
+  const csrfError = requireSameOrigin(request);
+  if (csrfError) return timer.end(csrfError);
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return timer.end(unauthorized());
 

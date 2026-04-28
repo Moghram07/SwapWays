@@ -133,6 +133,12 @@ function formatPreferenceDays(days: number[] | undefined): string {
   return [...days].sort((a, b) => a - b).join(", ");
 }
 
+function asDate(value: Date | string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function OfferingTripRow({ trip, packageMode = false }: { trip: TripRow; packageMode?: boolean }) {
   const typeInfo = getTripTypeInfo(trip.tripType);
   const { format: timeMode } = useTimeFormat();
@@ -167,12 +173,16 @@ function OfferingTripRow({ trip, packageMode = false }: { trip: TripRow; package
         : getAirportDisplay(trip.destination);
 
   const dateRange = (() => {
-    if (!firstLeg || !lastLeg || !trip.departureDate) return "—";
+    const departureDate = asDate(trip.departureDate);
+    if (!departureDate) return "—";
+    if (!firstLeg || !lastLeg) {
+      return departureDate.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    }
 
-    const lastDate = lastLeg.arrivalDate ?? lastLeg.departureDate ?? trip.departureDate;
+    const lastDate = asDate(lastLeg.arrivalDate) ?? asDate(lastLeg.departureDate) ?? departureDate;
 
     if (timeMode === "local" && firstLeg.departureTime && firstLeg.departureAirport && lastLeg.arrivalTime && lastLeg.arrivalAirport) {
-      const startLocal = getLocalDateFromZulu(trip.departureDate, firstLeg.departureTime, firstLeg.departureAirport);
+      const startLocal = getLocalDateFromZulu(departureDate, firstLeg.departureTime, firstLeg.departureAirport);
       const endLocal = getLocalDateFromZulu(lastDate, lastLeg.arrivalTime, lastLeg.arrivalAirport);
       const startStr = formatLocalDate(startLocal, { weekday: false, year: false });
       const endStr = formatLocalDate(endLocal, { weekday: false, year: false });
@@ -180,7 +190,7 @@ function OfferingTripRow({ trip, packageMode = false }: { trip: TripRow; package
       return `${startStr} – ${endStr}`;
     }
 
-    const startStr = trip.departureDate.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    const startStr = departureDate.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
     const endStr = lastDate.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
     if (startStr === endStr) return startStr;
     return `${startStr} – ${endStr}`;

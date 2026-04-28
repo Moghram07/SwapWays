@@ -33,8 +33,8 @@ export default function SupportPage() {
         <div>
           <h3 className="font-semibold text-slate-900">How does the trial extension work?</h3>
           <p className="text-slate-700">
-            You start with 10 days free. Referred signups start with 20 days, schedule upload adds +10 once, and each
-            successful referral adds +10 (up to 3 referrals), capped at 50 total days.
+            You start with 10 days free. Referred signups start with 20 days, app install adds +10 once, schedule
+            upload adds +10 once, and each successful referral adds +10 (up to 3 referrals), capped at 60 total days.
           </p>
         </div>
       </section>

@@ -40,6 +40,12 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
   const [qualificationIds, setQualificationIds] = useState<string[]>(user.qualificationIds);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -70,6 +76,44 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
 
   function toggleQualification(id: string) {
     setQualificationIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      setPasswordError("Please fill all password fields.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError("New password and confirmation do not match.");
+      return;
+    }
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters.");
+      return;
+    }
+
+    setPasswordLoading(true);
+    const res = await fetch("/api/profile/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+    const json = await res.json().catch(() => ({} as { message?: string }));
+    setPasswordLoading(false);
+
+    if (!res.ok) {
+      setPasswordError(json.message ?? "Failed to update password.");
+      return;
+    }
+
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setPasswordSuccess("Password updated successfully.");
   }
 
   const selectClass =
@@ -180,6 +224,48 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
               China visa
             </label>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Security</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+            {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
+            {passwordSuccess && <p className="text-sm text-emerald-700">{passwordSuccess}</p>}
+            <div className="space-y-2">
+              <Label>Current password</Label>
+              <Input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>New password</Label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm new password</Label>
+              <Input
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+            <Button type="submit" disabled={passwordLoading} variant="outline">
+              {passwordLoading ? "Updating…" : "Change password"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 

@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, BarChart3, FileText, Bell } from "lucide-react";
+import { LayoutDashboard, Users, BarChart3, FileText, Bell, MessageSquare, AlertTriangle } from "lucide-react";
 
 const links = [
   { href: "/dashboard/admin", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/admin/users", label: "Users", icon: Users },
+  { href: "/dashboard/admin/feedback", label: "Feedback", icon: MessageSquare },
+  { href: "/dashboard/admin/flags", label: "Flags", icon: AlertTriangle },
   { href: "/dashboard/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/admin/posts", label: "Posts", icon: FileText },
   { href: "/dashboard/admin/notifications", label: "Broadcast", icon: Bell },

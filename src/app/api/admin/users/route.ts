@@ -39,6 +39,10 @@ export async function GET(request: Request) {
     parts.push({ tier: "FREE" });
   } else if (filter === "trialing") {
     parts.push({ subscriptionStatus: "TRIALING", trialEndsAt: { gt: now } });
+  } else if (filter === "verified") {
+    parts.push({ isVerified: true });
+  } else if (filter === "unverified") {
+    parts.push({ isVerified: false });
   }
 
   const where: Prisma.UserWhereInput = parts.length > 0 ? { AND: parts } : {};
@@ -56,11 +60,21 @@ export async function GET(request: Request) {
       subscriptionStatus: true,
       trialEndsAt: true,
       trialStartedAt: true,
+      isVerified: true,
       createdAt: true,
       rank: { select: { name: true } },
       base: { select: { name: true, airportCode: true } },
     },
   });
 
-  return json(users);
+  const enriched = users.map((u) => {
+    const daysRemaining = Math.ceil((u.trialEndsAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    return {
+      ...u,
+      daysRemaining,
+      isExpired: daysRemaining < 0,
+    };
+  });
+
+  return json(enriched);
 }

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const MAX_TRIAL_DAYS = 50;
+const MAX_TRIAL_DAYS = 60;
 
 export type TrialRewardGrantResult =
   | { granted: true; daysGranted: number; trialEndsAt: Date; capped: boolean }
@@ -10,11 +10,24 @@ export type TrialRewardGrantResult =
 
 export async function grantTrialReward(input: {
   userId: string;
-  type: "SCHEDULE_UPLOAD" | "REFERRAL";
+  type: "SCHEDULE_UPLOAD" | "INSTALL_APP" | "REFERRAL";
   requestedDays: number;
   metadata?: Record<string, unknown>;
 }): Promise<TrialRewardGrantResult> {
   return prisma.$transaction(async (tx) => {
+    const existingReward = await tx.trialReward.findUnique({
+      where: {
+        userId_type: {
+          userId: input.userId,
+          type: input.type,
+        },
+      },
+      select: { id: true },
+    });
+    if (existingReward) {
+      return { granted: false as const, reason: "ALREADY_GRANTED" as const };
+    }
+
     const user = await tx.user.findUnique({
       where: { id: input.userId },
       select: { id: true, trialStartedAt: true, trialEndsAt: true, trialExtended: true },

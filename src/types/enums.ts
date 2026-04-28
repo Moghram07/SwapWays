@@ -18,6 +18,8 @@ export type NotificationType =
   | "NEW_MESSAGE"
   | "SWAP_PROPOSED"
   | "SWAP_ACCEPTED"
+  | "ACCOUNT_WARNING"
+  | "FEEDBACK_REPLY"
   | "SYSTEM";
 export type ConversationStatus =
   | "ACTIVE"

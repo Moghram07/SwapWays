@@ -4,8 +4,11 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DEFAULT_LOCALE, localizePath, type Locale } from "@/i18n/config";
+import { getTranslator } from "@/i18n/getTranslator";
 
-export function Hero() {
+export function Hero({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
+  const t = getTranslator(locale);
   return (
     <section className="relative flex min-h-[90vh] items-center overflow-hidden bg-hero">
       {/* Decorative planes */}
@@ -41,7 +44,7 @@ export function Hero() {
           >
             <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-medium text-white/90">
               <Plane className="h-4 w-4" />
-              Built for Airline Crew
+              {t("landing.builtForCrew")}
             </span>
           </motion.div>
 
@@ -51,8 +54,7 @@ export function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
           >
-            Swap Flights.{" "}
-            <span className="opacity-80">Own Your Schedule.</span>
+            {t("landing.titleMain")} <span className="opacity-80">{t("landing.titleAccent")}</span>
           </motion.h1>
 
           <motion.p
@@ -61,9 +63,7 @@ export function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            The smart platform that lets airline crew members swap flights
-            effortlessly — matching schedules, qualifications, and preferences
-            in seconds.
+            {t("landing.subtitle")}
           </motion.p>
 
           <motion.div
@@ -73,12 +73,12 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.45 }}
           >
             <Button variant="hero" size="lg" className="text-base px-8 py-6 rounded-lg" asChild>
-              <Link href="/register">
-                Start Swapping <ArrowRight className="ml-1 h-5 w-5" />
+              <Link href={localizePath("/register", locale)}>
+                {t("landing.startSwapping")} <ArrowRight className="ml-1 h-5 w-5" />
               </Link>
             </Button>
             <Button variant="hero-outline" size="lg" className="text-base px-8 py-6 rounded-lg" asChild>
-              <Link href="#how-it-works">See How It Works</Link>
+              <Link href={localizePath("/", locale) + "#how-it-works"}>{t("landing.seeHow")}</Link>
             </Button>
           </motion.div>
 
@@ -89,7 +89,7 @@ export function Hero() {
             transition={{ duration: 0.6, delay: 0.6 }}
           >
             <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-amber-300" /> Private Beta (Testing Phase)
+              <span className="h-2 w-2 rounded-full bg-amber-300" /> {t("landing.privateBeta")}
             </span>
           </motion.div>
         </div>

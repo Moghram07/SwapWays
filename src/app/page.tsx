@@ -1,13 +1,10 @@
-import { LandingTopBar } from "@/components/landing/LandingTopBar";
-import { LandingContentV4 } from "@/components/landing/LandingContentV4";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale, localizePath } from "@/i18n/config";
 
-export default function HomePage() {
-  return (
-    <div className="min-h-screen bg-[#f8f8f8]">
-      <LandingTopBar variant="4" />
-      <main>
-        <LandingContentV4 />
-      </main>
-    </div>
-  );
+export default async function HomePage() {
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get(LOCALE_COOKIE)?.value;
+  const locale = isLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
+  redirect(localizePath("/", locale));
 }

@@ -28,8 +28,14 @@ export function MessagesPageClient() {
   const searchParams = useSearchParams();
   const selectedId = searchParams.get("conversation");
 
-  const { data: profileJson } = useSWR<ProfileResponse>("/api/profile", fetcher);
-  const { data: convJson, isLoading } = useSWR<ConversationsResponse>("/api/conversations", fetcher);
+  const { data: profileJson } = useSWR<ProfileResponse>("/api/profile", fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60_000,
+  });
+  const { data: convJson, isLoading } = useSWR<ConversationsResponse>("/api/conversations", fetcher, {
+    revalidateOnFocus: true,
+    dedupingInterval: 15_000,
+  });
 
   const currentUserId = profileJson?.data?.id ?? "";
   const conversations = convJson?.data ?? [];

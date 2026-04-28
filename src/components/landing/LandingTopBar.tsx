@@ -5,6 +5,9 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { LanguageToggle } from "@/components/i18n/LanguageToggle";
+import { DEFAULT_LOCALE, localizePath, type Locale } from "@/i18n/config";
+import { getTranslator } from "@/i18n/getTranslator";
 
 const LOGO_BLUE = "#045FA6";
 const LOGO_GREEN = "#299B4F";
@@ -32,8 +35,9 @@ function BrandText() {
   );
 }
 
-function AuthLinks({ linkGreenHoverBlue }: { linkGreenHoverBlue?: boolean }) {
+function AuthLinks({ linkGreenHoverBlue, locale }: { linkGreenHoverBlue?: boolean; locale: Locale }) {
   const { data: session, status } = useSession();
+  const t = getTranslator(locale);
   const linkClass = "text-sm font-medium transition-colors hover:underline";
 
   if (status === "loading") return <span className="text-sm opacity-70">…</span>;
@@ -48,22 +52,29 @@ function AuthLinks({ linkGreenHoverBlue }: { linkGreenHoverBlue?: boolean }) {
   }
   return (
     <div className={linkGreenHoverBlue ? "nav-link flex items-center gap-4" : "flex items-center gap-4"}>
-      <Link href="/login" className={linkClass}>Log in</Link>
-      <Link href="/register" className="rounded-lg px-4 py-2 text-sm font-medium text-white transition opacity-90 hover:opacity-100" style={{ backgroundColor: LOGO_BLUE }}>Sign up</Link>
+      <Link href={localizePath("/login", locale)} className={linkClass}>{t("nav.logIn")}</Link>
+      <Link href={localizePath("/register", locale)} className="rounded-lg px-4 py-2 text-sm font-medium text-white transition opacity-90 hover:opacity-100" style={{ backgroundColor: LOGO_BLUE }}>{t("nav.signUp")}</Link>
     </div>
   );
 }
 
-export function LandingTopBar({ variant }: { variant: Variant }) {
+export function LandingTopBar({
+  variant,
+  locale = DEFAULT_LOCALE,
+}: {
+  variant: Variant;
+  locale?: Locale;
+}) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const t = getTranslator(locale);
   const isV1 = variant === "1";
-  const sharedLinks = <AuthLinks linkGreenHoverBlue={isV1} />;
+  const sharedLinks = <AuthLinks linkGreenHoverBlue={isV1} locale={locale} />;
 
   if (variant === "1") {
     return (
       <header className="landing-nav-v1 sticky top-0 z-50 border-b border-slate-200 bg-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={localizePath("/", locale)} className="flex items-center gap-2">
             <BrandIcon className="object-contain" size={36} />
             <span className="text-lg font-bold text-slate-900"><span style={{ color: LOGO_BLUE }}>Swap</span> <span style={{ color: LOGO_GREEN }}>Ways</span></span>
           </Link>
@@ -77,7 +88,7 @@ export function LandingTopBar({ variant }: { variant: Variant }) {
     return (
       <header className="sticky top-0 z-50 bg-slate-900 text-white [&_a]:text-white [&_a]:hover:opacity-90 [&_button]:text-white">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={localizePath("/", locale)} className="flex items-center gap-2">
             <BrandIcon className="object-contain opacity-95" size={36} />
             <span className="text-lg font-bold" style={{ color: "#7dd3fc" }}>Swap</span>
             <span className="text-lg font-bold" style={{ color: "#86efac" }}>Ways</span>
@@ -111,14 +122,14 @@ export function LandingTopBar({ variant }: { variant: Variant }) {
 
   if (variant === "4") {
     const landingLinks = [
-      { label: "How It Works", href: "/#how-it-works" },
-      { label: "Features", href: "/#features" },
-      { label: "For Airlines", href: "/#for-airlines" },
+      { label: t("nav.howItWorks"), href: localizePath("/", locale) + "#how-it-works" },
+      { label: t("nav.features"), href: localizePath("/", locale) + "#features" },
+      { label: t("nav.getStarted"), href: localizePath("/", locale) + "#get-started" },
     ];
     return (
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={localizePath("/", locale)} className="flex items-center gap-2">
             <BrandIcon className="object-contain" size={36} />
             <span className="text-lg font-bold">
               <span style={{ color: LOGO_BLUE }}>Swap</span>
@@ -137,17 +148,18 @@ export function LandingTopBar({ variant }: { variant: Variant }) {
             ))}
           </nav>
           <div className="hidden items-center gap-3 md:flex">
-            <Link href="/login" className="text-sm font-medium text-[#333] transition hover:text-[#045FA6]">Log In</Link>
-            <Link href="/register">
-              <Button size="sm" className="rounded-lg" style={{ backgroundColor: LOGO_BLUE }}>Get Started</Button>
+            <Link href={localizePath("/login", locale)} className="text-sm font-medium text-[#333] transition hover:text-[#045FA6]">{t("nav.logIn")}</Link>
+            <Link href={localizePath("/register", locale)}>
+              <Button size="sm" className="rounded-lg" style={{ backgroundColor: LOGO_BLUE }}>{t("nav.getStarted")}</Button>
             </Link>
+            <LanguageToggle className="rounded-md border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700" />
           </div>
           <button
             type="button"
             className="text-[#333] md:hidden"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-expanded={mobileOpen}
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-label={mobileOpen ? t("nav.closeMenu") : t("nav.openMenu")}
           >
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -167,12 +179,15 @@ export function LandingTopBar({ variant }: { variant: Variant }) {
               ))}
             </div>
             <div className="flex gap-3 pt-3">
-              <Link href="/login" className="flex-1" onClick={() => setMobileOpen(false)}>
-                <Button variant="ghost" size="sm" className="w-full">Log In</Button>
+              <Link href={localizePath("/login", locale)} className="flex-1" onClick={() => setMobileOpen(false)}>
+                <Button variant="ghost" size="sm" className="w-full">{t("nav.logIn")}</Button>
               </Link>
-              <Link href="/register" className="flex-1" onClick={() => setMobileOpen(false)}>
-                <Button size="sm" className="w-full" style={{ backgroundColor: LOGO_BLUE }}>Get Started</Button>
+              <Link href={localizePath("/register", locale)} className="flex-1" onClick={() => setMobileOpen(false)}>
+                <Button size="sm" className="w-full" style={{ backgroundColor: LOGO_BLUE }}>{t("nav.getStarted")}</Button>
               </Link>
+            </div>
+            <div className="pt-2">
+              <LanguageToggle className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700" />
             </div>
           </div>
         )}

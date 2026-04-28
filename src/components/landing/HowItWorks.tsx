@@ -2,32 +2,35 @@
 
 import { motion } from "framer-motion";
 import { UserCircle, Upload, CheckCircle2 } from "lucide-react";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { getTranslator } from "@/i18n/getTranslator";
 
 const PRIMARY = "#045FA6";
 const GREEN = "#299B4F";
 
-const steps = [
-  {
-    icon: UserCircle,
-    title: "Create profile",
-    description: "Create your profile with your rank, base, and aircraft qualifications.",
-    color: PRIMARY,
-  },
-  {
-    icon: Upload,
-    title: "Upload PDF line schedule",
-    description: "Upload your monthly line schedule PDF so your trips are available for posting.",
-    color: GREEN,
-  },
-  {
-    icon: CheckCircle2,
-    title: "Post trade and get matches",
-    description: "Post your trade and get matched with compatible crew automatically.",
-    color: PRIMARY,
-  },
-];
+export function HowItWorks({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
+  const t = getTranslator(locale);
+  const steps = [
+    {
+      icon: UserCircle,
+      title: t("howItWorks.step1Title"),
+      description: t("howItWorks.step1Description"),
+      color: PRIMARY,
+    },
+    {
+      icon: Upload,
+      title: t("howItWorks.step2Title"),
+      description: t("howItWorks.step2Description"),
+      color: GREEN,
+    },
+    {
+      icon: CheckCircle2,
+      title: t("howItWorks.step3Title"),
+      description: t("howItWorks.step3Description"),
+      color: PRIMARY,
+    },
+  ];
 
-export function HowItWorks() {
   return (
     <section id="how-it-works" className="scroll-mt-20 bg-slate-50/50 py-24">
       <div className="mx-auto max-w-6xl px-4">
@@ -38,10 +41,10 @@ export function HowItWorks() {
           viewport={{ once: true }}
         >
           <h2 className="mb-4 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-            How It <span className="text-gradient">Works</span>
+            {t("howItWorks.headingStart")}<span className="text-gradient">{t("howItWorks.headingAccent")}</span>
           </h2>
           <p className="mx-auto max-w-md text-lg text-slate-600">
-            Three simple steps to take control of your roster.
+            {t("howItWorks.subheading")}
           </p>
         </motion.div>
 

@@ -19,6 +19,8 @@ import {
   LifeBuoy,
   Smartphone,
 } from "lucide-react";
+import { getTranslator } from "@/i18n/getTranslator";
+import { type Locale } from "@/i18n/config";
 
 const PRIMARY = "#1E6FB9";
 const ACCENT = "#2DAF66";
@@ -53,15 +55,44 @@ export function Sidebar({
   unreadMessages,
   isAdmin,
   access,
+  locale,
 }: {
   unreadMessages: number;
   isAdmin: boolean;
   access?: SidebarAccess;
+  locale: Locale;
 }) {
+  const t = getTranslator(locale);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [navigatingHref, setNavigatingHref] = useState<string | null>(null);
-  const links = isAdmin ? [...baseLinks, adminLink] : baseLinks;
+  const links = (isAdmin ? [...baseLinks, adminLink] : baseLinks).map((link) => ({
+    ...link,
+    label:
+      link.href === "/dashboard"
+        ? t("dashboard.overview")
+        : link.href === "/dashboard/my-trades"
+          ? t("dashboard.myFlights")
+          : link.href === "/dashboard/add-trade"
+            ? t("dashboard.postToTradeBoard")
+            : link.href === "/dashboard/matches"
+              ? t("dashboard.swaps")
+              : link.href === "/dashboard/messages"
+                ? t("dashboard.messages")
+                : link.href === "/dashboard/notifications"
+                  ? t("dashboard.notifications")
+                  : link.href === "/dashboard/schedule"
+                    ? t("dashboard.crewSchedule")
+                    : link.href === "/dashboard/feedback"
+                      ? t("dashboard.helpAndFeedback")
+                      : link.href === "/dashboard/install"
+                        ? t("dashboard.installApp")
+                        : link.href === "/dashboard/profile"
+                          ? t("dashboard.profile")
+                          : link.href === "/dashboard/admin"
+                            ? t("dashboard.admin")
+                            : link.label,
+  }));
 
   useEffect(() => {
     setNavigatingHref(null);
@@ -105,7 +136,7 @@ export function Sidebar({
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-4">
         <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-          Menu
+          {t("dashboard.menu")}
         </p>
         {links.map(({ href, label, icon: Icon, prefetchUrls }) => {
           const isActive = pathname === href;
@@ -162,9 +193,9 @@ export function Sidebar({
             <div className="flex items-center gap-2">
               <span className="text-lg">⭐</span>
               <div>
-                <p className="text-xs font-semibold text-slate-900">Premium</p>
+                <p className="text-xs font-semibold text-slate-900">{t("dashboard.premium")}</p>
                 {access.isTrialing ? (
-                  <p className="text-[10px] text-slate-500">{access.trialDaysRemaining}d left in trial</p>
+                  <p className="text-[10px] text-slate-500">{access.trialDaysRemaining}{locale === "ar" ? " " : ""}{t("dashboard.trialDaysLeftShort")}</p>
                 ) : null}
               </div>
             </div>
@@ -174,7 +205,7 @@ export function Sidebar({
             href="/dashboard/upgrade"
             className="block w-full rounded-lg bg-gradient-to-r from-[#2668B0] to-[#3BA34A] px-3 py-2 text-center text-xs font-semibold text-white hover:opacity-90"
           >
-            ⭐ Upgrade to Premium
+            ⭐ {t("dashboard.upgradeToPremium")}
           </Link>
         )}
       </div>
@@ -184,7 +215,7 @@ export function Sidebar({
           className="flex items-center gap-4 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
           <ArrowLeft className="h-5 w-5 shrink-0" strokeWidth={2} />
-          Back to Home
+          {t("dashboard.backToHome")}
         </Link>
       </div>
     </aside>

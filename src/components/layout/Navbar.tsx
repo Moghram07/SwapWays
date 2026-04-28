@@ -6,15 +6,12 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, X, LayoutDashboard, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LanguageToggle } from "@/components/i18n/LanguageToggle";
+import { DEFAULT_LOCALE, getLocaleFromPathname, localizePath } from "@/i18n/config";
+import { getTranslator } from "@/i18n/getTranslator";
 
 const LOGO_BLUE = "#045FA6";
 const LOGO_GREEN = "#299B4F";
-
-const navLinks = [
-  { label: "How It Works", href: "/#how-it-works" },
-  { label: "Features", href: "/#features" },
-  { label: "For Airlines", href: "/#for-airlines" },
-];
 
 function getInitials(name: string | null | undefined, email: string | null | undefined): string {
   if (name) {
@@ -29,14 +26,20 @@ function getInitials(name: string | null | undefined, email: string | null | und
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname ?? "/") ?? DEFAULT_LOCALE;
+  const t = getTranslator(locale);
   const { data: session, status } = useSession();
   const isDashboard = pathname?.startsWith("/dashboard");
+  const navLinks = [
+    { label: t("nav.howItWorks"), href: `${localizePath("/", locale)}#how-it-works` },
+    { label: t("nav.features"), href: `${localizePath("/", locale)}#features` },
+  ];
 
   return (
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-lg">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <div className="flex items-center gap-3">
-          <Link href={isDashboard ? "/dashboard" : "/"} className="flex items-center gap-2">
+          <Link href={isDashboard ? "/dashboard" : localizePath("/", locale)} className="flex items-center gap-2">
             <img
               src="/images/swapways-logo.png"
               alt=""
@@ -111,17 +114,20 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/login">
+              <Link href={localizePath("/login", locale)}>
                 <Button variant="ghost" size="sm">
-                  Log In
+                  {t("nav.logIn")}
                 </Button>
               </Link>
-              <Link href="/register">
+              <Link href={localizePath("/register", locale)}>
                 <Button size="sm" style={{ backgroundColor: LOGO_BLUE }} className="hover:opacity-90">
-                  Get Started
+                  {t("nav.getStarted")}
                 </Button>
               </Link>
             </>
+          )}
+          {!isDashboard && (
+            <LanguageToggle className="rounded-md border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700" />
           )}
         </div>
 
@@ -166,19 +172,24 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/login" className="flex-1" onClick={() => setMobileOpen(false)}>
+                <Link href={localizePath("/login", locale)} className="flex-1" onClick={() => setMobileOpen(false)}>
                   <Button variant="ghost" size="sm" className="w-full">
-                    Log In
+                    {t("nav.logIn")}
                   </Button>
                 </Link>
-                <Link href="/register" className="flex-1" onClick={() => setMobileOpen(false)}>
+                <Link href={localizePath("/register", locale)} className="flex-1" onClick={() => setMobileOpen(false)}>
                   <Button size="sm" className="w-full" style={{ backgroundColor: LOGO_BLUE }}>
-                    Get Started
+                    {t("nav.getStarted")}
                   </Button>
                 </Link>
               </>
             )}
           </div>
+          {!isDashboard && (
+            <div className="pt-2">
+              <LanguageToggle className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700" />
+            </div>
+          )}
         </div>
       )}
     </nav>

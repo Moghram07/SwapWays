@@ -247,29 +247,29 @@ export function MatchesClient({ initialMatches, currentUserId }: MatchesClientPr
   const [vacationTrades, setVacationTrades] = useState<VacationTrade[]>([]);
   const [mySwapPosts, setMySwapPosts] = useState<SwapPostRecord[]>([]);
 
-  const fetchSwapPosts = () => {
-    fetch("/api/swap-posts?mine=1", { cache: "no-store", credentials: "include" })
-      .then((r) => r.json())
-      .then((json) => {
-        setMySwapPosts(Array.isArray(json.data) ? json.data : []);
-      })
-      .catch(() => setMySwapPosts([]));
+  const loadMineData = async (signal?: AbortSignal) => {
+    const [postsRes, tradesRes] = await Promise.all([
+      fetch("/api/swap-posts?mine=1&excludeCancelled=1", { credentials: "include", signal }).then((r) =>
+        r.json().catch(() => ({}))
+      ),
+      fetch("/api/trades?mine=1&compact=1&excludeCancelled=1&tradeType=VACATION_SWAP", { credentials: "include", signal }).then(
+        (r) => r.json().catch(() => ({}))
+      ),
+    ]);
+    const posts = Array.isArray(postsRes?.data) ? postsRes.data : [];
+    const items = tradesRes?.data?.items ?? [];
+    const vacations = items.filter((t: { tradeType: string }) => t.tradeType === "VACATION_SWAP");
+    setMySwapPosts(posts);
+    setVacationTrades(vacations);
   };
 
   useEffect(() => {
-    fetch("/api/trades?mine=1", { cache: "no-store", credentials: "include" })
-      .then((r) => r.json())
-      .then((json) => {
-        const items = json.data?.items ?? [];
-        setVacationTrades(
-          items.filter((t: { tradeType: string }) => t.tradeType === "VACATION_SWAP")
-        );
-      })
-      .catch(() => setVacationTrades([]));
-  }, []);
-
-  useEffect(() => {
-    fetchSwapPosts();
+    const controller = new AbortController();
+    loadMineData(controller.signal).catch(() => {
+      setMySwapPosts([]);
+      setVacationTrades([]);
+    });
+    return () => controller.abort();
   }, []);
 
   const handleCancel = async (item: { id: string; source: "swapPost" | "vacation"; statusPill: SwapStatusPill }) => {
@@ -281,20 +281,7 @@ export function MatchesClient({ initialMatches, currentUserId }: MatchesClientPr
       : `/api/trades/${item.id}/cancel`;
     const res = await fetch(url, { method: "PATCH" });
     if (!res.ok) return;
-
-    if (item.source === "swapPost") {
-      fetchSwapPosts();
-    } else {
-      fetch("/api/trades?mine=1", { cache: "no-store", credentials: "include" })
-        .then((r) => r.json())
-        .then((json) => {
-          const items = json.data?.items ?? [];
-          setVacationTrades(
-            items.filter((t: { tradeType: string }) => t.tradeType === "VACATION_SWAP")
-          );
-        })
-        .catch(() => setVacationTrades([]));
-    }
+    await loadMineData();
   };
 
   const mySwaps = useMemo(() => {

@@ -29,9 +29,9 @@ export function BrowseTradesClient() {
     return `/api/trades?${params.toString()}`;
   }
 
-  function fetchTrades() {
+  function fetchTrades(signal?: AbortSignal) {
     setLoading(true);
-    fetch(buildUrl())
+    fetch(buildUrl(), { signal })
       .then((r) => r.json().catch(() => ({})))
       .then((json) => {
         setTrades(json.data?.items ?? []);
@@ -41,7 +41,14 @@ export function BrowseTradesClient() {
   }
 
   useEffect(() => {
-    fetchTrades();
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      fetchTrades(controller.signal);
+    }, 180);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [dateFrom, dateTo, destination, tradeType]);
 
   useEffect(() => {

@@ -2,16 +2,25 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getAllAirlineConfigs } from "@/config/airlines";
+import { DEFAULT_LOCALE, getLocaleFromPathname, localizePath, type Locale } from "@/i18n/config";
+import { getTranslator } from "@/i18n/getTranslator";
 
 const airlines = getAllAirlineConfigs();
 
-export function RegisterForm() {
+export function RegisterForm({
+  locale: localeProp,
+}: {
+  locale?: Locale;
+}) {
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = localeProp ?? getLocaleFromPathname(pathname ?? "") ?? DEFAULT_LOCALE;
+  const t = getTranslator(locale);
   const [step, setStep] = useState(1);
   const [airlineId, setAirlineId] = useState("");
   const [email, setEmail] = useState("");
@@ -75,24 +84,24 @@ export function RegisterForm() {
     const json = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
-      setError(json.message ?? "Registration failed.");
+      setError(json.message ?? t("auth.registrationFailed"));
       return;
     }
-    router.push("/login?registered=1");
+    router.push(`${localizePath("/login", locale)}?registered=1`);
     router.refresh();
   }
 
   if (step === 1) {
     return (
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Select airline</h2>
-        <p className="text-sm text-slate-600">Phase 1: Saudia only.</p>
+        <h2 className="text-lg font-semibold">{t("auth.selectAirline")}</h2>
+        <p className="text-sm text-slate-600">{t("auth.phaseOne")}</p>
         <select
           className="form-select w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
           value={airlineId}
           onChange={(e) => setAirlineId(e.target.value)}
         >
-          <option value="">Choose airline</option>
+          <option value="">{t("auth.chooseAirline")}</option>
           {airlines.map((a) => (
             <option key={a.code} value={a.code} className="bg-white text-slate-900">
               {a.name}
@@ -100,7 +109,7 @@ export function RegisterForm() {
           ))}
         </select>
         <Button type="button" onClick={() => setStep(2)} disabled={!airlineId}>
-          Next
+          {t("auth.next")}
         </Button>
       </div>
     );
@@ -111,16 +120,16 @@ export function RegisterForm() {
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="firstName">First name</Label>
+          <Label htmlFor="firstName">{t("auth.firstName")}</Label>
           <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="lastName">Last name</Label>
+          <Label htmlFor="lastName">{t("auth.lastName")}</Label>
           <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t("auth.email")}</Label>
         <Input
           id="email"
           type="email"
@@ -131,7 +140,7 @@ export function RegisterForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t("auth.password")}</Label>
         <Input
           id="password"
           type="password"
@@ -141,18 +150,18 @@ export function RegisterForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="crewId">Crew ID / Payroll number</Label>
+        <Label htmlFor="crewId">{t("auth.crewId")}</Label>
         <Input id="crewId" value={crewId} onChange={(e) => setCrewId(e.target.value)} required />
       </div>
       <div className="space-y-2">
-        <Label>Rank</Label>
+        <Label>{t("auth.rank")}</Label>
         <select
           className="form-select w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
           value={rankId}
           onChange={(e) => setRankId(e.target.value)}
           required
         >
-          <option value="">Select rank</option>
+          <option value="">{t("auth.selectRank")}</option>
           {ranks.map((r) => (
             <option key={r.code} value={r.code} className="bg-white text-slate-900">
               {r.name}
@@ -161,14 +170,14 @@ export function RegisterForm() {
         </select>
       </div>
       <div className="space-y-2">
-        <Label>Base</Label>
+        <Label>{t("auth.base")}</Label>
         <select
           className="form-select w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
           value={baseId}
           onChange={(e) => setBaseId(e.target.value)}
           required
         >
-          <option value="">Select base</option>
+          <option value="">{t("auth.selectBase")}</option>
           {bases.map((b) => (
             <option key={b.airportCode} value={b.airportCode} className="bg-white text-slate-900">
               {b.name} ({b.airportCode})
@@ -177,7 +186,7 @@ export function RegisterForm() {
         </select>
       </div>
       <div className="space-y-2">
-        <Label>Aircraft qualifications</Label>
+        <Label>{t("auth.aircraftQualifications")}</Label>
         <div className="flex flex-wrap gap-2 text-slate-950">
           {aircraftTypes.map((at) => (
             <label
@@ -200,28 +209,29 @@ export function RegisterForm() {
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="phone">Phone (optional)</Label>
+        <Label htmlFor="phone">{t("auth.phoneOptional")}</Label>
         <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="referralCode">Referral code (optional)</Label>
+        <Label htmlFor="referralCode">{t("auth.referralCodeOptional")}</Label>
         <Input
           id="referralCode"
           value={referralCode}
           onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-          placeholder="Crew referral code"
+          placeholder={t("auth.referralPlaceholder")}
         />
       </div>
       <div className="flex gap-2">
         <Button type="button" variant="outline" onClick={() => setStep(1)}>
-          Back
+          {t("auth.back")}
         </Button>
         <Button type="submit" disabled={loading}>
-          {loading ? "Registering…" : "Register"}
+          {loading ? t("auth.registering") : t("auth.register")}
         </Button>
       </div>
       <p className="text-sm text-slate-600">
-        Already have an account? <Link href="/login" className="text-sky-600 hover:underline">Log in</Link>
+        {t("auth.haveAccount")}{" "}
+        <Link href={localizePath("/login", locale)} className="text-sky-600 hover:underline">{t("auth.logIn")}</Link>
       </p>
     </form>
   );

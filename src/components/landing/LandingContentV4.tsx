@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { Hero } from "./Hero";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { getTranslator } from "@/i18n/getTranslator";
 
 /** Below-the-fold: load after first paint to cut initial JS (framer-motion chunks). */
 const HowItWorks = dynamic(() => import("./HowItWorks").then((m) => ({ default: m.HowItWorks })), {
@@ -25,24 +27,29 @@ const CTA = dynamic(() => import("./CTA").then((m) => ({ default: m.CTA })), {
   ssr: false,
 });
 
-export function LandingContentV4() {
+export function LandingContentV4({
+  locale = DEFAULT_LOCALE,
+}: {
+  locale?: Locale;
+}) {
+  const t = getTranslator(locale);
   return (
     <>
-      <Hero />
+      <Hero locale={locale} />
 
-      <HowItWorks />
+      <HowItWorks locale={locale} />
 
       {/* Features - nav anchor */}
       <section id="features" className="scroll-mt-20 border-t border-slate-200 bg-white py-16">
         <div className="mx-auto max-w-4xl px-4 text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Features</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">{t("landing.featuresTitle")}</h2>
           <p className="mt-3 text-slate-600">
-            Crew-only verification, instant matching, and secure swaps.
+            {t("landing.featuresBody")}
           </p>
         </div>
       </section>
 
-      <CTA />
+      <CTA locale={locale} />
     </>
   );
 }

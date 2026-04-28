@@ -1,54 +1,46 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Sidebar } from "./Sidebar";
 import { DashboardHeader } from "./DashboardHeader";
 import { MobileSidebarDrawer } from "./MobileSidebarDrawer";
 import { useUserAccess } from "@/hooks/useUserAccess";
 import { TrialBanner } from "@/components/subscription/TrialBanner";
+import { getDirection, type Locale } from "@/i18n/config";
 
-export function DashboardShell({ children, isAdmin }: { children: React.ReactNode; isAdmin: boolean }) {
+export function DashboardShell({
+  children,
+  isAdmin,
+  locale,
+}: {
+  children: React.ReactNode;
+  isAdmin: boolean;
+  locale: Locale;
+}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [unreadMessages, setUnreadMessages] = useState(0);
   const { access } = useUserAccess();
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const updateUnread = (r: Response) => {
-      if (!r.ok) return;
-      r.json()
-        .then((json) => {
-          const n = json?.data?.messages;
-          if (typeof n === "number") setUnreadMessages(n);
-        })
-        .catch(() => {});
-    };
-
-    const poll = () => {
-      fetch("/api/conversations/unread-count").then(updateUnread).catch(() => {});
-      const nextMs = document.visibilityState === "visible" ? 60_000 : 180_000;
-      timer = setTimeout(poll, nextMs);
-    };
-
-    poll();
-    const onFocus = () => {
-      fetch("/api/conversations/unread-count").then(updateUnread).catch(() => {});
-    };
-
-    window.addEventListener("focus", onFocus);
-    return () => {
-      window.removeEventListener("focus", onFocus);
-      if (timer) clearTimeout(timer);
-    };
-  }, []);
+  const { data: unreadJson } = useSWR<{ data?: { messages?: number } }>(
+    "/api/conversations/unread-count",
+    async (url: string) => {
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) return {};
+      return res.json();
+    },
+    {
+      refreshInterval: () => (typeof document !== "undefined" && document.visibilityState === "visible" ? 60_000 : 180_000),
+      dedupingInterval: 15_000,
+      revalidateOnFocus: true,
+    }
+  );
+  const unreadMessages = unreadJson?.data?.messages ?? 0;
 
   return (
-    <div className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F9FC]">
-      <Sidebar unreadMessages={unreadMessages} isAdmin={isAdmin} access={access} />
+    <div lang={locale} dir={getDirection(locale)} className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F9FC]">
+      <Sidebar unreadMessages={unreadMessages} isAdmin={isAdmin} access={access} locale={locale} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <TrialBanner daysRemaining={access?.isTrialing ? access.trialDaysRemaining : 0} />
-        <DashboardHeader onMenuClick={() => setMobileMenuOpen(true)} />
+        <TrialBanner daysRemaining={access?.isTrialing ? access.trialDaysRemaining : 0} locale={locale} />
+        <DashboardHeader onMenuClick={() => setMobileMenuOpen(true)} locale={locale} />
         <main className="flex-1 max-w-full overflow-y-auto overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
           {children}
         </main>
@@ -59,6 +51,7 @@ export function DashboardShell({ children, isAdmin }: { children: React.ReactNod
         unreadMessages={unreadMessages}
         isAdmin={isAdmin}
         access={access}
+        locale={locale}
       />
     </div>
   );

@@ -25,6 +25,8 @@ export type FeedbackListItem = {
   assigneeFirstName: string | null;
   assigneeLastName: string | null;
   assigneeEmail: string | null;
+  hasUnreadByAdmin: boolean;
+  hasUnreadByUser: boolean;
 };
 
 type CountRow = { count: bigint };
@@ -54,20 +56,23 @@ export async function createFeedback(input: {
       priority: FeedbackPriority;
       subject: string | null;
       message: string;
+      hasUnreadByAdmin: boolean;
+      hasUnreadByUser: boolean;
       createdAt: Date;
       updatedAt: Date;
     }>
   >`
-    INSERT INTO "Feedback" ("id", "userId", "type", "subject", "message", "updatedAt")
+    INSERT INTO "Feedback" ("id", "userId", "type", "subject", "message", "hasUnreadByAdmin", "updatedAt")
     VALUES (
       ${randomUUID()},
       ${input.userId},
       ${input.type}::"FeedbackType",
       ${input.subject ?? null},
       ${input.message},
+      true,
       NOW()
     )
-    RETURNING "id", "userId", "type", "status", "priority", "subject", "message", "createdAt", "updatedAt"
+    RETURNING "id", "userId", "type", "status", "priority", "subject", "message", "hasUnreadByAdmin", "hasUnreadByUser", "createdAt", "updatedAt"
   `;
   return rows[0] ?? null;
 }
@@ -117,7 +122,9 @@ export async function listFeedback(filters: {
               f."assigneeId",
               au."firstName" AS "assigneeFirstName",
               au."lastName" AS "assigneeLastName",
-              au."email" AS "assigneeEmail"
+              au."email" AS "assigneeEmail",
+              f."hasUnreadByAdmin",
+              f."hasUnreadByUser"
             FROM "Feedback" f
             JOIN "User" u ON u."id" = f."userId"
             LEFT JOIN "User" au ON au."id" = f."assigneeId"
@@ -153,7 +160,9 @@ export async function listFeedback(filters: {
               f."assigneeId",
               au."firstName" AS "assigneeFirstName",
               au."lastName" AS "assigneeLastName",
-              au."email" AS "assigneeEmail"
+              au."email" AS "assigneeEmail",
+              f."hasUnreadByAdmin",
+              f."hasUnreadByUser"
             FROM "Feedback" f
             JOIN "User" u ON u."id" = f."userId"
             LEFT JOIN "User" au ON au."id" = f."assigneeId"

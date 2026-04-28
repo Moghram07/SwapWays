@@ -9,6 +9,7 @@ import { TRADE_PAGE_SIZE } from "@/config/constants";
 import { prisma } from "@/lib/prisma";
 import { isTradeExpired } from "@/lib/swapExpiry";
 import { withTiming } from "@/lib/apiTimer";
+import { requireSameOrigin } from "@/lib/csrf";
 
 export async function GET(request: Request) {
   const timer = withTiming("GET /api/trades");
@@ -25,10 +26,37 @@ export async function GET(request: Request) {
   }
   const { searchParams } = new URL(request.url);
   const mine = searchParams.get("mine") === "1";
+  const compact = searchParams.get("compact") === "1";
+  const excludeCancelled = searchParams.get("excludeCancelled") === "1";
+  const mineTradeType = searchParams.get("tradeType") as "FLIGHT_SWAP" | "VACATION_SWAP" | null;
   const status = searchParams.get("status") as import("@/types/enums").TradeStatus | undefined;
   const now = new Date();
 
   if (mine) {
+    if (compact) {
+      const items = await prisma.trade.findMany({
+        where: {
+          userId: session.user.id,
+          ...(mineTradeType ? { tradeType: mineTradeType } : {}),
+          ...(excludeCancelled ? { status: { not: "CANCELLED" } } : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          status: true,
+          tradeType: true,
+          scheduleTripId: true,
+          departureDate: true,
+          vacationStartDate: true,
+          vacationEndDate: true,
+          desiredDestinations: true,
+          createdAt: true,
+        },
+      });
+      const list = items.filter((t) => !isTradeExpired(t, now));
+      return timer.end(NextResponse.json({ data: { items: list, total: list.length }, error: null, message: null }));
+    }
+
     const items = await tradeRepo.findTradesByUserId(session.user.id, status);
     const list = items
       .filter((t) => !isTradeExpired(t, now))
@@ -73,6 +101,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const timer = withTiming("POST /api/trades");
+  const csrfError = requireSameOrigin(request);
+  if (csrfError) return timer.end(csrfError);
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return timer.end(NextResponse.json({ data: null, error: "Unauthorized", message: "Please sign in" }, { status: 401 }));
@@ -117,6 +148,9 @@ export async function POST(request: Request) {
       where: { id: raw.scheduleTripId as string },
       select: {
         id: true,
+        schedule: {
+          select: { userId: true },
+        },
         tripNumber: true,
         startDate: true,
         reportTime: true,
@@ -143,6 +177,14 @@ export async function POST(request: Request) {
         { data: null, error: "Not found", message: "Schedule trip not found" },
         { status: 404 }
       ));
+    }
+    if (scheduleTrip.schedule.userId !== session.user.id) {
+      return timer.end(
+        NextResponse.json(
+          { data: null, error: "Forbidden", message: "You can only post trades from your own schedule trips" },
+          { status: 403 }
+        )
+      );
     }
     const firstLeg = scheduleTrip.legs[0];
     const lastLeg = scheduleTrip.legs[scheduleTrip.legs.length - 1] ?? firstLeg;

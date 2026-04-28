@@ -6,6 +6,8 @@ import { findConversationsByUserId } from "@/repositories/conversationRepository
 import { createNotification } from "@/lib/notifications";
 import { getUserAccess } from "@/utils/featureGates";
 import { trackEventServer } from "@/lib/analytics/server";
+import { requireSameOrigin } from "@/lib/csrf";
+import { trackSession } from "@/lib/sessionTracker";
 
 function unauthorized() {
   return NextResponse.json({ data: null, error: "Unauthorized", message: "Please sign in" }, { status: 401 });
@@ -20,6 +22,9 @@ function json(data: unknown) {
 }
 
 export async function POST(request: Request) {
+  const csrfError = requireSameOrigin(request);
+  if (csrfError) return csrfError;
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return unauthorized();
   const access = await getUserAccess(session.user.id);
@@ -249,9 +254,10 @@ export async function POST(request: Request) {
   return json(conversation);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return unauthorized();
+  await trackSession(session.user.id, request);
   const access = await getUserAccess(session.user.id);
 
   const withUnread = await findConversationsByUserId(session.user.id);

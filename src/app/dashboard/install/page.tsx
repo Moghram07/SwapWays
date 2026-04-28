@@ -7,15 +7,48 @@ type Device = "ios" | "android";
 export default function InstallGuidePage() {
   const [device, setDevice] = useState<Device>("ios");
   const [isInstalled, setIsInstalled] = useState(false);
+  const [rewardStatus, setRewardStatus] = useState<"idle" | "granted" | "already" | "error">("idle");
 
   useEffect(() => {
+    let cancelled = false;
+    let rewardRequested = false;
     const ua = navigator.userAgent.toLowerCase();
     if (/android/.test(ua)) setDevice("android");
     else setDevice("ios");
 
+    const claimInstallReward = async () => {
+      if (rewardRequested || cancelled) return;
+      rewardRequested = true;
+      try {
+        const res = await fetch("/api/rewards/install", { method: "POST", credentials: "include" });
+        const json = await res.json().catch(() => null);
+        const reward = json?.data?.trialReward;
+        if (cancelled) return;
+        if (reward?.granted) setRewardStatus("granted");
+        else if (reward?.reason === "ALREADY_GRANTED") setRewardStatus("already");
+        else if (reward?.reason === "CAP_REACHED") setRewardStatus("already");
+        else setRewardStatus("error");
+      } catch {
+        if (!cancelled) setRewardStatus("error");
+      }
+    };
+
+    const handleInstalled = () => {
+      setIsInstalled(true);
+      void claimInstallReward();
+    };
+
+    window.addEventListener("appinstalled", handleInstalled);
+
     if (window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
+      void claimInstallReward();
     }
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
   }, []);
 
   if (isInstalled) {
@@ -26,6 +59,15 @@ export default function InstallGuidePage() {
         <p className="text-gray-700">
           You&apos;re using the installed version. Enjoy the fast experience.
         </p>
+        {rewardStatus === "granted" && (
+          <p className="mt-3 text-sm font-medium text-emerald-700">You earned +10 free days for installing the app.</p>
+        )}
+        {rewardStatus === "already" && (
+          <p className="mt-3 text-sm text-slate-600">Install bonus already applied to your account.</p>
+        )}
+        {rewardStatus === "error" && (
+          <p className="mt-3 text-sm text-amber-700">Install detected. We could not confirm the bonus yet; refresh and try again.</p>
+        )}
       </div>
     );
   }

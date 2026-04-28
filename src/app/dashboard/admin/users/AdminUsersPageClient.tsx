@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { GrantPremiumModal } from "@/components/admin/GrantPremiumModal";
+import { daysUntil, formatDateShort } from "@/utils/timeFormat";
 
 type UserRow = {
   id: string;
@@ -9,8 +11,11 @@ type UserRow = {
   email: string;
   tier: string;
   subscriptionStatus: string;
-  trialEndsAt: string | null;
+  trialEndsAt: string;
   trialStartedAt: string | null;
+  isVerified: boolean;
+  daysRemaining: number;
+  isExpired: boolean;
   createdAt: string;
   rank: { name: string } | null;
   base: { name: string; airportCode: string } | null;
@@ -35,7 +40,7 @@ export function AdminUsersPageClient() {
   const [rows, setRows] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,28 +63,11 @@ export function AdminUsersPageClient() {
     void load();
   }, [load]);
 
-  async function setTier(userId: string, tier: "PREMIUM" | "FREE") {
-    setBusyId(userId);
-    setError(null);
-    const res = await fetch("/api/admin/users/update-tier", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, tier }),
-    });
-    const body = await parseJson<unknown>(res);
-    if (!res.ok) {
-      setError(typeof body.message === "string" ? body.message : "Update failed");
-    } else {
-      await load();
-    }
-    setBusyId(null);
-  }
-
   return (
     <div className="space-y-4">
       <div>
         <h1 className="text-lg font-semibold text-slate-900">Users</h1>
-        <p className="text-sm text-slate-600">Search, filter, and adjust subscription tier (aligned with app access rules).</p>
+        <p className="text-sm text-slate-600">Search, filter, and manage premium access with duration controls.</p>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -111,6 +99,8 @@ export function AdminUsersPageClient() {
             <option value="premium">Premium (active or trialing)</option>
             <option value="free">Free tier</option>
             <option value="trialing">Trialing</option>
+            <option value="verified">Verified users</option>
+            <option value="unverified">Unverified users</option>
           </select>
         </label>
       </div>
@@ -128,6 +118,8 @@ export function AdminUsersPageClient() {
               <th className="px-4 py-3 font-medium">User</th>
               <th className="px-4 py-3 font-medium">Tier</th>
               <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Expires</th>
+              <th className="px-4 py-3 font-medium">Verified</th>
               <th className="px-4 py-3 font-medium">Base</th>
               <th className="px-4 py-3 font-medium">Joined</th>
               <th className="px-4 py-3 font-medium">Actions</th>
@@ -136,13 +128,13 @@ export function AdminUsersPageClient() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                   Loading…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                   No users match.
                 </td>
               </tr>
@@ -157,30 +149,38 @@ export function AdminUsersPageClient() {
                     <div className="text-xs text-slate-400">{u.rank?.name ?? "—"}</div>
                   </td>
                   <td className="px-4 py-3 text-slate-800">{u.tier}</td>
-                  <td className="px-4 py-3 text-slate-700">{u.subscriptionStatus}</td>
+                  <td className="px-4 py-3">
+                    <SubscriptionStatusBadge status={u.subscriptionStatus} />
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    <div className="text-slate-700">{formatDateShort(u.trialEndsAt)}</div>
+                    <div
+                      className={`${
+                        u.isExpired ? "text-red-500" : u.daysRemaining <= 5 ? "text-amber-600" : "text-emerald-600"
+                      }`}
+                    >
+                      {u.isExpired ? "Expired" : `${daysUntil(u.trialEndsAt)}d left`}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    {u.isVerified ? (
+                      <span className="font-medium text-emerald-600">Verified</span>
+                    ) : (
+                      <span className="text-slate-400">Unverified</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-slate-600">
                     {u.base ? `${u.base.airportCode} · ${u.base.name}` : "—"}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{new Date(u.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        disabled={busyId === u.id}
-                        onClick={() => void setTier(u.id, "PREMIUM")}
-                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
-                      >
-                        Grant premium
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busyId === u.id}
-                        onClick={() => void setTier(u.id, "FREE")}
-                        className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-50"
-                      >
-                        Set free
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedUser(u)}
+                      className="rounded-md bg-[#1E6FB9] px-3 py-1.5 text-xs font-medium text-white hover:opacity-95"
+                    >
+                      Manage
+                    </button>
                   </td>
                 </tr>
               ))
@@ -188,6 +188,30 @@ export function AdminUsersPageClient() {
           </tbody>
         </table>
       </div>
+
+      {selectedUser && (
+        <GrantPremiumModal
+          user={selectedUser}
+          isOpen={!!selectedUser}
+          onClose={() => setSelectedUser(null)}
+          onSuccess={load}
+        />
+      )}
     </div>
+  );
+}
+
+function SubscriptionStatusBadge({ status }: { status: string }) {
+  const classes: Record<string, string> = {
+    TRIALING: "bg-blue-100 text-blue-700",
+    ACTIVE: "bg-emerald-100 text-emerald-700",
+    EXPIRED: "bg-slate-100 text-slate-500",
+    CANCELLED: "bg-red-100 text-red-600",
+    PAST_DUE: "bg-amber-100 text-amber-700",
+  };
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${classes[status] ?? classes.EXPIRED}`}>
+      {status}
+    </span>
   );
 }

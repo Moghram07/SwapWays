@@ -66,7 +66,7 @@ type MyTradesResponse = {
 export function MyTradesPageClient() {
   const { data: profileJson } = useSWR<ProfileResponse>("/api/profile", fetcher);
   const { data: tripsJson, isLoading: tripsLoading } = useSWR<MyTripsResponse>("/api/schedule/my-trips", fetcher);
-  const { data: tradesJson } = useSWR<MyTradesResponse>("/api/trades?mine=1", fetcher);
+  const { data: tradesJson } = useSWR<MyTradesResponse>("/api/trades?mine=1&compact=1", fetcher);
 
   const airlineCode = profileJson?.data?.airline?.code ?? "SV";
   const baseAirportCode = profileJson?.data?.base?.airportCode ?? null;

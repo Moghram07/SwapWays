@@ -299,9 +299,15 @@ export async function findSwapPostsForBoard(
   return filtered;
 }
 
-export async function findSwapPostsByUserId(userId: string) {
+export async function findSwapPostsByUserId(
+  userId: string,
+  options?: { excludeCancelled?: boolean }
+) {
   return prisma.swapPost.findMany({
-    where: { userId },
+    where: {
+      userId,
+      ...(options?.excludeCancelled ? { status: { not: "CANCELLED" } } : {}),
+    },
     select: swapPostSelect,
     orderBy: { createdAt: "desc" },
   });

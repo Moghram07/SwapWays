@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, localizePath } from "@/i18n/config";
 import { consumeRateLimit } from "@/lib/rateLimit";
 
 const RATE_WINDOW_MS = 60_000;
@@ -64,6 +65,31 @@ function tooManyRequests(retryAfterSec: number): NextResponse {
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const pathLocale = pathname.split("/").filter(Boolean)[0];
+  const localeFromPath = isLocale(pathLocale) ? pathLocale : null;
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
+  const localeFromCookie = isLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
+
+  const localeScopedPaths = new Set(["/", "/login", "/register", "/privacy", "/terms", "/support", "/contact"]);
+
+  if (!pathname.startsWith("/api/") && localeScopedPaths.has(pathname) && !localeFromPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = localizePath(pathname, localeFromCookie);
+    return NextResponse.redirect(url, 307);
+  }
+
+  if (!pathname.startsWith("/api/") && localeFromPath) {
+    const response = NextResponse.next();
+    response.cookies.set(LOCALE_COOKIE, localeFromPath, {
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365,
+    });
+    applySecurityHeaders(request, response);
+    return response;
+  }
+
   if (pathname === "/4" || pathname.startsWith("/4/")) {
     const url = request.nextUrl.clone();
     url.pathname = pathname === "/4" ? "/" : pathname.slice(3) || "/";

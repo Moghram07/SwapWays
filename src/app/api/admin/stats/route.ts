@@ -49,6 +49,8 @@ export async function GET() {
       activeConversations,
       recentSignups,
       recentFeedback,
+      unresolvedFlags,
+      unreadFeedbackByAdmin,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.$queryRaw<CountRow[]>`SELECT COUNT(*)::bigint AS count FROM "Feedback" WHERE "status" = 'OPEN'::"FeedbackStatus"`,
@@ -129,6 +131,8 @@ export async function GET() {
           user: { select: { firstName: true, email: true } },
         },
       }),
+      prisma.accountFlag.count({ where: { isResolved: false } }),
+      prisma.feedback.count({ where: { hasUnreadByAdmin: true } }),
     ]);
 
     const funnel = CORE_EVENTS.map((eventName) => ({
@@ -169,6 +173,8 @@ export async function GET() {
         activeConversations,
         recentSignups,
         recentFeedback,
+        unresolvedFlags,
+        unreadFeedbackByAdmin,
       },
     });
   } catch (e) {
@@ -192,6 +198,8 @@ export async function GET() {
           activeConversations: 0,
           recentSignups: [] as unknown[],
           recentFeedback: [] as unknown[],
+          unresolvedFlags: 0,
+          unreadFeedbackByAdmin: 0,
         },
       });
     }

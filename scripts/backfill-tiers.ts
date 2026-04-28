@@ -1,7 +1,7 @@
 /**
- * One-time / maintenance: normalize users to the Phase 1 10/20/50 trial model.
+ * One-time / maintenance: normalize users to the free-days trial model.
  * - Base trial: 10 days from trialStartedAt (or createdAt)
- * - Cap: 50 days maximum from trialStartedAt
+ * - Cap: 60 days maximum from trialStartedAt
  * - Verification source: schedule presence
  *
  * Run with DATABASE_URL set: npx tsx scripts/backfill-tiers.ts
@@ -30,7 +30,7 @@ async function main() {
   let updated = 0;
   const dayMs = 24 * 60 * 60 * 1000;
   const baseDays = 10;
-  const maxDays = 50;
+  const maxDays = 60;
   const now = Date.now();
 
   for (const user of users) {

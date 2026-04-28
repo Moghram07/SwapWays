@@ -126,8 +126,9 @@ export async function GET(request: Request) {
   if (searchParams.get("mine") !== "1") {
     return timer.end(error("Use ?mine=1 to fetch your swap posts", 400));
   }
+  const excludeCancelled = searchParams.get("excludeCancelled") === "1";
   try {
-    const posts = await findSwapPostsByUserId(session.user.id);
+    const posts = await findSwapPostsByUserId(session.user.id, { excludeCancelled });
     const now = new Date();
     return timer.end(json(posts.filter((post) => !isSwapPostExpired(post, now))));
   } catch (err) {

@@ -43,6 +43,8 @@ type AdminStatsOverview = {
     createdAt: string;
     user: { firstName: string; email: string };
   }>;
+  unresolvedFlags: number;
+  unreadFeedbackByAdmin: number;
 };
 
 type AdminStats = {
@@ -263,6 +265,14 @@ export function AdminPageClient() {
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
                       <p className="text-xs uppercase tracking-wide text-slate-500">Active conversations</p>
                       <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.activeConversations}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Flagged Accounts</p>
+                      <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.unresolvedFlags}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Unread Feedback Replies</p>
+                      <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.unreadFeedbackByAdmin}</p>
                     </div>
                   </div>
 

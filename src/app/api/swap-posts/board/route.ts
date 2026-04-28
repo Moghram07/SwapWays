@@ -7,6 +7,7 @@ import { isSwapPostExpired } from "@/lib/swapExpiry";
 import { getMatchTier, getUserAccess, truncateNotesForFree } from "@/utils/featureGates";
 import { withTiming } from "@/lib/apiTimer";
 import { prisma } from "@/lib/prisma";
+import { trackSession } from "@/lib/sessionTracker";
 
 function unauthorized() {
   return NextResponse.json(
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
   const timer = withTiming("GET /api/swap-posts/board");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return timer.end(unauthorized());
+  await trackSession(session.user.id, request);
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },

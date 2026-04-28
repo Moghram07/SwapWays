@@ -41,9 +41,16 @@ export function ScheduleUploadCard({ onUploadSuccess }: ScheduleUploadCardProps)
         setMessage({ type: "error", text: json.message ?? json.error ?? "Upload failed" });
         return;
       }
+      const reward = json.data?.trialReward;
+      const rewardNotice =
+        reward?.granted
+          ? ` You earned +${reward.daysGranted} free days.`
+          : reward?.reason === "CAP_REACHED"
+            ? " You are already at the 60-day free cap."
+            : "";
       setMessage({
         type: "success",
-        text: `Uploaded: ${json.data?.tripCount ?? 0} trips, ${json.data?.legCount ?? 0} flights.`,
+        text: `Uploaded: ${json.data?.tripCount ?? 0} trips, ${json.data?.legCount ?? 0} flights.${rewardNotice}`,
       });
       setFile(null);
       router.refresh();

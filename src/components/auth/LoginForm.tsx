@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DEFAULT_LOCALE, getLocaleFromPathname, localizePath } from "@/i18n/config";
+import { getTranslator } from "@/i18n/getTranslator";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const locale = getLocaleFromPathname(pathname ?? "") ?? DEFAULT_LOCALE;
+  const t = getTranslator(locale);
   const callbackUrlRaw = searchParams.get("callbackUrl");
   const callbackUrl =
     callbackUrlRaw && callbackUrlRaw.startsWith("/") && !callbackUrlRaw.startsWith("//")
@@ -27,7 +32,7 @@ export function LoginForm() {
     const res = await signIn("credentials", { email, password, redirect: false });
     setLoading(false);
     if (res?.error) {
-      setError("Invalid email or password.");
+      setError(t("auth.invalidCredentials"));
       return;
     }
     router.push(callbackUrl);
@@ -38,7 +43,7 @@ export function LoginForm() {
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t("auth.email")}</Label>
         <Input
           id="email"
           type="email"
@@ -49,7 +54,7 @@ export function LoginForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t("auth.password")}</Label>
         <Input
           id="password"
           type="password"
@@ -59,8 +64,14 @@ export function LoginForm() {
         />
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Signing in…" : "Sign in"}
+        {loading ? t("auth.signingIn") : t("auth.signIn")}
       </Button>
+      <p className="text-center text-sm text-slate-600">
+        {t("auth.noAccount")}{" "}
+        <a href={localizePath("/register", locale)} className="font-medium text-[#045FA6] hover:underline">
+          {t("auth.signUp")}
+        </a>
+      </p>
     </form>
   );
 }

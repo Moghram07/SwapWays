@@ -163,7 +163,7 @@ export async function POST(request: Request) {
       }).catch(() => {});
       if (rewardResult.capped) {
         await trackEventServer({
-          eventName: "trial_capped_50_days",
+          eventName: "trial_capped_60_days",
           userId: session.user.id,
           path: "/dashboard/schedule",
           properties: { trigger: "SCHEDULE_UPLOAD" },

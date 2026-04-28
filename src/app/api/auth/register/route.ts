@@ -7,6 +7,7 @@ import { createUser } from "@/repositories/userRepository";
 import { isValidEmail } from "@/utils/validation";
 import { ensureSaudiaExists } from "@/lib/ensureSaudia";
 import { trackEventServer } from "@/lib/analytics/server";
+import { requireSameOrigin } from "@/lib/csrf";
 
 function normalizeAircraftFamily(code: string): string {
   const c = code.toUpperCase();
@@ -39,6 +40,9 @@ async function createUniqueReferralCode(firstName: string) {
 }
 
 export async function POST(request: Request) {
+  const csrfError = requireSameOrigin(request);
+  if (csrfError) return csrfError;
+
   const body = await request.json().catch(() => ({}));
   const {
     email,
@@ -97,8 +101,9 @@ export async function POST(request: Request) {
     );
   }
   const normalizedEmail = email.toLowerCase().trim();
-  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
-  const isAdmin = !!adminEmail && normalizedEmail === adminEmail;
+  // Never grant admin privileges from public registration.
+  // Admin should be assigned via controlled back-office/DB process.
+  const isAdmin = false;
   const rank = await prisma.rank.findFirst({ where: { airlineId: airline.id, code: rankId } });
   const base = await prisma.base.findFirst({ where: { airlineId: airline.id, airportCode: baseId } });
   if (!rank || !base) {
@@ -131,7 +136,7 @@ export async function POST(request: Request) {
   const dayMs = 24 * 60 * 60 * 1000;
   const baseTrialDays = 10;
   const referredTrialDays = 20;
-  const maxTrialDays = 50;
+  const maxTrialDays = 60;
   const ownReferralCode = await createUniqueReferralCode(firstName);
   const normalizedReferralCode = referralCode?.trim().toUpperCase();
   const referrer =

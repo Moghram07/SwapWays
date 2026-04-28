@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Cairo, Inter } from "next/font/google";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
 import { ConditionalShell } from "@/components/layout/ConditionalShell";
@@ -12,6 +12,13 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   adjustFontFallback: true,
+});
+
+const cairo = Cairo({
+  variable: "--font-cairo",
+  subsets: ["arabic", "latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -34,8 +41,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body suppressHydrationWarning className={`${inter.variable} font-sans antialiased`}>
+    <html lang="en" dir="ltr">
+      <body suppressHydrationWarning className={`${inter.variable} ${cairo.variable} font-sans antialiased`}>
         <SessionProvider>
           <AnalyticsProvider />
           <ChunkLoadRecovery />

@@ -112,6 +112,12 @@ export async function POST(request: Request) {
       { status: 422 }
     );
   }
+  if (airline.code === "SV" && !["JED", "RUH"].includes(base.airportCode)) {
+    return NextResponse.json(
+      { data: null, error: "Validation failed", message: "Only Jeddah (JED) or Riyadh (RUH) are allowed." },
+      { status: 422 }
+    );
+  }
   const passwordHash = await hash(password, 10);
   const requestedCodes = Array.isArray(qualificationIds) ? qualificationIds : [];
   const requestedFamilies = new Set(requestedCodes.map((c) => normalizeAircraftFamily(c)));

@@ -41,7 +41,11 @@ export function RegisterForm({
     () => [...(selectedConfig?.ranks.cabin ?? []), ...(selectedConfig?.ranks.flightDeck ?? [])],
     [selectedConfig]
   );
-  const bases = selectedConfig?.bases ?? [];
+  const bases = useMemo(() => {
+    const allBases = selectedConfig?.bases ?? [];
+    if (selectedConfig?.code !== "SV") return allBases;
+    return allBases.filter((b) => b.airportCode === "JED" || b.airportCode === "RUH");
+  }, [selectedConfig]);
   const aircraftTypes = selectedConfig?.aircraftTypes ?? [];
 
   useEffect(() => {

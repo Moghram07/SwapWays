@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,7 @@ export function RegisterForm({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { status } = useSession();
   const locale = localeProp ?? getLocaleFromPathname(pathname ?? "") ?? DEFAULT_LOCALE;
   const t = getTranslator(locale);
   const [step, setStep] = useState(1);
@@ -35,6 +37,7 @@ export function RegisterForm({
   const [referralCode, setReferralCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resettingSession, setResettingSession] = useState(false);
 
   const selectedConfig = useMemo(() => airlines.find((a) => a.code === airlineId), [airlineId]);
   const ranks = useMemo(
@@ -54,6 +57,21 @@ export function RegisterForm({
       setReferralCode(value.toUpperCase());
     }
   }, []);
+
+  useEffect(() => {
+    // Security hardening: entering signup should not inherit a prior authenticated session.
+    if (status !== "authenticated") return;
+    let cancelled = false;
+    setResettingSession(true);
+    void signOut({ redirect: false }).finally(() => {
+      if (cancelled) return;
+      setResettingSession(false);
+      router.refresh();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [status, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -98,6 +116,9 @@ export function RegisterForm({
   if (step === 1) {
     return (
       <div className="space-y-4">
+        {resettingSession && (
+          <p className="text-sm text-slate-600">{t("auth.registering")}</p>
+        )}
         <h2 className="text-lg font-semibold">{t("auth.selectAirline")}</h2>
         <p className="text-sm text-slate-600">{t("auth.phaseOne")}</p>
         <select
@@ -112,7 +133,7 @@ export function RegisterForm({
             </option>
           ))}
         </select>
-        <Button type="button" onClick={() => setStep(2)} disabled={!airlineId}>
+        <Button type="button" onClick={() => setStep(2)} disabled={!airlineId || resettingSession}>
           {t("auth.next")}
         </Button>
       </div>
@@ -229,7 +250,7 @@ export function RegisterForm({
         <Button type="button" variant="outline" onClick={() => setStep(1)}>
           {t("auth.back")}
         </Button>
-        <Button type="submit" disabled={loading}>
+        <Button type="submit" disabled={loading || resettingSession}>
           {loading ? t("auth.registering") : t("auth.register")}
         </Button>
       </div>

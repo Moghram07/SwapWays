@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { findUserById } from "@/repositories/userRepository";
 import { getRanksByAirlineId, getBasesByAirlineId, getAircraftTypesByAirlineId } from "@/repositories/airlineRepository";
@@ -23,7 +24,7 @@ function isSaudiaFamily(
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
   const user = session?.user?.id ? await findUserById(session.user.id) : null;
-  if (!user) return null;
+  if (!user) redirect("/login?callbackUrl=/dashboard/profile");
   const [ranks, bases, aircraftTypes] = await Promise.all([
     getRanksByAirlineId(user.airlineId),
     getBasesByAirlineId(user.airlineId),

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale, localizePath, type Locale } from "@/i18n/config";
+import { userExistsById } from "@/repositories/userRepository";
 
 export default async function DashboardLayout({
   children,
@@ -13,6 +14,10 @@ export default async function DashboardLayout({
   const locale: Locale = isLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
+    redirect(`${localizePath("/login", locale)}?callbackUrl=/dashboard`);
+  }
+  const userExists = await userExistsById(session.user.id);
+  if (!userExists) {
     redirect(`${localizePath("/login", locale)}?callbackUrl=/dashboard`);
   }
   const isAdmin = !!(session.user as { isAdmin?: boolean }).isAdmin;

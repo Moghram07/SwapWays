@@ -41,6 +41,14 @@ export async function findUserById(id: string) {
   });
 }
 
+export async function userExistsById(id: string) {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  return !!user;
+}
+
 export async function updateUser(
   id: string,
   data: {

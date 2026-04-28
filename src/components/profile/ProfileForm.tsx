@@ -46,6 +46,18 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
+  const hasTypedPasswordConfirmation = newPassword.length > 0 || confirmNewPassword.length > 0;
+  const passwordConfirmationMatches = newPassword.length > 0 && newPassword === confirmNewPassword;
+  const passwordConfirmationMismatches =
+    hasTypedPasswordConfirmation && confirmNewPassword.length > 0 && newPassword !== confirmNewPassword;
+  const newPasswordTooShort = newPassword.length > 0 && newPassword.length < 8;
+  const newPasswordSameAsCurrent = currentPassword.length > 0 && newPassword === currentPassword;
+  const canSubmitPasswordChange =
+    currentPassword.length > 0 &&
+    newPassword.length >= 8 &&
+    confirmNewPassword.length > 0 &&
+    passwordConfirmationMatches &&
+    !newPasswordSameAsCurrent;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,8 +90,7 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
     setQualificationIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
-  async function handlePasswordChange(e: React.FormEvent) {
-    e.preventDefault();
+  async function handlePasswordChange() {
     setPasswordError("");
     setPasswordSuccess("");
 
@@ -232,12 +243,14 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
           <CardTitle>Security</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handlePasswordChange} className="space-y-4">
+          <div className="space-y-4">
             {passwordError && <p className="text-sm text-red-600">{passwordError}</p>}
             {passwordSuccess && <p className="text-sm text-emerald-700">{passwordSuccess}</p>}
             <div className="space-y-2">
-              <Label>Current password</Label>
+              <Label htmlFor="currentPassword">Current password</Label>
               <Input
+                id="currentPassword"
+                name="currentPassword"
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
@@ -245,27 +258,51 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
               />
             </div>
             <div className="space-y-2">
-              <Label>New password</Label>
+              <Label htmlFor="newPassword">New password</Label>
               <Input
+                id="newPassword"
+                name="newPassword"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
               />
+              {newPasswordTooShort && (
+                <p className="text-xs text-amber-700">Use at least 8 characters.</p>
+              )}
+              {newPasswordSameAsCurrent && (
+                <p className="text-xs text-red-600">New password must be different from current password.</p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label>Confirm new password</Label>
+              <Label htmlFor="confirmNewPassword">Confirm new password</Label>
               <Input
+                id="confirmNewPassword"
+                name="confirmNewPassword"
                 type="password"
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
                 autoComplete="new-password"
               />
+              {passwordConfirmationMatches && (
+                <p className="text-xs text-emerald-700">Passwords match.</p>
+              )}
+              {passwordConfirmationMismatches && (
+                <p className="text-xs text-red-600">Passwords do not match yet.</p>
+              )}
             </div>
-            <Button type="submit" disabled={passwordLoading} variant="outline">
+            <Button
+              type="button"
+              onClick={() => void handlePasswordChange()}
+              disabled={passwordLoading || !canSubmitPasswordChange}
+              variant="outline"
+            >
               {passwordLoading ? "Updating…" : "Change password"}
             </Button>
-          </form>
+            {!passwordLoading && canSubmitPasswordChange && (
+              <p className="text-xs text-emerald-700">Ready to change password.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
 

@@ -76,8 +76,8 @@ export function ChunkLoadRecovery() {
           : typeof raw === "string"
             ? raw
             : "";
-
-      if (!isChunkLoadLikeError(message)) return;
+      const isChunkLike = isChunkLoadLikeError(message);
+      if (!isChunkLike) return;
 
       const now = Date.now();
       const lastAttemptRaw = sessionStorage.getItem(RECOVERY_LAST_ATTEMPT_KEY);
@@ -94,8 +94,7 @@ export function ChunkLoadRecovery() {
     };
 
     const onError = (event: ErrorEvent) => handleChunkError(event.error ?? event.message);
-    const onUnhandledRejection = (event: PromiseRejectionEvent) =>
-      handleChunkError(event.reason);
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => handleChunkError(event.reason);
 
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onUnhandledRejection);

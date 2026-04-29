@@ -3,18 +3,43 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { findUserById, updateUser, setUserQualifications } from "@/repositories/userRepository";
 import { prisma } from "@/lib/prisma";
+import { withTimeout } from "@/lib/withTimeout";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ data: null, error: "Unauthorized", message: "Please sign in" }, { status: 401 });
   }
-  const user = await findUserById(session.user.id);
-  if (!user) {
-    return NextResponse.json({ data: null, error: "Not found", message: "User not found" }, { status: 404 });
+  try {
+    const user = await withTimeout(findUserById(session.user.id), 4000, "profile query");
+    if (!user) {
+      return NextResponse.json({ data: null, error: "Not found", message: "User not found" }, { status: 404 });
+    }
+    const { passwordHash: _, ...safe } = user;
+    return NextResponse.json({ data: safe, error: null, message: null });
+  } catch (error) {
+    console.error("[api/profile] degraded response due to transient DB failure", error);
+    const fallbackName = session.user.name?.split(" ") ?? [];
+    return NextResponse.json(
+      {
+        data: {
+          id: session.user.id,
+          firstName: fallbackName[0] ?? "Crew",
+          lastName: fallbackName.slice(1).join(" ") || "Member",
+          email: session.user.email ?? "",
+          crewId: "",
+          phone: null,
+          rank: null,
+          base: null,
+          qualifications: [],
+        },
+        error: "ServiceUnavailable",
+        message: "Profile is temporarily degraded while the database reconnects.",
+        meta: { degraded: true },
+      },
+      { status: 200 }
+    );
   }
-  const { passwordHash: _, ...safe } = user;
-  return NextResponse.json({ data: safe, error: null, message: null });
 }
 
 export async function POST(request: Request) {

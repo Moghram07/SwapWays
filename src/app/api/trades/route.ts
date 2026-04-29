@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { isTradeExpired } from "@/lib/swapExpiry";
 import { withTiming } from "@/lib/apiTimer";
 import { requireSameOrigin } from "@/lib/csrf";
+import { withTimeout } from "@/lib/withTimeout";
 
 export async function GET(request: Request) {
   const timer = withTiming("GET /api/trades");
@@ -17,86 +18,112 @@ export async function GET(request: Request) {
   if (!session?.user?.id) {
     return timer.end(NextResponse.json({ data: null, error: "Unauthorized", message: "Please sign in" }, { status: 401 }));
   }
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { airlineId: true, baseId: true },
-  });
-  if (!user) {
-    return timer.end(NextResponse.json({ data: null, error: "Not found", message: "User not found" }, { status: 404 }));
-  }
-  const { searchParams } = new URL(request.url);
-  const mine = searchParams.get("mine") === "1";
-  const compact = searchParams.get("compact") === "1";
-  const excludeCancelled = searchParams.get("excludeCancelled") === "1";
-  const mineTradeType = searchParams.get("tradeType") as "FLIGHT_SWAP" | "VACATION_SWAP" | null;
-  const status = searchParams.get("status") as import("@/types/enums").TradeStatus | undefined;
-  const now = new Date();
+  try {
+    const user = await withTimeout(
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { airlineId: true, baseId: true },
+      }),
+      4000,
+      "trades user query"
+    );
+    if (!user) {
+      return timer.end(NextResponse.json({ data: null, error: "Not found", message: "User not found" }, { status: 404 }));
+    }
+    const { searchParams } = new URL(request.url);
+    const mine = searchParams.get("mine") === "1";
+    const compact = searchParams.get("compact") === "1";
+    const excludeCancelled = searchParams.get("excludeCancelled") === "1";
+    const mineTradeType = searchParams.get("tradeType") as "FLIGHT_SWAP" | "VACATION_SWAP" | null;
+    const status = searchParams.get("status") as import("@/types/enums").TradeStatus | undefined;
+    const now = new Date();
 
-  if (mine) {
-    if (compact) {
-      const items = await prisma.trade.findMany({
-        where: {
-          userId: session.user.id,
-          ...(mineTradeType ? { tradeType: mineTradeType } : {}),
-          ...(excludeCancelled ? { status: { not: "CANCELLED" } } : {}),
-        },
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          status: true,
-          tradeType: true,
-          scheduleTripId: true,
-          departureDate: true,
-          vacationStartDate: true,
-          vacationEndDate: true,
-          desiredDestinations: true,
-          createdAt: true,
-        },
-      });
-      const list = items.filter((t) => !isTradeExpired(t, now));
+    if (mine) {
+      if (compact) {
+        const items = await withTimeout(
+          prisma.trade.findMany({
+            where: {
+              userId: session.user.id,
+              ...(mineTradeType ? { tradeType: mineTradeType } : {}),
+              ...(excludeCancelled ? { status: { not: "CANCELLED" } } : {}),
+            },
+            orderBy: { createdAt: "desc" },
+            select: {
+              id: true,
+              status: true,
+              tradeType: true,
+              scheduleTripId: true,
+              departureDate: true,
+              vacationStartDate: true,
+              vacationEndDate: true,
+              desiredDestinations: true,
+              createdAt: true,
+            },
+          }),
+          4000,
+          "trades compact query"
+        );
+        const list = items.filter((t) => !isTradeExpired(t, now));
+        return timer.end(NextResponse.json({ data: { items: list, total: list.length }, error: null, message: null }));
+      }
+
+      const items = await withTimeout(tradeRepo.findTradesByUserId(session.user.id, status), 4000, "trades mine query");
+      const list = items
+        .filter((t) => !isTradeExpired(t, now))
+        .map((t) => ({ ...t, matchCount: t._count.matches, _count: undefined }));
       return timer.end(NextResponse.json({ data: { items: list, total: list.length }, error: null, message: null }));
     }
 
-    const items = await tradeRepo.findTradesByUserId(session.user.id, status);
-    const list = items
+    const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+    const limit = Math.min(50, parseInt(searchParams.get("limit") ?? String(TRADE_PAGE_SIZE), 10));
+    const cursor = searchParams.get("cursor");
+    const dateFrom = searchParams.get("dateFrom") ? new Date(searchParams.get("dateFrom")!) : undefined;
+    const dateTo = searchParams.get("dateTo") ? new Date(searchParams.get("dateTo")!) : undefined;
+    const tradeType = searchParams.get("tradeType") as "FLIGHT_SWAP" | "VACATION_SWAP" | undefined;
+    const destination = searchParams.get("destination") ?? undefined;
+    const aircraftType = searchParams.get("aircraftType") ?? undefined;
+
+    const result = await withTimeout(
+      tradeRepo.findTradesBrowse(
+        session.user.id,
+        { airlineId: user.airlineId, baseId: user.baseId, dateFrom, dateTo, tradeType, destination, aircraftType },
+        page,
+        limit,
+        { includeTotal: false }
+      ),
+      4000,
+      "trades browse query"
+    );
+    const items = result.items
       .filter((t) => !isTradeExpired(t, now))
-      .map((t) => ({ ...t, matchCount: t._count.matches, _count: undefined }));
-    return timer.end(NextResponse.json({ data: { items: list, total: list.length }, error: null, message: null }));
+      .map((t) => ({
+        ...t,
+        matchCount: t._count.matches,
+        _count: undefined,
+      }));
+    const paged = cursor
+      ? (() => {
+          const startIndex = items.findIndex((item) => item.id === cursor) + 1;
+          const slice = items.slice(startIndex, startIndex + limit + 1);
+          const hasMore = slice.length > limit;
+          const data = hasMore ? slice.slice(0, limit) : slice;
+          return { items: data, hasMore, nextCursor: hasMore ? data[data.length - 1]?.id ?? null : null };
+        })()
+      : { items, hasMore: false, nextCursor: null };
+    return timer.end(NextResponse.json({ data: { ...paged, total: result.total ?? items.length }, error: null, message: null }));
+  } catch (error) {
+    console.error("[api/trades] degraded response due to transient DB failure", error);
+    return timer.end(
+      NextResponse.json(
+        {
+          data: { items: [], total: 0, hasMore: false, nextCursor: null },
+          error: "ServiceUnavailable",
+          message: "Trades are temporarily unavailable. Please refresh in a moment.",
+        },
+        { status: 200 }
+      )
+    );
   }
-
-  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-  const limit = Math.min(50, parseInt(searchParams.get("limit") ?? String(TRADE_PAGE_SIZE), 10));
-  const cursor = searchParams.get("cursor");
-  const dateFrom = searchParams.get("dateFrom") ? new Date(searchParams.get("dateFrom")!) : undefined;
-  const dateTo = searchParams.get("dateTo") ? new Date(searchParams.get("dateTo")!) : undefined;
-  const tradeType = searchParams.get("tradeType") as "FLIGHT_SWAP" | "VACATION_SWAP" | undefined;
-  const destination = searchParams.get("destination") ?? undefined;
-  const aircraftType = searchParams.get("aircraftType") ?? undefined;
-
-  const result = await tradeRepo.findTradesBrowse(
-    session.user.id,
-    { airlineId: user.airlineId, baseId: user.baseId, dateFrom, dateTo, tradeType, destination, aircraftType },
-    page,
-    limit,
-    { includeTotal: false }
-  );
-  const items = result.items
-    .filter((t) => !isTradeExpired(t, now))
-    .map((t) => ({
-    ...t,
-    matchCount: t._count.matches,
-    _count: undefined,
-  }));
-  const paged = cursor
-    ? (() => {
-        const startIndex = items.findIndex((item) => item.id === cursor) + 1;
-        const slice = items.slice(startIndex, startIndex + limit + 1);
-        const hasMore = slice.length > limit;
-        const data = hasMore ? slice.slice(0, limit) : slice;
-        return { items: data, hasMore, nextCursor: hasMore ? data[data.length - 1]?.id ?? null : null };
-      })()
-    : { items, hasMore: false, nextCursor: null };
-  return timer.end(NextResponse.json({ data: { ...paged, total: result.total ?? items.length }, error: null, message: null }));
 }
 
 export async function POST(request: Request) {

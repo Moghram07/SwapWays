@@ -6,9 +6,19 @@ const MAX_TRIAL_DAYS = 60;
 
 export type TrialRewardGrantResult =
   | { granted: true; daysGranted: number; trialEndsAt: Date; capped: boolean }
-  | { granted: false; reason: "ALREADY_GRANTED" | "USER_NOT_FOUND" | "CAP_REACHED" };
+  | { granted: false; reason: "ALREADY_GRANTED" | "USER_NOT_FOUND" | "CAP_REACHED" | "BETA_FREE_MODE" };
 
 export async function grantTrialReward(input: {
+  userId: string;
+  type: "SCHEDULE_UPLOAD" | "INSTALL_APP" | "REFERRAL";
+  requestedDays: number;
+  metadata?: Record<string, unknown>;
+}): Promise<TrialRewardGrantResult> {
+  void input;
+  return { granted: false, reason: "BETA_FREE_MODE" };
+}
+
+export async function grantTrialRewardLegacy(input: {
   userId: string;
   type: "SCHEDULE_UPLOAD" | "INSTALL_APP" | "REFERRAL";
   requestedDays: number;

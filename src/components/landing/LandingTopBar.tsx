@@ -28,7 +28,7 @@ function BrandIcon({ className, size = 36 }: { className?: string; size?: number
 
 function BrandText() {
   return (
-    <span className="font-bold">
+    <span className="logo-wordmark font-bold">
       <span style={{ color: LOGO_BLUE }}>Swap</span>
       <span style={{ color: LOGO_GREEN }}> Ways</span>
     </span>
@@ -67,6 +67,7 @@ export function LandingTopBar({
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const t = getTranslator(locale);
+  const isArabic = locale === "ar";
   const isV1 = variant === "1";
   const sharedLinks = <AuthLinks linkGreenHoverBlue={isV1} locale={locale} />;
 
@@ -76,7 +77,7 @@ export function LandingTopBar({
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link href={localizePath("/", locale)} className="flex items-center gap-2">
             <BrandIcon className="object-contain" size={36} />
-            <span className="text-lg font-bold text-slate-900"><span style={{ color: LOGO_BLUE }}>Swap</span> <span style={{ color: LOGO_GREEN }}>Ways</span></span>
+            <span className="logo-wordmark text-lg font-bold text-slate-900"><span style={{ color: LOGO_BLUE }}>Swap</span> <span style={{ color: LOGO_GREEN }}>Ways</span></span>
           </Link>
           {sharedLinks}
         </div>
@@ -90,8 +91,8 @@ export function LandingTopBar({
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link href={localizePath("/", locale)} className="flex items-center gap-2">
             <BrandIcon className="object-contain opacity-95" size={36} />
-            <span className="text-lg font-bold" style={{ color: "#7dd3fc" }}>Swap</span>
-            <span className="text-lg font-bold" style={{ color: "#86efac" }}>Ways</span>
+            <span className="logo-wordmark text-lg font-bold" style={{ color: "#7dd3fc" }}>Swap</span>
+            <span className="logo-wordmark text-lg font-bold" style={{ color: "#86efac" }}>Ways</span>
           </Link>
           {sharedLinks}
         </div>
@@ -105,7 +106,7 @@ export function LandingTopBar({
         <div className="mx-auto flex h-12 max-w-5xl items-center justify-between px-5 md:px-8">
           <Link href="/3" className="flex items-center gap-2">
             <BrandIcon className="object-contain" size={32} />
-            <span className="text-base font-semibold tracking-tight">
+            <span className="logo-wordmark text-base font-semibold tracking-tight">
               <span style={{ color: LOGO_BLUE }}>Swap</span>{" "}
               <span style={{ color: LOGO_GREEN }}>Ways</span>
             </span>
@@ -131,7 +132,7 @@ export function LandingTopBar({
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <Link href={localizePath("/", locale)} className="flex items-center gap-2">
             <BrandIcon className="object-contain" size={36} />
-            <span className="text-lg font-bold">
+            <span className="logo-wordmark text-lg font-bold">
               <span style={{ color: LOGO_BLUE }}>Swap</span>
               <span style={{ color: LOGO_GREEN }}> Ways</span>
             </span>
@@ -141,7 +142,7 @@ export function LandingTopBar({
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-[#333] transition hover:text-[#045FA6]"
+                className={`text-sm font-medium text-[#333] transition hover:text-[#045FA6] ${isArabic ? "font-arabic-ui" : ""}`}
               >
                 {link.label}
               </Link>
@@ -171,7 +172,7 @@ export function LandingTopBar({
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="block py-2 text-sm font-medium text-[#333]"
+                  className={`block py-2 text-sm font-medium text-[#333] ${isArabic ? "font-arabic-ui" : ""}`}
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}
@@ -201,7 +202,7 @@ export function LandingTopBar({
         <div className="mx-auto flex h-12 max-w-5xl items-center justify-between px-5 md:px-8">
           <Link href="/5" className="flex items-center gap-2">
             <BrandIcon className="object-contain grayscale" size={32} />
-            <span className="text-base font-semibold tracking-tight text-slate-900">Swap Ways</span>
+            <span className="logo-wordmark text-base font-semibold tracking-tight text-slate-900">Swap Ways</span>
           </Link>
           <nav className="flex items-center gap-6 text-sm">
             <Link href="/5#how" className="text-slate-600 transition hover:text-slate-900">How it works</Link>

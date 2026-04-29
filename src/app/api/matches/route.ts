@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { findMatchesByUserId } from "@/repositories/matchRepository";
+import { withTimeout } from "@/lib/withTimeout";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -10,6 +11,18 @@ export async function GET(request: Request) {
   }
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status") as "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED" | undefined;
-  const matches = await findMatchesByUserId(session.user.id, status);
-  return NextResponse.json({ data: matches, error: null, message: null });
+  try {
+    const matches = await withTimeout(findMatchesByUserId(session.user.id, status), 4000, "matches query");
+    return NextResponse.json({ data: matches, error: null, message: null });
+  } catch (error) {
+    console.error("[api/matches] degraded response due to transient DB failure", error);
+    return NextResponse.json(
+      {
+        data: [],
+        error: "ServiceUnavailable",
+        message: "Matches are temporarily unavailable. Please refresh in a moment.",
+      },
+      { status: 200 }
+    );
+  }
 }

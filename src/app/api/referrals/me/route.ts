@@ -58,22 +58,8 @@ export async function GET() {
       },
     },
   });
-  const usedReferrals = Math.min(user.referralBonusCount, 3);
-  const startingDays = user.referredBy ? 20 : 10;
-  const scheduleBonusDays = user.trialExtended ? 10 : 0;
-  const referralBonusDays = usedReferrals * 10;
-  const installBonus = await prisma.trialReward.findUnique({
-    where: {
-      userId_type: {
-        userId: session.user.id,
-        type: "INSTALL_APP",
-      },
-    },
-    select: { id: true },
-  });
-  const installBonusDays = installBonus ? 10 : 0;
-  const totalGrantedDays = Math.min(60, startingDays + scheduleBonusDays + installBonusDays + referralBonusDays);
-  const trialCapReached = totalGrantedDays >= 60;
+  const usedReferrals = referrals.length;
+  const trialCapReached = false;
   const referralCodeValue = await ensureReferralCode(session.user.id, user.referralCode);
   const appUrl = process.env.NEXTAUTH_URL ?? "https://swapways.com";
   const referralLink = referralCodeValue ? `${appUrl}/register?ref=${encodeURIComponent(referralCodeValue)}` : null;
@@ -83,7 +69,7 @@ export async function GET() {
       referralCode: referralCodeValue,
       referralLink,
       usedReferrals,
-      remainingReferrals: Math.max(0, 3 - usedReferrals),
+      remainingReferrals: 0,
       trialCapReached,
       referralBonusCount: user.referralBonusCount,
       history: referrals.map((ref) => ({

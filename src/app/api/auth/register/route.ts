@@ -138,11 +138,8 @@ export async function POST(request: Request) {
   }
 
   const qualifications = Array.from(chosenByFamily.values()).map((t) => ({ aircraftTypeId: t.id }));
-  const trialStartedAt = new Date();
+  const now = new Date();
   const dayMs = 24 * 60 * 60 * 1000;
-  const baseTrialDays = 10;
-  const referredTrialDays = 20;
-  const maxTrialDays = 60;
   const ownReferralCode = await createUniqueReferralCode(firstName);
   const normalizedReferralCode = referralCode?.trim().toUpperCase();
   const referrer =
@@ -153,8 +150,7 @@ export async function POST(request: Request) {
         })
       : null;
   const isValidReferrer = !!referrer && referrer.email.toLowerCase() !== normalizedEmail;
-  const initialTrialDays = isValidReferrer ? referredTrialDays : baseTrialDays;
-  const trialEndsAt = new Date(trialStartedAt.getTime() + initialTrialDays * dayMs);
+  const trialEndsAt = new Date(now.getTime() + 365 * dayMs);
   const user = await createUser({
     email: normalizedEmail,
     passwordHash,
@@ -167,8 +163,8 @@ export async function POST(request: Request) {
     phone,
     isAdmin,
     tier: "PREMIUM",
-    subscriptionStatus: "TRIALING",
-    trialStartedAt,
+    subscriptionStatus: "ACTIVE",
+    trialStartedAt: now,
     trialEndsAt,
     isVerified: false,
     trialExtended: false,
@@ -181,37 +177,15 @@ export async function POST(request: Request) {
       data: {
         referrerUserId: referrer.id,
         referredUserId: user.id,
-        bonusDays: 10,
+        bonusDays: 0,
       },
     });
-    if (referrer.referralBonusCount < 3) {
-      const referrerCapEndsAt = new Date(referrer.trialStartedAt.getTime() + maxTrialDays * dayMs);
-      const referrerProposed = referrer.trialEndsAt.getTime() + 10 * dayMs;
-      const referrerNextEndsAt = new Date(Math.min(referrerCapEndsAt.getTime(), referrerProposed));
-      await prisma.user.update({
-        where: { id: referrer.id },
-        data: {
-          trialEndsAt: referrerNextEndsAt,
-          referralBonusCount: { increment: 1 },
-          tier: "PREMIUM",
-          subscriptionStatus: "TRIALING",
-        },
-      });
-      await trackEventServer({
-        eventName: "trial_extended_referral",
-        userId: referrer.id,
-        path: "/register",
-        properties: {
-          referredUserId: user.id,
-          daysGranted: Math.max(
-            0,
-            Math.round((referrerNextEndsAt.getTime() - referrer.trialEndsAt.getTime()) / dayMs)
-          ),
-          referralBonusCount: referrer.referralBonusCount + 1,
-          trialEndsAt: referrerNextEndsAt.toISOString(),
-        },
-      }).catch(() => {});
-    }
+    await prisma.user.update({
+      where: { id: referrer.id },
+      data: {
+        referralBonusCount: { increment: 1 },
+      },
+    });
     await trackEventServer({
       eventName: "referral_signup_linked",
       userId: referrer.id,

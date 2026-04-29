@@ -65,9 +65,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (!isSameOrigin(url)) return;
 
-  // Authenticated data and pages must always be fresh (avoid stale role-based UI).
+  // Never intercept API/dashboard traffic in SW.
+  // Let the browser/network handle failures naturally and avoid rejected fetch events.
   if (isApiRequest(url) || isDashboardPath(url)) {
-    event.respondWith(fetch(request));
     return;
   }
 

@@ -242,16 +242,16 @@ export function AdminPageClient() {
                       <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.newUsersThisWeek}</p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">Premium (paid)</p>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Legacy premium records</p>
                       <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.premiumUsers}</p>
                       <p className="text-xs text-slate-500">{stats.overview.premiumPercent}% of all users</p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">In trial</p>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Legacy trialing records</p>
                       <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.trialingUsers}</p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">Trials expiring (7d)</p>
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Legacy trials expiring (7d)</p>
                       <p className="mt-1 text-xl font-semibold text-slate-900">{stats.overview.trialsExpiringThisWeek}</p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-white p-4">

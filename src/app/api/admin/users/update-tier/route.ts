@@ -10,11 +10,6 @@ function json(data: unknown) {
   return NextResponse.json({ data, error: null, message: null });
 }
 
-/**
- * Admin tier updates align with `getUserAccess` in `featureGates.ts`:
- * - PREMIUM + ACTIVE => full premium capabilities (admin grant / paid).
- * - FREE + EXPIRED => free tier (trial ended or revoked).
- */
 export async function POST(request: Request) {
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
@@ -30,33 +25,27 @@ export async function POST(request: Request) {
   const tier = body.tier === "PREMIUM" || body.tier === "FREE" ? body.tier : null;
   if (!userId || !tier) return error("userId and tier (FREE | PREMIUM) are required", 400);
 
-  const existing = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+  const [admin, existing] = await Promise.all([
+    prisma.user.findUnique({ where: { id: auth.userId }, select: { id: true, email: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { id: true } }),
+  ]);
+  if (!admin) return error("Admin account not found", 404);
   if (!existing) return error("User not found", 404);
 
-  const now = new Date();
-  const data =
-    tier === "PREMIUM"
-      ? {
-          tier: "PREMIUM" as const,
-          subscriptionStatus: "ACTIVE" as const,
-          trialEndsAt: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000),
-        }
-      : {
-          tier: "FREE" as const,
-          subscriptionStatus: "EXPIRED" as const,
-          trialEndsAt: now,
-        };
-
-  const updated = await prisma.user.update({
-    where: { id: userId },
-    data,
-    select: {
-      id: true,
-      tier: true,
-      subscriptionStatus: true,
-      trialEndsAt: true,
+  await prisma.adminAction.create({
+    data: {
+      adminUserId: auth.userId,
+      adminEmail: admin.email,
+      action: "UPDATE_TIER",
+      targetUserId: userId,
+      details: `Legacy tier update ignored during free beta (requested tier: ${tier})`,
     },
   });
 
-  return json(updated);
+  return json({
+    id: existing.id,
+    mode: "FREE_BETA",
+    applied: false,
+    message: "Tier updates are disabled during free beta.",
+  });
 }

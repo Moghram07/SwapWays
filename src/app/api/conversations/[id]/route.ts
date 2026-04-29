@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getUserAccess } from "@/utils/featureGates";
 import { withTiming } from "@/lib/apiTimer";
 
 const CONVERSATION_CACHE_TTL_MS = 15_000;
@@ -103,23 +102,6 @@ export async function GET(
       conversationBase.postOwnerId === session.user.id;
 
     if (!isParticipant) return timer.end(error("Unauthorized", 403));
-
-    const isActiveLike = ["ACTIVE", "SWAP_PROPOSED", "SWAP_ACCEPTED"].includes(conversationBase.status);
-    if (!isActiveLike) {
-      const access = await getUserAccess(session.user.id);
-      if (!access.canViewConversationHistory) {
-      return timer.end(NextResponse.json(
-        {
-          data: null,
-          error: "PREMIUM_REQUIRED",
-          feature: "conversation_history",
-          message:
-            "Free tier can only view active conversations. Upgrade to Premium to access full conversation history.",
-        },
-        { status: 403 }
-      ));
-      }
-    }
 
     const [tradeScheduleTrip, swapPost, offeredTrip, offeredTripLink] = await Promise.all([
       conversationBase.tradeId

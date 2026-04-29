@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,12 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
   const [qualificationIds, setQualificationIds] = useState<string[]>(user.qualificationIds);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [optionsLoading, setOptionsLoading] = useState(
+    ranks.length === 0 || bases.length === 0 || aircraftTypes.length === 0
+  );
+  const [rankOptions, setRankOptions] = useState(ranks);
+  const [baseOptions, setBaseOptions] = useState(bases);
+  const [aircraftTypeOptions, setAircraftTypeOptions] = useState(aircraftTypes);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -130,6 +136,68 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
   const selectClass =
     "form-select w-full h-11 text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E6FB9] focus:border-[#1E6FB9]";
 
+  useEffect(() => {
+    let active = true;
+    async function hydrateProfile() {
+      try {
+        const [profileRes, optionsRes] = await Promise.all([
+          fetch("/api/profile", { credentials: "include" }),
+          fetch("/api/profile/options", { credentials: "include" }),
+        ]);
+
+        if (profileRes.ok) {
+          const profileJson = (await profileRes.json().catch(() => null)) as {
+            data?: {
+              firstName?: string;
+              lastName?: string;
+              phone?: string | null;
+              rank?: { id: string } | null;
+              base?: { id: string } | null;
+              hasUsVisa?: boolean;
+              hasChinaVisa?: boolean;
+              qualifications?: { aircraftType?: { id: string } }[];
+            };
+          } | null;
+          const p = profileJson?.data;
+          if (active && p) {
+            if (typeof p.firstName === "string" && p.firstName) setFirstName(p.firstName);
+            if (typeof p.lastName === "string" && p.lastName) setLastName(p.lastName);
+            if (typeof p.phone === "string" || p.phone === null) setPhone(p.phone ?? "");
+            if (p.rank?.id) setRankId(p.rank.id);
+            if (p.base?.id) setBaseId(p.base.id);
+            if (typeof p.hasUsVisa === "boolean") setHasUsVisa(p.hasUsVisa);
+            if (typeof p.hasChinaVisa === "boolean") setHasChinaVisa(p.hasChinaVisa);
+            if (Array.isArray(p.qualifications)) {
+              setQualificationIds(p.qualifications.map((q) => q.aircraftType?.id).filter((id): id is string => Boolean(id)));
+            }
+          }
+        }
+
+        if (optionsRes.ok) {
+          const optionsJson = (await optionsRes.json().catch(() => null)) as {
+            data?: {
+              ranks?: { id: string; code: string; name: string }[];
+              bases?: { id: string; name: string; airportCode: string }[];
+              aircraftTypes?: { id: string; code: string; name: string }[];
+            };
+          } | null;
+          if (active) {
+            setRankOptions(optionsJson?.data?.ranks ?? []);
+            setBaseOptions(optionsJson?.data?.bases ?? []);
+            setAircraftTypeOptions(optionsJson?.data?.aircraftTypes ?? []);
+          }
+        }
+      } finally {
+        if (active) setOptionsLoading(false);
+      }
+    }
+
+    void hydrateProfile();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -157,22 +225,28 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
           <div className="space-y-2">
             <Label>Rank</Label>
             <select className={selectClass} value={rankId} onChange={(e) => setRankId(e.target.value)}>
-              {ranks.map((r) => (
+              {rankOptions.map((r) => (
                 <option key={r.id} value={r.id} className="bg-white text-slate-900">
                   {r.name}
                 </option>
               ))}
             </select>
+            {optionsLoading && rankOptions.length === 0 && (
+              <p className="text-xs text-slate-500">Loading rank options…</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Base</Label>
             <select className={selectClass} value={baseId} onChange={(e) => setBaseId(e.target.value)}>
-              {bases.map((b) => (
+              {baseOptions.map((b) => (
                 <option key={b.id} value={b.id} className="bg-white text-slate-900">
                   {b.name} ({b.airportCode})
                 </option>
               ))}
             </select>
+            {optionsLoading && baseOptions.length === 0 && (
+              <p className="text-xs text-slate-500">Loading base options…</p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -184,7 +258,7 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
         <CardContent>
           <p className="mb-4 text-xs text-slate-500">Select the aircraft types you are qualified to fly.</p>
           <div className="flex flex-wrap gap-2">
-            {aircraftTypes.map((at) => {
+            {aircraftTypeOptions.map((at) => {
               const selected = qualificationIds.includes(at.id);
               return (
                 <button
@@ -204,6 +278,9 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
               );
             })}
           </div>
+          {optionsLoading && aircraftTypeOptions.length === 0 && (
+            <p className="mt-3 text-xs text-slate-500">Loading aircraft qualifications…</p>
+          )}
         </CardContent>
       </Card>
 

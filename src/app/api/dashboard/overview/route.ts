@@ -49,7 +49,7 @@ export async function GET(request: Request) {
   const timer = withTiming("GET /api/dashboard/overview");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return timer.end(unauthorized());
-  await trackSession(session.user.id, request);
+  void trackSession(session.user.id, request).catch(() => {});
 
   const userId = session.user.id;
   const cached = overviewCache.get(userId);

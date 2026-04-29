@@ -4,10 +4,23 @@ import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { MessagesClient, type ConversationSummary } from "./MessagesClient";
 
-const fetcher = async (url: string) => {
-  const res = await fetch(url, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to fetch ${url}`);
-  return res.json();
+const REQUEST_TIMEOUT_MS = 5000;
+
+const fetcher = async <T,>(url: string): Promise<T> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { credentials: "include", signal: controller.signal });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return json as T;
+    }
+    return json as T;
+  } catch {
+    return { data: [], error: "Timeout", message: "Request timed out" } as T;
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 type ConversationsResponse = {
@@ -41,7 +54,7 @@ export function MessagesPageClient() {
   const conversations = convJson?.data ?? [];
   const conversationMeta = convJson?.meta;
 
-  if (isLoading) {
+  if (isLoading && conversations.length === 0) {
     return (
       <div className="space-y-4">
         <h1 className="dashboard-page-title text-2xl text-slate-900">Messages</h1>

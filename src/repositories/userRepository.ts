@@ -1,6 +1,32 @@
 import { prisma } from "@/lib/prisma";
 import type { CreateUserInput } from "@/types/user";
 
+function isTransientPrismaError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const maybeCode = "code" in error ? (error as { code?: string }).code : undefined;
+  return maybeCode === "P1008" || maybeCode === "P1001" || maybeCode === "P1002";
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withTransientRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!isTransientPrismaError(error) || attempt === retries) {
+        throw error;
+      }
+      await sleep(250 * (attempt + 1));
+    }
+  }
+  throw lastError;
+}
+
 export async function createUser(data: CreateUserInput & { qualifications: { aircraftTypeId: string }[] }) {
   const { qualifications, ...userData } = data;
   const trialStartedAt = userData.trialStartedAt ?? new Date();
@@ -28,24 +54,30 @@ export async function createUser(data: CreateUserInput & { qualifications: { air
 }
 
 export async function findUserByEmail(email: string) {
-  return prisma.user.findUnique({
-    where: { email: email.toLowerCase() },
-    include: { rank: true, base: true, airline: true, qualifications: { include: { aircraftType: true } } },
-  });
+  return withTransientRetry(() =>
+    prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+      include: { rank: true, base: true, airline: true, qualifications: { include: { aircraftType: true } } },
+    })
+  );
 }
 
 export async function findUserById(id: string) {
-  return prisma.user.findUnique({
-    where: { id },
-    include: { rank: true, base: true, airline: true, qualifications: { include: { aircraftType: true } } },
-  });
+  return withTransientRetry(() =>
+    prisma.user.findUnique({
+      where: { id },
+      include: { rank: true, base: true, airline: true, qualifications: { include: { aircraftType: true } } },
+    })
+  );
 }
 
 export async function userExistsById(id: string) {
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: { id: true },
-  });
+  const user = await withTransientRetry(() =>
+    prisma.user.findUnique({
+      where: { id },
+      select: { id: true },
+    })
+  );
   return !!user;
 }
 

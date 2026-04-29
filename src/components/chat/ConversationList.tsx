@@ -38,11 +38,9 @@ export function ConversationList({
   selectedId,
   onSelect,
   initialConversations,
-  conversationMeta,
   onDeleted,
 }: ConversationListProps) {
   const [conversations, setConversations] = useState<ConversationSummary[]>(initialConversations ?? []);
-  const [meta, setMeta] = useState(conversationMeta ?? {});
 
   const handleDelete = async (id: string) => {
     const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
@@ -67,10 +65,6 @@ export function ConversationList({
       </div>
     );
   }
-  const limitReached = Boolean(meta.conversationStartLimitReached);
-  const allowedConversationId = meta.allowedConversationId ?? conversations[0]?.id ?? null;
-  const blurEnabled = meta.tier === "FREE" && limitReached;
-
   return (
     <ul className="p-2 space-y-1" role="listbox" aria-label="Conversations">
       {conversations.map((conv) => {
@@ -78,7 +72,6 @@ export function ConversationList({
         const other = conv.tradeOwner ?? conv.postOwner;
         const otherName = isInitiator ? (other?.firstName ?? "Crew") : conv.initiator.firstName;
         const lastMsg = conv.messages[0]?.content ?? null;
-        const isLocked = blurEnabled && conv.id !== allowedConversationId;
         return (
           <li key={conv.id}>
             <ConversationListItem
@@ -88,7 +81,7 @@ export function ConversationList({
               lastMessageAt={conv.lastMessageAt}
               unreadCount={conv.unreadCount ?? 0}
               isActive={selectedId === conv.id}
-              isLocked={isLocked}
+              isLocked={false}
               onLockedClick={() => {
                 trackClientEvent({
                   eventName: "blurred_card_clicked",
@@ -97,12 +90,7 @@ export function ConversationList({
                 }).catch(() => {});
               }}
               onUpgradeClick={() => {
-                trackClientEvent({
-                  eventName: "upgrade_cta_clicked",
-                  path: "/dashboard/messages",
-                  properties: { source: "conversation_list_lock" },
-                }).catch(() => {});
-                window.location.href = "/dashboard/upgrade";
+                onSelect(conv.id);
               }}
               onClick={() => onSelect(conv.id)}
               onDelete={handleDelete}

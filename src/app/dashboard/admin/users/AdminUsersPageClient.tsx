@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { GrantPremiumModal } from "@/components/admin/GrantPremiumModal";
 import { daysUntil, formatDateShort } from "@/utils/timeFormat";
 
 type UserRow = {
@@ -40,8 +39,6 @@ export function AdminUsersPageClient() {
   const [rows, setRows] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
-
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -67,7 +64,7 @@ export function AdminUsersPageClient() {
     <div className="space-y-4">
       <div>
         <h1 className="text-lg font-semibold text-slate-900">Users</h1>
-        <p className="text-sm text-slate-600">Search, filter, and manage premium access with duration controls.</p>
+        <p className="text-sm text-slate-600">Search and filter users during free beta.</p>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -96,9 +93,9 @@ export function AdminUsersPageClient() {
             className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900"
           >
             <option value="all">All</option>
-            <option value="premium">Premium (active or trialing)</option>
-            <option value="free">Free tier</option>
-            <option value="trialing">Trialing</option>
+            <option value="premium">Legacy premium records</option>
+            <option value="free">Legacy free records</option>
+            <option value="trialing">Legacy trialing records</option>
             <option value="verified">Verified users</option>
             <option value="unverified">Unverified users</option>
           </select>
@@ -122,19 +119,18 @@ export function AdminUsersPageClient() {
               <th className="px-4 py-3 font-medium">Verified</th>
               <th className="px-4 py-3 font-medium">Base</th>
               <th className="px-4 py-3 font-medium">Joined</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                   Loading…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                   No users match.
                 </td>
               </tr>
@@ -173,30 +169,12 @@ export function AdminUsersPageClient() {
                     {u.base ? `${u.base.airportCode} · ${u.base.name}` : "—"}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{new Date(u.createdAt).toLocaleDateString()}</td>
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedUser(u)}
-                      className="rounded-md bg-[#1E6FB9] px-3 py-1.5 text-xs font-medium text-white hover:opacity-95"
-                    >
-                      Manage
-                    </button>
-                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
-
-      {selectedUser && (
-        <GrantPremiumModal
-          user={selectedUser}
-          isOpen={!!selectedUser}
-          onClose={() => setSelectedUser(null)}
-          onSuccess={load}
-        />
-      )}
     </div>
   );
 }

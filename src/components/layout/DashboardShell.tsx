@@ -6,7 +6,6 @@ import { Sidebar } from "./Sidebar";
 import { DashboardHeader } from "./DashboardHeader";
 import { MobileSidebarDrawer } from "./MobileSidebarDrawer";
 import { useUserAccess } from "@/hooks/useUserAccess";
-import { TrialBanner } from "@/components/subscription/TrialBanner";
 import { getDirection, type Locale } from "@/i18n/config";
 
 export function DashboardShell({
@@ -39,7 +38,6 @@ export function DashboardShell({
     <div lang={locale} dir={getDirection(locale)} className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F9FC]">
       <Sidebar unreadMessages={unreadMessages} isAdmin={isAdmin} access={access} locale={locale} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <TrialBanner daysRemaining={access?.isTrialing ? access.trialDaysRemaining : 0} locale={locale} />
         <DashboardHeader onMenuClick={() => setMobileMenuOpen(true)} locale={locale} />
         <main className="flex-1 max-w-full overflow-y-auto overflow-x-hidden px-4 py-6 sm:px-6 lg:px-8">
           {children}

@@ -47,36 +47,21 @@ export async function POST(request: Request) {
   if (!admin) return error("Admin account not found", 404);
   if (!target) return error("User not found", 404);
 
-  const now = new Date();
-  const updated = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.update({
-      where: { id: userId },
-      data: {
-        tier: "FREE",
-        subscriptionStatus: "EXPIRED",
-        trialEndsAt: now,
-      },
-      select: {
-        id: true,
-        tier: true,
-        subscriptionStatus: true,
-        trialEndsAt: true,
-      },
-    });
-
-    await tx.adminAction.create({
-      data: {
-        adminUserId: admin.id,
-        adminEmail: admin.email,
-        action: "REVOKE_PREMIUM",
-        targetUserId: userId,
-        reason,
-        details: "Revoked premium access",
-      },
-    });
-
-    return user;
+  await prisma.adminAction.create({
+    data: {
+      adminUserId: admin.id,
+      adminEmail: admin.email,
+      action: "REVOKE_PREMIUM",
+      targetUserId: userId,
+      reason,
+      details: "Legacy premium revoke ignored during free beta",
+    },
   });
 
-  return json(updated);
+  return json({
+    id: target.id,
+    mode: "FREE_BETA",
+    applied: false,
+    message: "Premium revocations are disabled during free beta.",
+  });
 }

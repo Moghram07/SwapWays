@@ -7,6 +7,7 @@ import { trackEventServer } from "@/lib/analytics/server";
 import { withTiming } from "@/lib/apiTimer";
 import { requireSameOrigin } from "@/lib/csrf";
 import { trackSession } from "@/lib/sessionTracker";
+import { withTimeout } from "@/lib/withTimeout";
 
 function unauthorized() {
   return NextResponse.json({ data: null, error: "Unauthorized", message: "Please sign in" }, { status: 401 });
@@ -27,7 +28,7 @@ export async function GET(
   const timer = withTiming("GET /api/conversations/[id]/messages");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return timer.end(unauthorized());
-  await trackSession(session.user.id, _request);
+  void trackSession(session.user.id, _request).catch(() => {});
 
   const { id } = await params;
   const { searchParams } = new URL(_request.url);
@@ -37,18 +38,22 @@ export async function GET(
   const afterCreatedAt = searchParams.get("afterCreatedAt");
 
   try {
-    const conversation = await prisma.conversation.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        initiatorId: true,
-        tradeOwnerId: true,
-        postOwnerId: true,
-        initiator: { select: { id: true, firstName: true } },
-        tradeOwner: { select: { id: true, firstName: true } },
-        postOwner: { select: { id: true, firstName: true } },
-      },
-    });
+    const conversation = await withTimeout(
+      prisma.conversation.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          initiatorId: true,
+          tradeOwnerId: true,
+          postOwnerId: true,
+          initiator: { select: { id: true, firstName: true } },
+          tradeOwner: { select: { id: true, firstName: true } },
+          postOwner: { select: { id: true, firstName: true } },
+        },
+      }),
+      4500,
+      "conversation header query"
+    );
 
     if (!conversation) return timer.end(error("Not found", 404));
 
@@ -74,43 +79,51 @@ export async function GET(
     }>;
     if (afterId) {
       const afterDate = afterCreatedAt ? new Date(afterCreatedAt) : null;
-      messages = await prisma.message.findMany({
-        where: {
-          conversationId: id,
-          ...(afterDate && !Number.isNaN(afterDate.getTime())
-            ? {
-                OR: [
-                  { createdAt: { gt: afterDate } },
-                  { createdAt: afterDate, id: { gt: afterId } },
-                ],
-              }
-            : { id: { gt: afterId } }),
-        },
-        select: {
-          id: true,
-          content: true,
-          messageType: true,
-          systemAction: true,
-          senderId: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: "asc" },
-        take: limit,
-      });
+      messages = await withTimeout(
+        prisma.message.findMany({
+          where: {
+            conversationId: id,
+            ...(afterDate && !Number.isNaN(afterDate.getTime())
+              ? {
+                  OR: [
+                    { createdAt: { gt: afterDate } },
+                    { createdAt: afterDate, id: { gt: afterId } },
+                  ],
+                }
+              : { id: { gt: afterId } }),
+          },
+          select: {
+            id: true,
+            content: true,
+            messageType: true,
+            systemAction: true,
+            senderId: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "asc" },
+          take: limit,
+        }),
+        4500,
+        "messages incremental query"
+      );
     } else {
-      const messagesDesc = await prisma.message.findMany({
-        where: { conversationId: id },
-        select: {
-          id: true,
-          content: true,
-          messageType: true,
-          systemAction: true,
-          senderId: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: "desc" },
-        take: limit,
-      });
+      const messagesDesc = await withTimeout(
+        prisma.message.findMany({
+          where: { conversationId: id },
+          select: {
+            id: true,
+            content: true,
+            messageType: true,
+            systemAction: true,
+            senderId: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
+        4500,
+        "messages initial query"
+      );
       messages = messagesDesc.reverse();
     }
 

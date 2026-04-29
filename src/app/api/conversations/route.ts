@@ -8,6 +8,7 @@ import { getUserAccess } from "@/utils/featureGates";
 import { trackEventServer } from "@/lib/analytics/server";
 import { requireSameOrigin } from "@/lib/csrf";
 import { trackSession } from "@/lib/sessionTracker";
+import { withTimeout } from "@/lib/withTimeout";
 
 function unauthorized() {
   return NextResponse.json({ data: null, error: "Unauthorized", message: "Please sign in" }, { status: 401 });
@@ -63,25 +64,6 @@ export async function POST(request: Request) {
     });
     if (existing) {
       return json({ ...existing, isExisting: true });
-    }
-
-    if (!access.canStartNewConversation) {
-      await trackEventServer({
-        eventName: "free_limit_hit",
-        userId: session.user.id,
-        path: "/api/conversations",
-        properties: { limit: "daily_conversation_start", source: "swap_post" },
-      }).catch(() => {});
-      return NextResponse.json(
-        {
-          data: null,
-          error: "CONVERSATION_LIMIT_REACHED",
-          feature: "multiple_conversations",
-          message:
-            "Free tier allows 1 new conversation per day. You can still reply in existing conversations, or upgrade to Premium for unlimited starts.",
-        },
-        { status: 403 }
-      );
     }
 
     const tripIds = Array.isArray(offeredTripIds) ? offeredTripIds : offeredTripId ? [offeredTripId] : [];
@@ -174,25 +156,6 @@ export async function POST(request: Request) {
     return json({ ...existing, isExisting: true });
   }
 
-  if (!access.canStartNewConversation) {
-    await trackEventServer({
-      eventName: "free_limit_hit",
-      userId: session.user.id,
-      path: "/api/conversations",
-      properties: { limit: "daily_conversation_start", source: "trade" },
-    }).catch(() => {});
-    return NextResponse.json(
-      {
-        data: null,
-        error: "CONVERSATION_LIMIT_REACHED",
-        feature: "multiple_conversations",
-        message:
-          "Free tier allows 1 new conversation per day. You can still reply in existing conversations, or upgrade to Premium for unlimited starts.",
-      },
-      { status: 403 }
-    );
-  }
-
   if (offeredTripId) {
     const ownedTrip = await prisma.scheduleTrip.findFirst({
       where: {
@@ -257,28 +220,52 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return unauthorized();
-  await trackSession(session.user.id, request);
-  const access = await getUserAccess(session.user.id);
+  void trackSession(session.user.id, request).catch(() => {});
+  try {
+    const [access, withUnread] = await withTimeout(
+      Promise.all([
+        getUserAccess(session.user.id),
+        findConversationsByUserId(session.user.id),
+      ]),
+      4500,
+      "conversations query"
+    );
 
-  const withUnread = await findConversationsByUserId(session.user.id);
-  const activeConversationStatuses = new Set(["ACTIVE", "SWAP_PROPOSED", "SWAP_ACCEPTED"]);
-  const visibleConversations = access.canViewConversationHistory
-    ? withUnread
-    : withUnread.filter((conversation) => activeConversationStatuses.has(conversation.status));
-  const allowedConversationId = visibleConversations[0]?.id ?? null;
-  const conversationStartLimitReached =
-    access.tier === "FREE" && !access.canStartNewConversation;
-  return NextResponse.json({
-    data: visibleConversations,
-    meta: {
-      tier: access.tier,
-      canStartNewConversation: access.canStartNewConversation,
-      conversationStartLimitReached,
-      allowedConversationId,
-      freeConversationStartsRemaining: access.freeConversationStartsRemaining,
-      freeConversationDailyLimit: access.freeConversationDailyLimit,
-    },
-    error: null,
-    message: null,
-  });
+    const activeConversationStatuses = new Set(["ACTIVE", "SWAP_PROPOSED", "SWAP_ACCEPTED"]);
+    const visibleConversations = access.canViewConversationHistory
+      ? withUnread
+      : withUnread.filter((conversation) => activeConversationStatuses.has(conversation.status));
+    const allowedConversationId = visibleConversations[0]?.id ?? null;
+    return NextResponse.json({
+      data: visibleConversations,
+      meta: {
+        tier: access.tier,
+        canStartNewConversation: access.canStartNewConversation,
+        conversationStartLimitReached: false,
+        allowedConversationId,
+        freeConversationStartsRemaining: access.freeConversationStartsRemaining,
+        freeConversationDailyLimit: access.freeConversationDailyLimit,
+      },
+      error: null,
+      message: null,
+    });
+  } catch (error) {
+    console.error("[api/conversations] degraded response due to transient DB failure", error);
+    return NextResponse.json(
+      {
+        data: [],
+        meta: {
+          tier: "PREMIUM",
+          canStartNewConversation: true,
+          conversationStartLimitReached: false,
+          allowedConversationId: null,
+          freeConversationStartsRemaining: Number.POSITIVE_INFINITY,
+          freeConversationDailyLimit: Number.POSITIVE_INFINITY,
+        },
+        error: "ServiceUnavailable",
+        message: "Conversations are temporarily unavailable. Please refresh in a moment.",
+      },
+      { status: 200 }
+    );
+  }
 }

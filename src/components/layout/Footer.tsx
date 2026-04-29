@@ -14,7 +14,7 @@ export function Footer() {
     <footer className="bg-[#1a365d] py-12">
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-          <Link href={localizePath("/", locale)} className="flex items-center gap-2">
+          <Link href={localizePath("/", locale)} prefetch={false} className="flex items-center gap-2">
             <img
               src="/images/swapways-logo.png"
               alt=""
@@ -25,16 +25,16 @@ export function Footer() {
             <span className="text-lg font-semibold text-white">{t("footer.brand")}</span>
           </Link>
           <div className="flex gap-8 text-sm text-white/60">
-            <Link href={localizePath("/privacy", locale)} className="transition-colors hover:text-white/90">
+            <Link href={localizePath("/privacy", locale)} prefetch={false} className="transition-colors hover:text-white/90">
               {t("footer.privacy")}
             </Link>
-            <Link href={localizePath("/terms", locale)} className="transition-colors hover:text-white/90">
+            <Link href={localizePath("/terms", locale)} prefetch={false} className="transition-colors hover:text-white/90">
               {t("footer.terms")}
             </Link>
-            <Link href={localizePath("/support", locale)} className="transition-colors hover:text-white/90">
+            <Link href={localizePath("/support", locale)} prefetch={false} className="transition-colors hover:text-white/90">
               {t("footer.support")}
             </Link>
-            <Link href={localizePath("/contact", locale)} className="transition-colors hover:text-white/90">
+            <Link href={localizePath("/contact", locale)} prefetch={false} className="transition-colors hover:text-white/90">
               {t("footer.contact")}
             </Link>
           </div>

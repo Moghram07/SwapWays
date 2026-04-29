@@ -18,22 +18,22 @@ export async function GET() {
     return NextResponse.json({ data: access, error: null, message: null });
   } catch {
     const degradedAccess = {
-      tier: "FREE" as const,
+      tier: "PREMIUM" as const,
       isVerified: false,
       isTrialing: false,
       trialDaysRemaining: 0,
-      freeConversationDailyLimit: 1,
-      freeConversationStartsRemaining: 0,
-      canPostLineSwap: false,
-      canPostVacationSwap: false,
-      canSeeExactMatch: false,
-      canSeeFullNotes: false,
-      canStartNewConversation: false,
-      canViewConversationHistory: false,
-      canUploadSchedule: false,
-      postExpirationDays: 7,
-      hasPriorityPlacement: false,
-      hasAdvancedFilters: false,
+      freeConversationDailyLimit: Number.POSITIVE_INFINITY,
+      freeConversationStartsRemaining: Number.POSITIVE_INFINITY,
+      canPostLineSwap: true,
+      canPostVacationSwap: true,
+      canSeeExactMatch: true,
+      canSeeFullNotes: true,
+      canStartNewConversation: true,
+      canViewConversationHistory: true,
+      canUploadSchedule: true,
+      postExpirationDays: 365,
+      hasPriorityPlacement: true,
+      hasAdvancedFilters: true,
     };
     return NextResponse.json(
       {

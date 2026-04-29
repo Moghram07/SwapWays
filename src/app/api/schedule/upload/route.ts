@@ -5,8 +5,6 @@ import { findUserById } from "@/repositories/userRepository";
 import { parseScheduleFromText } from "@/services/schedule/scheduleParser";
 import * as scheduleRepo from "@/repositories/scheduleRepository";
 import { trackEventServer } from "@/lib/analytics/server";
-import { getUserAccess } from "@/utils/featureGates";
-import { grantTrialReward } from "@/services/subscription/trialRewards";
 import { prisma } from "@/lib/prisma";
 import { withTiming } from "@/lib/apiTimer";
 import { invalidateMatchCacheForViewer } from "@/services/matching/matchEngine";
@@ -18,18 +16,6 @@ export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return timer.end(NextResponse.json({ error: "Unauthorized", message: "Please sign in" }, { status: 401 }));
-  }
-
-  const access = await getUserAccess(session.user.id);
-  if (!access.canUploadSchedule) {
-    return timer.end(NextResponse.json(
-      {
-        error: "UPLOAD_LIMIT_REACHED",
-        feature: "unlimited_uploads",
-        message: "Free tier is limited to 1 schedule upload per month. Upgrade to Premium for unlimited uploads.",
-      },
-      { status: 403 }
-    ));
   }
 
   let rawText: string;
@@ -131,12 +117,6 @@ export async function POST(request: Request) {
       path: "/dashboard/schedule",
       properties: { month: parsed.month, year: parsed.year, tripCount: parsed.trips.length, legCount },
     }).catch(() => {});
-    const rewardResult = await grantTrialReward({
-      userId: session.user.id,
-      type: "SCHEDULE_UPLOAD",
-      requestedDays: 10,
-      metadata: { scheduleId: schedule.id, month: parsed.month, year: parsed.year },
-    });
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
@@ -150,27 +130,6 @@ export async function POST(request: Request) {
       path: "/dashboard/schedule",
       properties: { scheduleId: schedule.id },
     }).catch(() => {});
-    if (rewardResult.granted) {
-      await trackEventServer({
-        eventName: "trial_extended_schedule",
-        userId: session.user.id,
-        path: "/dashboard/schedule",
-        properties: {
-          daysGranted: rewardResult.daysGranted,
-          trialEndsAt: rewardResult.trialEndsAt.toISOString(),
-          capped: rewardResult.capped,
-        },
-      }).catch(() => {});
-      if (rewardResult.capped) {
-        await trackEventServer({
-          eventName: "trial_capped_60_days",
-          userId: session.user.id,
-          path: "/dashboard/schedule",
-          properties: { trigger: "SCHEDULE_UPLOAD" },
-        }).catch(() => {});
-      }
-    }
-
     await invalidateMatchCacheForViewer(session.user.id).catch(() => {});
     return timer.end(NextResponse.json({
       data: {
@@ -180,7 +139,6 @@ export async function POST(request: Request) {
         lineNumber: parsed.lineNumber,
         tripCount: parsed.trips.length,
         legCount,
-        trialReward: rewardResult,
       },
       error: null,
       message: "Schedule uploaded successfully",

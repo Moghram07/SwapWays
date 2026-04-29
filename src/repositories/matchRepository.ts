@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import type { MatchStatus } from "@/types/enums";
 
+type FindMatchesOptions = {
+  status?: MatchStatus;
+  take?: number;
+  lightweight?: boolean;
+};
+
 export async function createMatch(data: {
   tradeId: string;
   offererId: string;
@@ -17,10 +23,43 @@ export async function createMatch(data: {
   });
 }
 
-export async function findMatchesByUserId(userId: string, status?: MatchStatus) {
+export async function findMatchesByUserId(userId: string, statusOrOptions?: MatchStatus | FindMatchesOptions) {
+  const options: FindMatchesOptions =
+    typeof statusOrOptions === "object" && statusOrOptions !== null
+      ? statusOrOptions
+      : { status: statusOrOptions };
+
+  if (options.lightweight) {
+    return prisma.match.findMany({
+      where: { OR: [{ offererId: userId }, { receiverId: userId }], ...(options.status ? { status: options.status } : {}) },
+      orderBy: { createdAt: "desc" },
+      take: options.take,
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        offererId: true,
+        receiverId: true,
+        trade: {
+          select: {
+            id: true,
+            departureDate: true,
+            destination: true,
+            flightNumber: true,
+            aircraftTypeCode: true,
+            reportTime: true,
+          },
+        },
+        offerer: { select: { firstName: true, lastName: true } },
+        receiver: { select: { firstName: true, lastName: true } },
+      },
+    });
+  }
+
   return prisma.match.findMany({
-    where: { OR: [{ offererId: userId }, { receiverId: userId }], ...(status ? { status } : {}) },
+    where: { OR: [{ offererId: userId }, { receiverId: userId }], ...(options.status ? { status: options.status } : {}) },
     orderBy: { createdAt: "desc" },
+    take: options.take,
     include: {
       trade: true,
       offerer: { select: { firstName: true, lastName: true, rank: { select: { name: true } }, base: { select: { name: true } } } },

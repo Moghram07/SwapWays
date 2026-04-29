@@ -217,18 +217,6 @@ export async function POST(request: Request) {
   if (!postType || !validTypes.includes(postType)) {
     return timer.end(error("postType is required and must be one of: " + validTypes.join(", "), 400));
   }
-  if (postType === "VACATION_SWAP" && !access.canPostVacationSwap) {
-    return timer.end(NextResponse.json(
-      {
-        data: null,
-        error: "PREMIUM_REQUIRED",
-        feature: "vacation_swap",
-        message: "Vacation swaps are a Premium feature. Upgrade to post vacation swaps.",
-      },
-      { status: 403 }
-    ));
-  }
-
   if (postType === "VACATION_SWAP") {
     const year = body.vacationYear != null ? Number(body.vacationYear) : NaN;
     const month = body.vacationMonth != null ? Number(body.vacationMonth) : NaN;

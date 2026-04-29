@@ -27,6 +27,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const locale = getLocaleFromPathname(pathname ?? "/") ?? DEFAULT_LOCALE;
+  const isArabic = locale === "ar";
   const t = getTranslator(locale);
   const { data: session, status } = useSession();
   const isDashboard = pathname?.startsWith("/dashboard");
@@ -47,7 +48,7 @@ export function Navbar() {
               height={36}
               className="object-contain"
             />
-            <span className="text-lg font-bold">
+            <span className="logo-wordmark text-lg font-bold">
               <span style={{ color: LOGO_BLUE }}>Swap</span>
               <span style={{ color: LOGO_GREEN }}> Ways</span>
             </span>
@@ -70,7 +71,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
+                className={`text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 ${isArabic ? "font-arabic-ui" : ""}`}
               >
                 {link.label}
               </Link>
@@ -150,7 +151,7 @@ export function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="block py-2 text-sm font-medium text-slate-600"
+                  className={`block py-2 text-sm font-medium text-slate-600 ${isArabic ? "font-arabic-ui" : ""}`}
                   onClick={() => setMobileOpen(false)}
                 >
                   {link.label}

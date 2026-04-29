@@ -108,7 +108,7 @@ export function MobileSidebarDrawer({
               height={32}
               className="object-contain"
             />
-            <span className="text-sm font-bold tracking-tight">
+            <span className="logo-wordmark text-sm font-bold tracking-tight">
               <span style={{ color: PRIMARY }}>Swap</span>
               <span style={{ color: ACCENT }}> Ways</span>
             </span>
@@ -133,6 +133,7 @@ export function MobileSidebarDrawer({
               <Link
                 key={label}
                 href={href}
+                prefetch={false}
                 onClick={onClose}
                 className={`flex min-h-[44px] items-center gap-4 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
                   isActive
@@ -157,26 +158,16 @@ export function MobileSidebarDrawer({
           })}
         </nav>
         <div className="border-t border-slate-100 px-4 py-3">
-          {access?.tier === "PREMIUM" ? (
-            <div className="rounded-lg bg-slate-50 px-3 py-2">
-              <p className="text-xs font-semibold text-slate-900">⭐ {t("dashboard.premium")}</p>
-              {access.isTrialing ? (
-                <p className="text-[10px] text-slate-500">{access.trialDaysRemaining}{locale === "ar" ? " " : ""}{t("dashboard.trialDaysLeftShort")}</p>
-              ) : null}
-            </div>
-          ) : (
-            <Link
-              href="/dashboard/upgrade"
-              onClick={onClose}
-              className="block w-full rounded-lg bg-gradient-to-r from-[#2668B0] to-[#3BA34A] px-3 py-2 text-center text-xs font-semibold text-white"
-            >
-              ⭐ {t("dashboard.upgradeToPremium")}
-            </Link>
-          )}
+          <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            {locale === "ar"
+              ? "بيتا مجاني: كل المزايا متاحة الآن. شاركنا ملاحظاتك لتحسين Swap Ways."
+              : "Free beta: all features are unlocked. Share feedback to help us improve Swap Ways."}
+          </div>
         </div>
         <div className="border-t border-slate-100 p-4">
           <Link
             href="/"
+            prefetch={false}
             onClick={onClose}
             className="flex min-h-[44px] items-center gap-4 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >

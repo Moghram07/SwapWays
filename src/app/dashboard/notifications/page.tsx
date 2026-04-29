@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { findNotificationsByUserId } from "@/lib/notifications";
 import { findMatchesByUserId } from "@/repositories/matchRepository";
 import { NotificationsClient, type NotificationItem } from "./NotificationsClient";
+import { withTimeout } from "@/lib/withTimeout";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +22,22 @@ type SortableItem = NotificationItem & { _createdAt: Date };
 export default async function NotificationsPage() {
   const session = await getServerSession(authOptions);
   const userId = session?.user?.id;
-  const [matches, dbNotifications] = userId
-    ? await Promise.all([
-        findMatchesByUserId(userId),
-        findNotificationsByUserId(userId),
-      ])
-    : [[], []];
+  let matches: Awaited<ReturnType<typeof findMatchesByUserId>> = [];
+  let dbNotifications: Awaited<ReturnType<typeof findNotificationsByUserId>> = [];
+  if (userId) {
+    try {
+      [matches, dbNotifications] = await withTimeout(
+        Promise.all([
+          findMatchesByUserId(userId, { take: 25, lightweight: true }),
+          findNotificationsByUserId(userId, 25),
+        ]),
+        1400,
+        "notifications page query"
+      );
+    } catch (error) {
+      console.error("[dashboard/notifications] degraded server render due to transient DB failure", error);
+    }
+  }
 
   const matchItems: SortableItem[] = matches.map((m) => {
     const isOfferer = m.offererId === session?.user?.id;

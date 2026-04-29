@@ -129,7 +129,7 @@ export function Sidebar({
           height={32}
           className="object-contain"
         />
-        <span className="text-sm font-bold tracking-tight">
+        <span className="logo-wordmark text-sm font-bold tracking-tight">
           <span style={{ color: PRIMARY }}>Swap</span>
           <span style={{ color: ACCENT }}> Ways</span>
         </span>
@@ -146,6 +146,7 @@ export function Sidebar({
             <Link
               key={label}
               href={href}
+              prefetch={false}
               onMouseEnter={() => prefetchUrls.forEach(warmCache)}
               onClick={(e) => {
                 if (isActive) {
@@ -188,30 +189,16 @@ export function Sidebar({
         })}
       </nav>
       <div className="border-t border-slate-100 px-4 py-3">
-        {access?.tier === "PREMIUM" ? (
-          <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">⭐</span>
-              <div>
-                <p className="text-xs font-semibold text-slate-900">{t("dashboard.premium")}</p>
-                {access.isTrialing ? (
-                  <p className="text-[10px] text-slate-500">{access.trialDaysRemaining}{locale === "ar" ? " " : ""}{t("dashboard.trialDaysLeftShort")}</p>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <Link
-            href="/dashboard/upgrade"
-            className="block w-full rounded-lg bg-gradient-to-r from-[#2668B0] to-[#3BA34A] px-3 py-2 text-center text-xs font-semibold text-white hover:opacity-90"
-          >
-            ⭐ {t("dashboard.upgradeToPremium")}
-          </Link>
-        )}
+        <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700">
+          {locale === "ar"
+            ? "بيتا مجاني: كل المزايا متاحة الآن. شاركنا ملاحظاتك لتحسين Swap Ways."
+            : "Free beta: all features are unlocked. Share feedback to help us improve Swap Ways."}
+        </div>
       </div>
       <div className="border-t border-slate-100 p-4">
         <Link
           href="/"
+          prefetch={false}
           className="flex items-center gap-4 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
           <ArrowLeft className="h-5 w-5 shrink-0" strokeWidth={2} />

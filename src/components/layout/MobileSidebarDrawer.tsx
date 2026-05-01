@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -59,6 +60,7 @@ export function MobileSidebarDrawer({
   access,
   locale,
 }: MobileSidebarDrawerProps) {
+  void access;
   const t = getTranslator(locale);
   const pathname = usePathname();
   const links = (isAdmin ? [...baseLinks, adminLink] : baseLinks).map((link) => ({
@@ -101,7 +103,7 @@ export function MobileSidebarDrawer({
       <aside className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] flex flex-col border-r border-slate-200 bg-white shadow-xl md:hidden">
         <div className="flex items-center justify-between border-b border-slate-100 px-4 py-4">
           <div className="flex items-center gap-3">
-            <img
+            <Image
               src="/images/swapways-logo.png"
               alt=""
               width={32}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { TradeFilters } from "@/components/trade/TradeFilters";
 import { TradeList } from "@/components/trade/TradeList";
@@ -20,25 +20,21 @@ export function BrowseTradesClient() {
     scheduleTrip: MyTripOption | null;
   } | null>(null);
 
-  function buildUrl() {
+  const fetchTrades = useCallback((signal?: AbortSignal) => {
     const params = new URLSearchParams();
     if (dateFrom) params.set("dateFrom", dateFrom);
     if (dateTo) params.set("dateTo", dateTo);
     if (destination) params.set("destination", destination);
     if (tradeType) params.set("tradeType", tradeType);
-    return `/api/trades?${params.toString()}`;
-  }
-
-  function fetchTrades(signal?: AbortSignal) {
     setLoading(true);
-    fetch(buildUrl(), { signal })
+    fetch(`/api/trades?${params.toString()}`, { signal })
       .then((r) => r.json().catch(() => ({})))
       .then((json) => {
         setTrades(json.data?.items ?? []);
       })
       .catch(() => setTrades([]))
       .finally(() => setLoading(false));
-  }
+  }, [dateFrom, dateTo, destination, tradeType]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -49,7 +45,7 @@ export function BrowseTradesClient() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [dateFrom, dateTo, destination, tradeType]);
+  }, [fetchTrades]);
 
   useEffect(() => {
     fetch("/api/schedule/my-trips")

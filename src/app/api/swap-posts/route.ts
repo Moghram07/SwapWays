@@ -1,7 +1,11 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
-import { createSwapPost, findSwapPostsByUserId } from "@/repositories/swapPostRepository";
+import {
+  createSwapPost,
+  findActiveSwapPostsByUserId,
+  findHistorySwapPostsByUserId,
+} from "@/repositories/swapPostRepository";
 import { prisma } from "@/lib/prisma";
 import { classifyTrip, getUniqueDestinations } from "@/utils/tripClassifier";
 import { findMatchesForPost, invalidateMatchCacheForPosts } from "@/services/matching/matchEngine";
@@ -126,10 +130,17 @@ export async function GET(request: Request) {
   if (searchParams.get("mine") !== "1") {
     return timer.end(error("Use ?mine=1 to fetch your swap posts", 400));
   }
-  const excludeCancelled = searchParams.get("excludeCancelled") === "1";
+  const scope = searchParams.get("scope") ?? "active";
+  if (scope !== "active" && scope !== "history") {
+    return timer.end(error("Use scope=active or scope=history", 400));
+  }
   try {
-    const posts = await findSwapPostsByUserId(session.user.id, { excludeCancelled });
     const now = new Date();
+    if (scope === "history") {
+      const posts = await findHistorySwapPostsByUserId(session.user.id);
+      return timer.end(json(posts));
+    }
+    const posts = await findActiveSwapPostsByUserId(session.user.id);
     return timer.end(json(posts.filter((post) => !isSwapPostExpired(post, now))));
   } catch (err) {
     const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : null;

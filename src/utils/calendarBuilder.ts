@@ -1,5 +1,5 @@
 import type { TripCardData, TripCardLeg } from "@/types/tripCard";
-import type { CalendarDayData, CalendarLegInfo, CalendarTripEvent } from "@/types/calendar";
+import type { CalendarDayData, CalendarLegInfo } from "@/types/calendar";
 import type { TripDayRole } from "@/types/calendar";
 import { getAirportCity } from "@/utils/airportNames";
 import { zuluToLocal } from "@/utils/airportTimezones";

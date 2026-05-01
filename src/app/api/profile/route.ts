@@ -15,7 +15,8 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ data: null, error: "Not found", message: "User not found" }, { status: 404 });
     }
-    const { passwordHash: _, ...safe } = user;
+    const safe = { ...user };
+    delete (safe as { passwordHash?: string | null }).passwordHash;
     return NextResponse.json({ data: safe, error: null, message: null });
   } catch (error) {
     console.error("[api/profile] degraded response due to transient DB failure", error);
@@ -104,6 +105,7 @@ export async function POST(request: Request) {
     hasUsVisa: typeof body.hasUsVisa === "boolean" ? body.hasUsVisa : undefined,
     hasChinaVisa: typeof body.hasChinaVisa === "boolean" ? body.hasChinaVisa : undefined,
   });
-  const { passwordHash: _, ...safe } = updated;
+  const safe = { ...updated };
+  delete (safe as { passwordHash?: string | null }).passwordHash;
   return NextResponse.json({ data: safe, error: null, message: "Profile updated" });
 }

@@ -28,34 +28,6 @@ interface ConversationDetail {
   postOwner?: { id: string; firstName: string; rank?: { name: string }; base?: { name: string } };
 }
 
-function ChatLoadingSkeleton() {
-  return (
-    <div className="flex-1 flex flex-col min-h-0 bg-white">
-      <div className="shrink-0 h-14 px-4 border-b border-slate-200 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse" />
-        <div className="flex-1 space-y-1">
-          <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
-          <div className="h-3 w-32 bg-slate-100 rounded animate-pulse" />
-        </div>
-      </div>
-      <div className="flex-1 overflow-hidden px-4 py-4 space-y-4">
-        <div className="flex justify-start">
-          <div className="h-10 max-w-[70%] w-48 bg-slate-100 rounded-2xl rounded-bl-sm animate-pulse" />
-        </div>
-        <div className="flex justify-end">
-          <div className="h-10 max-w-[70%] w-56 bg-slate-200 rounded-2xl rounded-br-sm animate-pulse" />
-        </div>
-        <div className="flex justify-start">
-          <div className="h-10 max-w-[70%] w-40 bg-slate-100 rounded-2xl rounded-bl-sm animate-pulse" />
-        </div>
-      </div>
-      <div className="shrink-0 h-16 border-t border-slate-200 px-4 flex items-center">
-        <div className="flex-1 h-10 bg-slate-100 rounded-full animate-pulse" />
-      </div>
-    </div>
-  );
-}
-
 interface ChatWindowProps {
   conversationId: string | null;
   currentUserId: string | undefined;

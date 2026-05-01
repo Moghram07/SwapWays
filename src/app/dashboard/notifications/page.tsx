@@ -160,7 +160,11 @@ export default async function NotificationsPage() {
 
   const notifications: NotificationItem[] = [...matchItems, ...notificationItems]
     .sort((a, b) => b._createdAt.getTime() - a._createdAt.getTime())
-    .map(({ _createdAt: _, ...item }) => item);
+    .map((item) => {
+      const { _createdAt, ...rest } = item;
+      void _createdAt;
+      return rest;
+    });
 
   return <NotificationsClient initialNotifications={notifications} />;
 }

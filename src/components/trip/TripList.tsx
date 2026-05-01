@@ -1,6 +1,6 @@
 "use client";
 
-import { TripCard, tripToCardData } from "./TripCard";
+import { TripCard } from "./TripCard";
 import type { TripCardData } from "@/types/tripCard";
 
 interface TripListProps {

@@ -32,6 +32,10 @@ type SwapPostLike = {
   vacationYear?: number | null;
   vacationMonth?: number | null;
   vacationStartDate?: Date | string | null;
+  vacationEndDate?: Date | string | null;
+  quickDate?: Date | string | null;
+  /** When there are no trips and no quickDate, used to drop orphan / legacy rows from listings. */
+  createdAt?: Date | string | null;
   offeredTrips?: TripLike[];
 };
 
@@ -40,6 +44,7 @@ type TradeLike = {
   departureDate: Date | string | null;
   reportTime?: string | null;
   vacationStartDate?: Date | string | null;
+  vacationEndDate?: Date | string | null;
 };
 
 type LineSwapLike = {
@@ -100,9 +105,13 @@ export function isLineSwapExpired(post: LineSwapLike, now = new Date()): boolean
 
 export function isTradeExpired(trade: TradeLike, now = new Date()): boolean {
   if (trade.tradeType === "VACATION_SWAP") {
+    if (trade.vacationEndDate) {
+      const end = getRiyadhDateTimeUtc(toDate(trade.vacationEndDate), "23:59");
+      return now.getTime() > end.getTime();
+    }
     if (!trade.vacationStartDate) return false;
-    const start = getRiyadhDateTimeUtc(toDate(trade.vacationStartDate), "00:00");
-    return now.getTime() >= start.getTime();
+    const endOfStartDay = getRiyadhDateTimeUtc(toDate(trade.vacationStartDate), "23:59");
+    return now.getTime() > endOfStartDay.getTime();
   }
   if (!trade.departureDate) return false;
   const flightDateTime = getRiyadhDateTimeUtc(toDate(trade.departureDate), trade.reportTime ?? "00:00");
@@ -115,25 +124,42 @@ export function isSwapPostExpired(post: SwapPostLike, now = new Date()): boolean
   }
 
   if (post.postType === "VACATION_SWAP") {
+    if (post.vacationEndDate) {
+      const end = getRiyadhDateTimeUtc(toDate(post.vacationEndDate), "23:59");
+      return now.getTime() > end.getTime();
+    }
     if (post.vacationYear && post.vacationMonth) {
       return now.getTime() >= getRiyadhMonthStartUtc(post.vacationYear, post.vacationMonth).getTime();
     }
     if (post.vacationStartDate) {
-      const start = getRiyadhDateTimeUtc(toDate(post.vacationStartDate), "00:00");
-      return now.getTime() >= start.getTime();
+      const endOfStartDay = getRiyadhDateTimeUtc(toDate(post.vacationStartDate), "23:59");
+      return now.getTime() > endOfStartDay.getTime();
     }
     return false;
   }
 
   const trips = post.offeredTrips ?? [];
-  if (trips.length === 0) return false;
-  const hasFutureTrip = trips.some((trip) => {
-    const departure = getRiyadhDateTimeUtc(
-      toDate(trip.departureDate),
-      trip.scheduleTrip?.reportTime ?? "00:00"
-    );
-    return departure.getTime() > now.getTime();
-  });
-  return !hasFutureTrip;
+  if (trips.length > 0) {
+    const hasFutureTrip = trips.some((trip) => {
+      const departure = getRiyadhDateTimeUtc(
+        toDate(trip.departureDate),
+        trip.scheduleTrip?.reportTime ?? "00:00"
+      );
+      return departure.getTime() > now.getTime();
+    });
+    return !hasFutureTrip;
+  }
+
+  if (post.quickDate) {
+    const endOfQuickDay = getRiyadhDateTimeUtc(toDate(post.quickDate), "23:59");
+    return now.getTime() > endOfQuickDay.getTime();
+  }
+
+  if (post.postType !== "VACATION_SWAP" && post.createdAt) {
+    const endOfCreatedDay = getRiyadhDateTimeUtc(toDate(post.createdAt), "23:59");
+    return now.getTime() > endOfCreatedDay.getTime();
+  }
+
+  return false;
 }
 

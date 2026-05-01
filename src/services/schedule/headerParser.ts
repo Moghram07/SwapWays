@@ -561,7 +561,6 @@ export function debugPrintAlignment(
   row4: string,
   dayColumns: DayColumn[]
 ): void {
-  /* eslint-disable no-console */
   console.log("=== COLUMN ALIGNMENT DEBUG ===");
   console.log("Day | Pos  | Row3 chars     | Row4 chars");
   console.log("----|------|----------------|----------------");
@@ -579,5 +578,4 @@ export function debugPrintAlignment(
       `${String(col.dayOfMonth).padStart(3)} | ${String(pos).padStart(4)} | "${r3slice.padEnd(14)}" | "${r4slice.padEnd(14)}"`
     );
   }
-  /* eslint-enable no-console */
 }

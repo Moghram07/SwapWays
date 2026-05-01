@@ -70,4 +70,12 @@ export type WantType =
 
 export type SwapPostInputSource = "MANUAL_QUICK" | "SCHEDULE_PREFILL";
 
-export type LineType = "NORMAL" | "US_LINE" | "CHINA_LINE" | "RESERVE_LINE";
+export type LineType =
+  | "NORMAL"
+  | "US_LINE"
+  | "CHINA_LINE"
+  | "RESERVE_LINE"
+  | "KULN"
+  | "INDO"
+  | "HJLN"
+  | "TRNG";

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { DEFAULT_LOCALE, getLocaleFromPathname, localizePath } from "@/i18n/config";
 import { getTranslator } from "@/i18n/getTranslator";
@@ -15,7 +16,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
           <Link href={localizePath("/", locale)} prefetch={false} className="flex items-center gap-2">
-            <img
+            <Image
               src="/images/swapways-logo.png"
               alt=""
               width={32}

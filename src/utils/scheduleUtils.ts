@@ -13,13 +13,6 @@ export function getScheduledDays(
       if (d.getMonth() === month - 1 && d.getFullYear() === year) {
         days.add(d.getDate());
       }
-      // If arrival spills into another day within same month, mark that too.
-      const arr = new Date(d);
-      if (leg.arrivalTime && leg.arrivalTime !== leg.departureTime) {
-        // crude approximation: assume arrival is same calendar day or next;
-        // multi-day coverage is better captured via layovers below.
-        // We keep this simple and rely on layovers for longer spans.
-      }
     }
 
     for (const layover of trip.layovers) {

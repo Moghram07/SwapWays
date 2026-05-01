@@ -13,9 +13,6 @@ import { MatchBadge } from "@/components/swap-post/MatchBadge";
 import { NotesDisplay } from "@/components/swap-post/NotesDisplay";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 
-const PRIMARY = "var(--primary)";
-const PRIMARY_CTA = "var(--primary-cta)";
-
 type WantType =
   | "LAYOVER"
   | "LONGER_LAYOVER"
@@ -139,7 +136,7 @@ function asDate(value: Date | string | null | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function OfferingTripRow({ trip, packageMode = false }: { trip: TripRow; packageMode?: boolean }) {
+function OfferingTripRow({ trip }: { trip: TripRow }) {
   const typeInfo = getTripTypeInfo(trip.tripType);
   const { format: timeMode } = useTimeFormat();
 
@@ -224,22 +221,6 @@ function OfferingTripRow({ trip, packageMode = false }: { trip: TripRow; package
     const arrIso = (leg.arrivalDate ?? leg.departureDate)?.toISOString().slice(0, 10);
     if (!depIso || !arrIso) return "";
     return depIso !== arrIso ? " +1d" : "";
-  };
-
-  const renderLegLineTurnaroundOrMulti = (leg: Leg) => {
-    const dep = `${leg.departureAirport} → ${leg.arrivalAirport}`;
-    const depTime = formatZuluOrLocalTime(leg.departureTime, leg.departureAirport);
-    const arrTimeBase = formatZuluOrLocalTime(leg.arrivalTime, leg.arrivalAirport);
-    const arrTime = `${arrTimeBase}${formatArrivalNextDaySuffix(leg)}`;
-    return `${dep}    ${depTime} → ${arrTime}`;
-  };
-
-  const renderLegLineLayover = (leg: Leg) => {
-    const dep = `${leg.departureAirport} → ${leg.arrivalAirport}`;
-    const depTime = formatZuluOrLocalTime(leg.departureTime, leg.departureAirport);
-    const arrTimeBase = formatZuluOrLocalTime(leg.arrivalTime, leg.arrivalAirport);
-    const arrTime = `${arrTimeBase}${formatArrivalNextDaySuffix(leg)}`;
-    return `${dep}    Dep: ${depTime}    Arr: ${arrTime}`;
   };
 
   const layoverCity = trip.tripType === "LAYOVER" ? (legs[0]?.arrivalAirport ?? legs[1]?.departureAirport) : undefined;
@@ -462,24 +443,30 @@ function formatTimeAgo(date: Date): string {
 const ACTIVE_PILL = "var(--primary)";
 const PENDING_PILL = "#d97706";
 const COMPLETED_PILL = "var(--accent)";
+const EXPIRED_PILL = "#64748b";
+const CANCELLED_PILL = "#94a3b8";
 
 interface SwapPostTradeBoardCardProps {
   post: PostCardData;
   isPreview?: boolean;
   onMessage?: () => void;
   /** When set, shows a pill above the card (e.g. in My Swaps). */
-  statusPill?: "active" | "pending" | "completed";
+  statusPill?: "active" | "pending" | "completed" | "expired" | "cancelled";
 }
 
-function getPillStyle(pill: "active" | "pending" | "completed") {
+function getPillStyle(pill: NonNullable<SwapPostTradeBoardCardProps["statusPill"]>) {
   if (pill === "active") return { backgroundColor: ACTIVE_PILL };
   if (pill === "pending") return { backgroundColor: PENDING_PILL };
+  if (pill === "expired") return { backgroundColor: EXPIRED_PILL };
+  if (pill === "cancelled") return { backgroundColor: CANCELLED_PILL };
   return { backgroundColor: COMPLETED_PILL };
 }
 
-function getPillLabel(pill: "active" | "pending" | "completed") {
+function getPillLabel(pill: NonNullable<SwapPostTradeBoardCardProps["statusPill"]>) {
   if (pill === "active") return "Active";
   if (pill === "pending") return "Pending";
+  if (pill === "expired") return "Expired";
+  if (pill === "cancelled") return "Cancelled";
   return "Completed";
 }
 
@@ -645,7 +632,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
                     : ""
                 }
               >
-                <OfferingTripRow trip={trip} packageMode={offeringTrips.length > 1} />
+                <OfferingTripRow trip={trip} />
                 {offeringTrips.length > 1 &&
                   typeof post.bestTripIndex === "number" &&
                   post.bestTripIndex === i &&

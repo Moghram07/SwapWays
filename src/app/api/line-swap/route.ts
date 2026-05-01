@@ -35,7 +35,16 @@ function isMonthName(month: string): boolean {
   ].includes(month);
 }
 
-const LINE_TYPES: LineType[] = ["NORMAL", "US_LINE", "CHINA_LINE", "RESERVE_LINE"];
+const LINE_TYPES: LineType[] = [
+  "NORMAL",
+  "US_LINE",
+  "CHINA_LINE",
+  "RESERVE_LINE",
+  "KULN",
+  "INDO",
+  "HJLN",
+  "TRNG",
+];
 
 function isLineType(value: unknown): value is LineType {
   return typeof value === "string" && LINE_TYPES.includes(value as LineType);

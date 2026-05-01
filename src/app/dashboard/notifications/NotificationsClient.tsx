@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 
 const PRIMARY = "#1E6FB9";
-const ACCENT = "#2DAF66";
 
 export type NotificationItem = {
   id: string;

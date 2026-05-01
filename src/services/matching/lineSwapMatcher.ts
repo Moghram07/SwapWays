@@ -21,6 +21,14 @@ export function getLineTypeLabel(type: LineType): string {
       return "China Line";
     case "RESERVE_LINE":
       return "Reserve Line";
+    case "KULN":
+      return "KULN";
+    case "INDO":
+      return "INDO";
+    case "HJLN":
+      return "HJLN";
+    case "TRNG":
+      return "TRNG";
     default:
       return "Normal Line";
   }

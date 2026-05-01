@@ -16,10 +16,6 @@ function unauthorized() {
   );
 }
 
-function json(data: unknown) {
-  return NextResponse.json({ data, error: null, message: null });
-}
-
 export async function GET(request: Request) {
   const timer = withTiming("GET /api/swap-posts/board");
   const session = await getServerSession(authOptions);
@@ -124,7 +120,12 @@ export async function GET(request: Request) {
       return bScore - aScore;
     });
 
-    const clean = sorted.map(({ __sortBlock: _block, __sortDate: _date, ...item }) => item);
+    const clean = sorted.map((item) => {
+      const { __sortBlock, __sortDate, ...rest } = item;
+      void __sortBlock;
+      void __sortDate;
+      return rest;
+    });
     const startIndex = cursor ? clean.findIndex((item) => item.id === cursor) + 1 : 0;
     const pageSlice = clean.slice(startIndex, startIndex + limit + 1);
     const hasMore = pageSlice.length > limit;

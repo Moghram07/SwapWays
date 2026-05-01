@@ -153,7 +153,10 @@ export async function createScheduleFromParsed(
       const layoversUnsupported =
         msg.includes("Unknown arg") || msg.includes("layovers") || isLayoverTableMissing(createErr);
       if (hasLayovers && layoversUnsupported) {
-        const { layovers: _lo, ...dataWithoutLayovers } = tripData as typeof tripData & { layovers?: unknown };
+        const dataWithoutLayovers = {
+          ...(tripData as typeof tripData & { layovers?: unknown }),
+        };
+        delete dataWithoutLayovers.layovers;
         await prisma.scheduleTrip.create({
           data: { ...dataWithoutLayovers, routeType: dataWithoutLayovers.routeType as "DOMESTIC" | "INTERNATIONAL" },
         });

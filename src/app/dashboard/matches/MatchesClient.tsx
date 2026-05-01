@@ -7,8 +7,12 @@ import { Plus, Inbox, Pencil } from "lucide-react";
 import { SwapPostTradeBoardCard } from "@/components/swap-post/TradeBoardCard";
 import { TradeBoardSection } from "@/components/swap-post/TradeBoardSection";
 import { getAirportCity } from "@/utils/airportNames";
+import { isSwapPostExpired, isTradeExpired } from "@/lib/swapExpiry";
+import { swapPostHasDisplayableOffer } from "@/lib/swapPostDisplay";
 
 type SwapsTab = "mySwaps" | "tradeBoard" | "lineSwap" | "vacationSwap";
+
+type MySwapsSubTab = "active" | "history";
 
 const TAB_LABELS: { id: SwapsTab; label: string }[] = [
   { id: "mySwaps", label: "My Swaps" },
@@ -101,6 +105,7 @@ interface SwapPostRecord {
   advancedAircraftTypeCode?: string | null;
   advancedBlockHours?: number | null;
   advancedFlightNumber?: string | null;
+  expiresAt?: string | null;
 }
 
 interface MatchesClientProps {
@@ -108,13 +113,19 @@ interface MatchesClientProps {
   currentUserId: string;
 }
 
-type SwapStatusPill = "active" | "pending" | "completed";
+type SwapStatusPill = "active" | "pending" | "completed" | "expired" | "cancelled";
 
-/** Pending = both parties accepted, waiting for airline. Completed = airline accepted (or expired). */
+/** Map API status to card pill (EXPIRED → Expired label, not Completed). */
 function getStatusPill(status: string): SwapStatusPill {
-  if (status === "AGREED" || status === "ACCEPTED") return "pending";
-  if (status === "COMPLETED" || status === "EXPIRED") return "completed";
+  if (status === "EXPIRED") return "expired";
+  if (status === "CANCELLED") return "cancelled";
+  if (status === "AGREED" || status === "ACCEPTED" || status === "MATCHED") return "pending";
+  if (status === "COMPLETED") return "completed";
   return "active";
+}
+
+function vacationTradeHasDisplayableDates(t: VacationTrade): boolean {
+  return Boolean(t.vacationStartDate || t.vacationEndDate);
 }
 
 function postToCard(p: SwapPostRecord) {
@@ -196,6 +207,23 @@ function postToCard(p: SwapPostRecord) {
   };
 }
 
+function swapPostRecordToExpiryLike(p: SwapPostRecord) {
+  return {
+    postType: p.postType,
+    expiresAt: p.expiresAt ?? undefined,
+    vacationYear: p.vacationYear ?? undefined,
+    vacationMonth: p.vacationMonth ?? undefined,
+    vacationStartDate: p.vacationStartDate ?? undefined,
+    vacationEndDate: p.vacationEndDate ?? undefined,
+    quickDate: p.quickDate ?? undefined,
+    createdAt: p.createdAt ?? undefined,
+    offeredTrips: (p.offeredTrips ?? []).map((t) => ({
+      departureDate: t.departureDate,
+      scheduleTrip: { reportTime: t.scheduleTrip?.reportTime ?? t.reportTime ?? null },
+    })),
+  };
+}
+
 function vacationTradeToPost(t: VacationTrade) {
   const start = t.vacationStartDate ? new Date(t.vacationStartDate) : undefined;
   const end = t.vacationEndDate ? new Date(t.vacationEndDate) : undefined;
@@ -241,39 +269,62 @@ function vacationTradeToPost(t: VacationTrade) {
   };
 }
 
-export function MatchesClient({ initialMatches, currentUserId }: MatchesClientProps) {
+type MySwapRow = {
+  id: string;
+  source: "swapPost" | "vacation";
+  createdAt: Date;
+  post: ReturnType<typeof postToCard>;
+  statusPill: SwapStatusPill;
+  recordStatus: string;
+};
+
+export function MatchesClient({ initialMatches }: MatchesClientProps) {
   const [activeTab, setActiveTab] = useState<SwapsTab>("mySwaps");
-  const [matches] = useState(initialMatches);
-  const [vacationTrades, setVacationTrades] = useState<VacationTrade[]>([]);
-  const [mySwapPosts, setMySwapPosts] = useState<SwapPostRecord[]>([]);
+  const [mySwapsSubTab, setMySwapsSubTab] = useState<MySwapsSubTab>("active");
+  void initialMatches;
+  const [vacationTradesActive, setVacationTradesActive] = useState<VacationTrade[]>([]);
+  const [vacationTradesHistory, setVacationTradesHistory] = useState<VacationTrade[]>([]);
+  const [mySwapPostsActive, setMySwapPostsActive] = useState<SwapPostRecord[]>([]);
+  const [mySwapPostsHistory, setMySwapPostsHistory] = useState<SwapPostRecord[]>([]);
 
   const loadMineData = async (signal?: AbortSignal) => {
-    const [postsRes, tradesRes] = await Promise.all([
-      fetch("/api/swap-posts?mine=1&excludeCancelled=1", { credentials: "include", signal }).then((r) =>
+    const [activePostsRes, historyPostsRes, activeTradesRes, historyTradesRes] = await Promise.all([
+      fetch("/api/swap-posts?mine=1&scope=active", { credentials: "include", signal }).then((r) =>
         r.json().catch(() => ({}))
       ),
-      fetch("/api/trades?mine=1&compact=1&excludeCancelled=1&tradeType=VACATION_SWAP", { credentials: "include", signal }).then(
-        (r) => r.json().catch(() => ({}))
+      fetch("/api/swap-posts?mine=1&scope=history", { credentials: "include", signal }).then((r) =>
+        r.json().catch(() => ({}))
       ),
+      fetch("/api/trades?mine=1&compact=1&excludeCancelled=1&tradeType=VACATION_SWAP&scope=active", {
+        credentials: "include",
+        signal,
+      }).then((r) => r.json().catch(() => ({}))),
+      fetch("/api/trades?mine=1&compact=1&tradeType=VACATION_SWAP&scope=history", {
+        credentials: "include",
+        signal,
+      }).then((r) => r.json().catch(() => ({}))),
     ]);
-    const posts = Array.isArray(postsRes?.data) ? postsRes.data : [];
-    const items = tradesRes?.data?.items ?? [];
-    const vacations = items.filter((t: { tradeType: string }) => t.tradeType === "VACATION_SWAP");
-    setMySwapPosts(posts);
-    setVacationTrades(vacations);
+    setMySwapPostsActive(Array.isArray(activePostsRes?.data) ? activePostsRes.data : []);
+    setMySwapPostsHistory(Array.isArray(historyPostsRes?.data) ? historyPostsRes.data : []);
+    const activeItems = activeTradesRes?.data?.items ?? [];
+    const historyItems = historyTradesRes?.data?.items ?? [];
+    setVacationTradesActive(activeItems.filter((t: { tradeType: string }) => t.tradeType === "VACATION_SWAP"));
+    setVacationTradesHistory(historyItems.filter((t: { tradeType: string }) => t.tradeType === "VACATION_SWAP"));
   };
 
   useEffect(() => {
     const controller = new AbortController();
     loadMineData(controller.signal).catch(() => {
-      setMySwapPosts([]);
-      setVacationTrades([]);
+      setMySwapPostsActive([]);
+      setMySwapPostsHistory([]);
+      setVacationTradesActive([]);
+      setVacationTradesHistory([]);
     });
     return () => controller.abort();
   }, []);
 
-  const handleCancel = async (item: { id: string; source: "swapPost" | "vacation"; statusPill: SwapStatusPill }) => {
-    if (item.statusPill !== "active") return;
+  const handleCancel = async (item: { id: string; source: "swapPost" | "vacation"; statusPill: SwapStatusPill; recordStatus: string }) => {
+    if (item.recordStatus !== "OPEN" || item.statusPill !== "active") return;
     if (!confirm("Cancel this swap? It will be removed from the trade board.")) return;
 
     const url = item.source === "swapPost"
@@ -284,49 +335,104 @@ export function MatchesClient({ initialMatches, currentUserId }: MatchesClientPr
     await loadMineData();
   };
 
-  const mySwaps = useMemo(() => {
-    const items: { id: string; source: "swapPost" | "vacation"; createdAt: Date; post: ReturnType<typeof postToCard>; statusPill: SwapStatusPill }[] = [];
-    for (const p of mySwapPosts) {
+  const mySwapsActiveRows = useMemo(() => {
+    const now = new Date();
+    const items: MySwapRow[] = [];
+    for (const p of mySwapPostsActive) {
       const status = (p as SwapPostRecord).status ?? "OPEN";
-      if (status === "CANCELLED") continue;
+      if (status !== "OPEN") continue;
+      if (isSwapPostExpired(swapPostRecordToExpiryLike(p as SwapPostRecord), now)) continue;
+      const post = postToCard(p as SwapPostRecord);
       items.push({
         id: (p as SwapPostRecord).id,
         source: "swapPost",
         createdAt: (p as SwapPostRecord).createdAt ? new Date((p as SwapPostRecord).createdAt!) : new Date(0),
-        post: postToCard(p as SwapPostRecord),
+        post,
         statusPill: getStatusPill(status),
+        recordStatus: status,
       });
     }
-    for (const t of vacationTrades) {
-      if (t.status === "CANCELLED") continue;
+    for (const t of vacationTradesActive) {
+      if (t.status === "CANCELLED" || t.status === "EXPIRED" || t.status === "COMPLETED") continue;
+      if (
+        isTradeExpired(
+          {
+            tradeType: "VACATION_SWAP",
+            departureDate: null,
+            vacationStartDate: t.vacationStartDate,
+            vacationEndDate: t.vacationEndDate,
+          },
+          now
+        )
+      ) {
+        continue;
+      }
+      const post = vacationTradeToPost(t);
       items.push({
         id: t.id,
         source: "vacation",
         createdAt: t.createdAt ? new Date(t.createdAt) : new Date(0),
-        post: vacationTradeToPost(t),
+        post,
         statusPill: getStatusPill(t.status),
+        recordStatus: t.status,
       });
     }
     items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     return items;
-  }, [mySwapPosts, vacationTrades]);
+  }, [mySwapPostsActive, vacationTradesActive]);
 
-  const emptyMessage =
+  const mySwapsHistoryRows = useMemo(() => {
+    const items: MySwapRow[] = [];
+    for (const p of mySwapPostsHistory) {
+      if (!swapPostHasDisplayableOffer(p as SwapPostRecord)) continue;
+      const status = (p as SwapPostRecord).status ?? "OPEN";
+      const post = postToCard(p as SwapPostRecord);
+      items.push({
+        id: (p as SwapPostRecord).id,
+        source: "swapPost",
+        createdAt: (p as SwapPostRecord).createdAt ? new Date((p as SwapPostRecord).createdAt!) : new Date(0),
+        post,
+        statusPill: getStatusPill(status),
+        recordStatus: status,
+      });
+    }
+    for (const t of vacationTradesHistory) {
+      if (!vacationTradeHasDisplayableDates(t)) continue;
+      const post = vacationTradeToPost(t);
+      items.push({
+        id: t.id,
+        source: "vacation",
+        createdAt: t.createdAt ? new Date(t.createdAt) : new Date(0),
+        post,
+        statusPill: getStatusPill(t.status),
+        recordStatus: t.status,
+      });
+    }
+    items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return items;
+  }, [mySwapPostsHistory, vacationTradesHistory]);
+
+  const displayedMySwaps = mySwapsSubTab === "active" ? mySwapsActiveRows : mySwapsHistoryRows;
+
+  const activeEmptyMessage =
     "You haven't posted any swaps yet. Go to My Flights to offer trips, or browse the Trade Board.";
-  const emptyState = (
+  const historyEmptyMessage = "No past swaps yet. Cancelled, completed, and expired listings appear here.";
+  const emptyState = (message: string, showCta: boolean) => (
     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 py-12 px-4 shadow-sm">
       <div className="flex flex-col items-center justify-center gap-5 text-center max-w-sm mx-auto">
         <Inbox className="h-12 w-12 text-slate-400" aria-hidden />
-        <p className="text-slate-600 text-sm leading-relaxed">{emptyMessage}</p>
-        <Link href="/dashboard/add-trade">
-          <Button
-            className="gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            style={{ backgroundColor: "var(--primary-cta)" }}
-          >
-            <Plus className="h-4 w-4" />
-            Post to Trade Board
-          </Button>
-        </Link>
+        <p className="text-slate-600 text-sm leading-relaxed">{message}</p>
+        {showCta && (
+          <Link href="/dashboard/add-trade">
+            <Button
+              className="gap-2 rounded-lg px-6 py-2.5 text-sm font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              style={{ backgroundColor: "var(--primary-cta)" }}
+            >
+              <Plus className="h-4 w-4" />
+              Post to Trade Board
+            </Button>
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -358,11 +464,42 @@ export function MatchesClient({ initialMatches, currentUserId }: MatchesClientPr
 
       {activeTab === "mySwaps" && (
         <div className="space-y-4">
-          {mySwaps.length === 0 ? (
-            emptyState
+          <div className="flex flex-wrap gap-2" role="tablist" aria-label="My swaps list">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mySwapsSubTab === "active"}
+              onClick={() => setMySwapsSubTab("active")}
+              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 ${
+                mySwapsSubTab === "active"
+                  ? "border-[var(--primary)] bg-white text-[var(--primary-cta)] shadow-sm"
+                  : "border-slate-200 bg-slate-50/80 text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Active ({mySwapsActiveRows.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mySwapsSubTab === "history"}
+              onClick={() => setMySwapsSubTab("history")}
+              className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 ${
+                mySwapsSubTab === "history"
+                  ? "border-[var(--primary)] bg-white text-[var(--primary-cta)] shadow-sm"
+                  : "border-slate-200 bg-slate-50/80 text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              History
+            </button>
+          </div>
+          {displayedMySwaps.length === 0 ? (
+            emptyState(
+              mySwapsSubTab === "active" ? activeEmptyMessage : historyEmptyMessage,
+              mySwapsSubTab === "active"
+            )
           ) : (
             <ul className="space-y-4">
-              {mySwaps.map((item) => (
+              {displayedMySwaps.map((item) => (
                 <li key={`${item.source}-${item.id}`}>
                   <div
                     className={`rounded-xl border bg-white shadow-sm overflow-hidden ${
@@ -370,7 +507,9 @@ export function MatchesClient({ initialMatches, currentUserId }: MatchesClientPr
                         ? "border-l-4 border-l-[var(--primary)] border-slate-200"
                         : item.statusPill === "pending"
                           ? "border-l-4 border-l-amber-500 border-slate-200"
-                          : "border-l-4 border-l-[var(--accent)] border-slate-200"
+                          : item.statusPill === "expired" || item.statusPill === "cancelled"
+                            ? "border-l-4 border-l-slate-400 border-slate-200"
+                            : "border-l-4 border-l-[var(--accent)] border-slate-200"
                     }`}
                   >
                     <SwapPostTradeBoardCard
@@ -378,7 +517,7 @@ export function MatchesClient({ initialMatches, currentUserId }: MatchesClientPr
                       isPreview
                       statusPill={item.statusPill}
                     />
-                    {item.statusPill === "active" && (
+                    {mySwapsSubTab === "active" && item.recordStatus === "OPEN" && item.statusPill === "active" && (
                       <div className="border-t border-slate-100 px-4 py-2.5 flex justify-end gap-3 bg-slate-50/50">
                         {item.source === "swapPost" && (
                           <Link

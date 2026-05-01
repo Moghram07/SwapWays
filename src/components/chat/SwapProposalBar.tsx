@@ -25,8 +25,9 @@ export function SwapProposalBar({
   onPropose,
   onAccept,
   onDecline,
-  onOfferChanged: _onOfferChanged,
+  onOfferChanged,
 }: SwapProposalBarProps) {
+  void onOfferChanged;
   const isInitiator = conversation.initiatorId === currentUserId;
   const hasOffer =
     conversation.offeredTripId ??

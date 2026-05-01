@@ -36,16 +36,26 @@ export async function GET(request: Request) {
     const excludeCancelled = searchParams.get("excludeCancelled") === "1";
     const mineTradeType = searchParams.get("tradeType") as "FLIGHT_SWAP" | "VACATION_SWAP" | null;
     const status = searchParams.get("status") as import("@/types/enums").TradeStatus | undefined;
+    const mineScope = searchParams.get("scope") ?? "active";
     const now = new Date();
 
     if (mine) {
       if (compact) {
+        if (mineScope !== "active" && mineScope !== "history") {
+          return timer.end(
+            NextResponse.json({ data: null, error: "Error", message: "Use scope=active or scope=history" }, { status: 400 })
+          );
+        }
         const items = await withTimeout(
           prisma.trade.findMany({
             where: {
               userId: session.user.id,
               ...(mineTradeType ? { tradeType: mineTradeType } : {}),
-              ...(excludeCancelled ? { status: { not: "CANCELLED" } } : {}),
+              ...(mineScope === "history"
+                ? { status: { in: ["EXPIRED", "CANCELLED", "COMPLETED"] } }
+                : excludeCancelled
+                  ? { status: { notIn: ["CANCELLED", "EXPIRED"] } }
+                  : {}),
             },
             orderBy: { createdAt: "desc" },
             select: {
@@ -54,6 +64,7 @@ export async function GET(request: Request) {
               tradeType: true,
               scheduleTripId: true,
               departureDate: true,
+              reportTime: true,
               vacationStartDate: true,
               vacationEndDate: true,
               desiredDestinations: true,
@@ -63,7 +74,11 @@ export async function GET(request: Request) {
           4000,
           "trades compact query"
         );
-        const list = items.filter((t) => !isTradeExpired(t, now));
+        let list =
+          mineScope === "history" ? items : items.filter((t) => !isTradeExpired(t, now));
+        if (mineScope === "history" && mineTradeType === "VACATION_SWAP") {
+          list = list.filter((t) => Boolean(t.vacationStartDate || t.vacationEndDate));
+        }
         return timer.end(NextResponse.json({ data: { items: list, total: list.length }, error: null, message: null }));
       }
 
@@ -141,7 +156,17 @@ export async function POST(request: Request) {
   } catch {
     return timer.end(NextResponse.json({ data: null, error: "Bad request", message: "Invalid JSON" }, { status: 400 }));
   }
-  const raw = body as any;
+  const raw = body as Partial<CreateTradeInput> & {
+    tradeType?: "FLIGHT_SWAP" | "VACATION_SWAP";
+    scheduleTripId?: string;
+    vacationStartDate?: string;
+    vacationEndDate?: string;
+    desiredDestinations?: string[];
+    wtfDays?: number[];
+    notes?: string;
+    desiredVacationStart?: string;
+    desiredVacationEnd?: string;
+  };
   const validationErrors = validateCreateTradeInput(raw as CreateTradeInput);
   if (validationErrors.length > 0) {
     return timer.end(NextResponse.json(
@@ -153,6 +178,12 @@ export async function POST(request: Request) {
   let input: CreateTradeInput;
 
   if (raw.tradeType === "VACATION_SWAP") {
+    if (!raw.vacationStartDate || !raw.vacationEndDate) {
+      return timer.end(NextResponse.json(
+        { data: null, error: "Validation failed", message: "Vacation start/end dates are required." },
+        { status: 422 }
+      ));
+    }
     input = {
       tradeType: "VACATION_SWAP",
       destination: "N/A",
@@ -243,9 +274,9 @@ export async function POST(request: Request) {
       tripNumber: raw.tripNumber,
       flightNumber: raw.flightNumber,
       aircraftTypeCode: raw.aircraftTypeCode,
-      destination: raw.destination,
-      departureDate: new Date(raw.departureDate),
-      reportTime: raw.reportTime,
+      destination: raw.destination as string,
+      departureDate: new Date(raw.departureDate as Date | string),
+      reportTime: raw.reportTime as string,
       creditHours: raw.creditHours ? Number(raw.creditHours) : undefined,
       blockHours: raw.blockHours ? Number(raw.blockHours) : undefined,
       tafb: raw.tafb ? Number(raw.tafb) : undefined,

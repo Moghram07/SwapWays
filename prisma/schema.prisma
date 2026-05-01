@@ -737,6 +737,10 @@ enum LineType {
   US_LINE
   CHINA_LINE
   RESERVE_LINE
+  KULN
+  INDO
+  HJLN
+  TRNG
 }
 
 enum MatchStatus {

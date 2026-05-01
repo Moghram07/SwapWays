@@ -48,7 +48,7 @@ export function ScheduleUploadCard({ onUploadSuccess }: ScheduleUploadCardProps)
       setFile(null);
       router.refresh();
       onUploadSuccess?.();
-    } catch (e) {
+    } catch {
       setMessage({ type: "error", text: "Upload failed" });
     } finally {
       setLoading(false);

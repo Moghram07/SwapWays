@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -16,22 +17,13 @@ type Variant = "1" | "2" | "3" | "4" | "5";
 
 function BrandIcon({ className, size = 36 }: { className?: string; size?: number }) {
   return (
-    <img
+    <Image
       src="/images/swapways-logo.png"
       alt=""
       width={size}
       height={size}
       className={className}
     />
-  );
-}
-
-function BrandText() {
-  return (
-    <span className="logo-wordmark font-bold">
-      <span style={{ color: LOGO_BLUE }}>Swap</span>
-      <span style={{ color: LOGO_GREEN }}> Ways</span>
-    </span>
   );
 }
 

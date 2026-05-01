@@ -358,7 +358,7 @@ function resolveLegDate(
   const firstOfMonth = new Date(year, month - 1, 1);
   const lastOfMonth = new Date(year, month, 0);
   if (typeof dow === "number") {
-    let d = new Date(firstOfMonth);
+    const d = new Date(firstOfMonth);
     while (d.getDay() !== dow && d <= lastOfMonth) d.setDate(d.getDate() + 1);
     if (d <= lastOfMonth) {
       const legDate = new Date(d);
@@ -367,8 +367,7 @@ function resolveLegDate(
       return d;
     }
   }
-  const firstDay = new Date(year, month - 1, 1);
-  const d = new Date(firstDay);
+  const d = new Date(year, month - 1, 1);
   d.setDate(d.getDate() + (legOrder - 1));
   if (d.getMonth() !== month - 1) return undefined;
   return d;

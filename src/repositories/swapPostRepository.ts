@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { swapPostHasDisplayableOffer } from "@/lib/swapPostDisplay";
 import { SwapPostType as PrismaSwapPostType } from "@/generated/prisma";
 import type { SwapPostType } from "@/types/swapPost";
 import type { WantCriteriaData } from "@/types/swapPost";
@@ -306,11 +307,31 @@ export async function findSwapPostsByUserId(
   return prisma.swapPost.findMany({
     where: {
       userId,
-      ...(options?.excludeCancelled ? { status: { not: "CANCELLED" } } : {}),
+      ...(options?.excludeCancelled ? { status: { notIn: ["CANCELLED", "EXPIRED"] } } : {}),
     },
     select: swapPostSelect,
     orderBy: { createdAt: "desc" },
   });
+}
+
+/** My Swaps — active listings only (`OPEN`). */
+export async function findActiveSwapPostsByUserId(userId: string) {
+  return prisma.swapPost.findMany({
+    where: { userId, status: "OPEN" },
+    select: swapPostSelect,
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+/** My Swaps — past listings for history UI (drops orphan flight posts with no trips / quick date). */
+export async function findHistorySwapPostsByUserId(userId: string, take = 30) {
+  const rows = await prisma.swapPost.findMany({
+    where: { userId, status: { in: ["EXPIRED", "CANCELLED", "COMPLETED"] } },
+    select: swapPostSelect,
+    orderBy: { createdAt: "desc" },
+    take: take * 3,
+  });
+  return rows.filter(swapPostHasDisplayableOffer).slice(0, take);
 }
 
 export async function findSwapPostById(id: string) {

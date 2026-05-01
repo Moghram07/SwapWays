@@ -86,6 +86,7 @@ const TripOfferSelector = memo(function TripOfferSelector({
   onDropdownOpenChange,
   onOpenRequested,
 }: TripOfferSelectorProps) {
+  void currentOfferId;
   const [isOpen, setIsOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);

@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { findConversationsByUserId } from "@/repositories/conversationRepository";
 import { createNotification } from "@/lib/notifications";
 import { getUserAccess } from "@/utils/featureGates";
-import { trackEventServer } from "@/lib/analytics/server";
 import { requireSameOrigin } from "@/lib/csrf";
 import { trackSession } from "@/lib/sessionTracker";
 import { withTimeout } from "@/lib/withTimeout";
@@ -28,7 +27,6 @@ export async function POST(request: Request) {
 
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return unauthorized();
-  const access = await getUserAccess(session.user.id);
 
   let body: {
     tradeId?: string;

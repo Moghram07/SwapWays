@@ -79,7 +79,7 @@ export function MyFlightsTripCards({
             >
               <TripCard
                 trip={parsed}
-                onSwap={(_id) => handleSwapScheduledTrip(parsed)}
+                onSwap={() => handleSwapScheduledTrip(parsed)}
                 onCancelSwap={handleCancelSwap}
                 onAcceptMatch={() => {}}
                 onDeclineMatch={() => {}}

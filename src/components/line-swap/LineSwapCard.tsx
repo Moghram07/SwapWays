@@ -38,6 +38,14 @@ function getLineTypeBadge(type: LineType): { label: string; classes: string } {
       return { label: "China Line", classes: "bg-red-100 text-red-700" };
     case "RESERVE_LINE":
       return { label: "Reserve", classes: "bg-amber-100 text-amber-700" };
+    case "KULN":
+      return { label: "KULN", classes: "bg-violet-100 text-violet-700" };
+    case "INDO":
+      return { label: "INDO", classes: "bg-emerald-100 text-emerald-700" };
+    case "HJLN":
+      return { label: "HJLN", classes: "bg-cyan-100 text-cyan-700" };
+    case "TRNG":
+      return { label: "TRNG", classes: "bg-fuchsia-100 text-fuchsia-700" };
     default:
       return { label: "Normal", classes: "bg-slate-100 text-slate-700" };
   }
@@ -51,6 +59,14 @@ function getLineTypeLabel(type: LineType): string {
       return "China Line";
     case "RESERVE_LINE":
       return "Reserve Line";
+    case "KULN":
+      return "KULN";
+    case "INDO":
+      return "INDO";
+    case "HJLN":
+      return "HJLN";
+    case "TRNG":
+      return "TRNG";
     default:
       return "Normal Line";
   }

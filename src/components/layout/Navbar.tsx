@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, X, LayoutDashboard, FileText } from "lucide-react";
@@ -41,7 +42,7 @@ export function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <div className="flex items-center gap-3">
           <Link href={isDashboard ? "/dashboard" : localizePath("/", locale)} className="flex items-center gap-2">
-            <img
+            <Image
               src="/images/swapways-logo.png"
               alt=""
               width={36}

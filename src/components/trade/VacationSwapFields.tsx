@@ -19,12 +19,25 @@ interface VacationSwapFieldsProps {
   onVacationStartDayChange: (v: number | "") => void;
   onVacationEndDayChange: (v: number | "") => void;
   onDesiredMonthsChange: (months: number[]) => void;
+  /**
+   * When editing a legacy post, the saved year may be before the allowed window.
+   * Include it in the dropdown so the control stays valid until the user picks a new year.
+   */
+  includeLegacyVacationYear?: number;
 }
 
-const currentYear = new Date().getFullYear();
-const YEAR_OPTIONS = [currentYear - 1, currentYear, currentYear + 1];
-
 export function VacationSwapFields(props: VacationSwapFieldsProps) {
+  const nowYear = new Date().getFullYear();
+  const baseYears = [nowYear, nowYear + 1];
+  const legacy = props.includeLegacyVacationYear;
+  const yearOptions =
+    legacy != null &&
+    Number.isInteger(legacy) &&
+    legacy >= 1900 &&
+    legacy <= 2100 &&
+    !baseYears.includes(legacy)
+      ? [...baseYears, legacy].sort((a, b) => a - b)
+      : baseYears;
   const toggleDesiredMonth = (month: number) => {
     const next = props.desiredMonths.includes(month)
       ? props.desiredMonths.filter((m) => m !== month)
@@ -64,7 +77,7 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
             }}
           >
             <option value="">Select year</option>
-            {YEAR_OPTIONS.map((y) => (
+            {yearOptions.map((y) => (
               <option key={y} value={y}>
                 {y}
               </option>

@@ -16,6 +16,7 @@ import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
 import { getPremiumViewerIds, getUserAccess } from "@/utils/featureGates";
 import { HIGH_MATCH_NOTIFICATION_MIN_PERCENT } from "@/constants/subscription";
 import { withTiming } from "@/lib/apiTimer";
+import { getVacationSwapYearRange, isAllowedVacationSwapYear } from "@/lib/vacationSwapYearBounds";
 
 function normalizeFlightNumber(raw: string | null | undefined): string {
   const s = (raw ?? "").trim();
@@ -234,8 +235,9 @@ export async function POST(request: Request) {
     const desiredMonths = Array.isArray(body.desiredVacationMonths)
       ? body.desiredVacationMonths.map((m: unknown) => Number(m)).filter((m: number) => m >= 1 && m <= 12)
       : [];
-    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
-      return error("Vacation swap requires vacationYear (2000–2100)", 400);
+    if (!Number.isInteger(year) || !isAllowedVacationSwapYear(year)) {
+      const { min, max } = getVacationSwapYearRange();
+      return error(`Vacation swap requires vacationYear (${min} or ${max})`, 400);
     }
     if (!Number.isInteger(month) || month < 1 || month > 12) {
       return error("Vacation swap requires vacationMonth (1–12)", 400);

@@ -138,6 +138,14 @@ export function CreatePostFlow({
 
   const selectedTripObjects = myTrips.filter((t) => selectedTrips.includes(t.id));
 
+  const vacationSwapPolicyYear = new Date().getFullYear();
+  const legacyVacationYearForPicker =
+    postType === "VACATION_SWAP" &&
+    typeof vacationYear === "number" &&
+    (vacationYear < vacationSwapPolicyYear || vacationYear > vacationSwapPolicyYear + 1)
+      ? vacationYear
+      : undefined;
+
   async function handleSubmit() {
     if (!postType || isSubmitting) return;
     setSubmitError(null);
@@ -269,6 +277,7 @@ export function CreatePostFlow({
                 onVacationStartDayChange={setVacationStartDay}
                 onVacationEndDayChange={setVacationEndDay}
                 onDesiredMonthsChange={setDesiredVacationMonths}
+                includeLegacyVacationYear={legacyVacationYearForPicker}
               />
               <div className="flex justify-between pt-2">
                 <button

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { classifyTrip, getUniqueDestinations } from "@/utils/tripClassifier";
 import { trackEventServer } from "@/lib/analytics/server";
 import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
+import { getVacationSwapYearRange, isAllowedVacationSwapYear } from "@/lib/vacationSwapYearBounds";
 
 function normalizeFlightNumber(raw: string | null | undefined): string {
   const s = (raw ?? "").trim();
@@ -215,6 +216,23 @@ export async function PATCH(
     const validPostTypes = new Set(["OFFERING_TRIPS", "VACATION_SWAP"]);
     if (!validPostTypes.has(postType)) {
       return error("postType must be one of: OFFERING_TRIPS, VACATION_SWAP", 400);
+    }
+
+    if (postType === "VACATION_SWAP") {
+      const parsedYear = body.vacationYear != null ? Number(body.vacationYear) : undefined;
+      const resolvedYear =
+        parsedYear !== undefined && Number.isInteger(parsedYear)
+          ? parsedYear
+          : existing.vacationYear != null
+            ? Number(existing.vacationYear)
+            : NaN;
+      if (!Number.isInteger(resolvedYear)) {
+        return error("Vacation swap requires vacationYear", 400);
+      }
+      if (!isAllowedVacationSwapYear(resolvedYear, { existingYear: existing.vacationYear })) {
+        const { min, max } = getVacationSwapYearRange();
+        return error(`vacationYear must be ${min} or ${max}`, 400);
+      }
     }
 
     const criteria = {

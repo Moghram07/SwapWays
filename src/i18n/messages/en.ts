@@ -83,6 +83,33 @@ const en = {
     back: "Back",
     register: "Register",
     registering: "Registering...",
+    forgotPasswordLink: "Forgot password?",
+    forgotPasswordTitle: "Reset password",
+    forgotPasswordSubtitle: "Enter your email address and we will send you a link to reset your password.",
+    forgotPasswordSubmit: "Send reset link",
+    forgotPasswordSending: "Sending...",
+    forgotPasswordSuccess:
+      "If that email is linked to an account, you will receive a message with reset instructions shortly. Check your inbox and spam folder.",
+    forgotPasswordError: "We could not process your request. Please try again in a moment.",
+    forgotPasswordNotConfigured:
+      "Password reset email is temporarily unavailable. Please try again later or contact support.",
+    forgotPasswordServerUrl:
+      "Password reset is temporarily unavailable. Please try again later or contact support.",
+    forgotPasswordSendFailed:
+      "We could not send the reset email. Please try again in a few minutes. If the problem continues, contact support.",
+    backToSignIn: "Back to sign in",
+    resetPasswordTitle: "Choose a new password",
+    resetPasswordSubtitle: "Enter and confirm a new password for your account.",
+    resetPasswordHint: "Use at least 8 characters.",
+    resetPasswordSubmit: "Update password",
+    resetPasswordSaving: "Saving...",
+    resetPasswordSuccess: "Your password has been updated. Redirecting to sign in…",
+    resetPasswordFailed: "We could not reset your password. The link may be invalid or expired.",
+    resetPasswordMissingToken: "Open the reset link from your email to continue, or request a new one.",
+    resetPasswordTooShort: "Password must be at least 8 characters.",
+    resetPasswordMismatch: "Passwords do not match.",
+    newPassword: "New password",
+    confirmNewPassword: "Confirm new password",
   },
   dashboard: {
     headerTitle: "Crew Dashboard",

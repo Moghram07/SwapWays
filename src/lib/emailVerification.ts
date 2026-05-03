@@ -1,5 +1,6 @@
 import { createHash, randomInt } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { sendResendTransactionalEmail } from "@/lib/resendTransactionalEmail";
 
 const CODE_EXPIRY_MINUTES = 10;
 const RESEND_COOLDOWN_SECONDS = 60;
@@ -27,32 +28,6 @@ export function getVerificationEmailText(input: { firstName: string; code: strin
     "",
     "SwapWays Team",
   ].join("\n");
-}
-
-async function sendTransactionalEmail(params: { to: string; subject: string; text: string }) {
-  const resendApiKey = process.env.RESEND_API_KEY?.trim();
-  const emailFrom = process.env.EMAIL_FROM?.trim();
-
-  if (!resendApiKey || !emailFrom) {
-    if (process.env.NODE_ENV !== "production") {
-      console.info(`[email:dev] to=${params.to} subject=${params.subject}\n${params.text}`);
-    }
-    return;
-  }
-
-  await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${resendApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: emailFrom,
-      to: [params.to],
-      subject: params.subject,
-      text: params.text,
-    }),
-  });
 }
 
 export async function issueEmailVerificationCode(input: {
@@ -90,11 +65,14 @@ export async function issueEmailVerificationCode(input: {
         resendCount: { increment: 1 },
       },
     });
-    await sendTransactionalEmail({
+    const sentRes = await sendResendTransactionalEmail({
       to: input.email,
       subject: "Verify your SwapWays account",
       text: getVerificationEmailText({ firstName: input.firstName, code }),
     });
+    if (!sentRes.ok) {
+      console.error("[emailVerification] Resend failed:", sentRes);
+    }
     return { sent: true, reason: "RESENT" as const };
   }
 
@@ -107,11 +85,14 @@ export async function issueEmailVerificationCode(input: {
       lastSentAt: now,
     },
   });
-  await sendTransactionalEmail({
+  const sentRes = await sendResendTransactionalEmail({
     to: input.email,
     subject: "Verify your SwapWays account",
     text: getVerificationEmailText({ firstName: input.firstName, code }),
   });
+  if (!sentRes.ok) {
+    console.error("[emailVerification] Resend failed:", sentRes);
+  }
   return { sent: true, reason: "CREATED" as const };
 }
 

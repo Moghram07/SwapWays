@@ -54,7 +54,15 @@ export function LoginForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">{t("auth.password")}</Label>
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor="password">{t("auth.password")}</Label>
+          <a
+            href={localizePath("/forgot-password", locale)}
+            className="text-xs font-medium text-[#045FA6] hover:underline"
+          >
+            {t("auth.forgotPasswordLink")}
+          </a>
+        </div>
         <Input
           id="password"
           type="password"

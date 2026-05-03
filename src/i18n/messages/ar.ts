@@ -81,6 +81,33 @@ const ar = {
     back: "رجوع",
     register: "إنشاء الحساب",
     registering: "جاري إنشاء الحساب...",
+    forgotPasswordLink: "نسيت كلمة المرور؟",
+    forgotPasswordTitle: "إعادة تعيين كلمة المرور",
+    forgotPasswordSubtitle: "أدخل بريدك الإلكتروني وسنرسل لك رابطًا لإعادة تعيين كلمة المرور.",
+    forgotPasswordSubmit: "إرسال رابط إعادة التعيين",
+    forgotPasswordSending: "جاري الإرسال...",
+    forgotPasswordSuccess:
+      "إذا كان هذا البريد مرتبطًا بحساب، ستصلك رسالة بخطوات إعادة التعيين قريبًا. راجع الوارد والبريد غير المرغوب.",
+    forgotPasswordError: "تعذر تنفيذ الطلب. حاول مرة أخرى بعد قليل.",
+    forgotPasswordNotConfigured:
+      "إعادة تعيين كلمة المرور غير متاحة مؤقتًا. حاول لاحقًا أو تواصل مع الدعم.",
+    forgotPasswordServerUrl:
+      "إعادة تعيين كلمة المرور غير متاحة مؤقتًا. حاول لاحقًا أو تواصل مع الدعم.",
+    forgotPasswordSendFailed:
+      "تعذر إرسال بريد إعادة التعيين. حاول خلال دقائق. إذا استمرت المشكلة، تواصل مع الدعم.",
+    backToSignIn: "العودة لتسجيل الدخول",
+    resetPasswordTitle: "اختر كلمة مرور جديدة",
+    resetPasswordSubtitle: "أدخل كلمة المرور الجديدة وأكدها لحسابك.",
+    resetPasswordHint: "استخدم 8 أحرف على الأقل.",
+    resetPasswordSubmit: "تحديث كلمة المرور",
+    resetPasswordSaving: "جاري الحفظ...",
+    resetPasswordSuccess: "تم تحديث كلمة المرور. جاري التوجيه لتسجيل الدخول…",
+    resetPasswordFailed: "تعذر إعادة تعيين كلمة المرور. قد يكون الرابط غير صالح أو منتهيًا.",
+    resetPasswordMissingToken: "افتح الرابط من بريدك الإلكتروني للمتابعة، أو اطلب رابطًا جديدًا.",
+    resetPasswordTooShort: "يجب أن تكون كلمة المرور 8 أحرف على الأقل.",
+    resetPasswordMismatch: "كلمتا المرور غير متطابقتين.",
+    newPassword: "كلمة المرور الجديدة",
+    confirmNewPassword: "تأكيد كلمة المرور",
   },
   dashboard: {
     headerTitle: "لوحة التحكم",

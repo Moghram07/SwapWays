@@ -131,7 +131,7 @@ export function LineSwapCard({ post }: { post: LineSwapCardData }) {
       </div>
 
       <div className="border-t border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Wants</p>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">For</p>
         {post.wantDaysOffStart != null ? (
           <p>Days off: {post.wantDaysOffStart}-{post.wantDaysOffEnd ?? 31}</p>
         ) : null}

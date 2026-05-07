@@ -49,7 +49,9 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label>Vacation month (required)</Label>
+          <Label>
+            Vacation month <span className="text-rose-600">*</span>
+          </Label>
           <select
             className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
             value={props.vacationMonth === "" ? "" : props.vacationMonth}
@@ -67,7 +69,9 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
           </select>
         </div>
         <div className="space-y-2">
-          <Label>Year (required)</Label>
+          <Label>
+            Year <span className="text-rose-600">*</span>
+          </Label>
           <select
             className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
             value={props.vacationYear === "" ? "" : props.vacationYear}
@@ -124,7 +128,9 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
       </div>
 
       <div className="space-y-2">
-        <Label>Looking for (required) — select at least one month</Label>
+        <Label>
+          Looking for <span className="text-rose-600">*</span> — select at least one month
+        </Label>
         <p className="text-xs text-slate-500">
           Listing multiple months increases your chance of finding a match.
         </p>

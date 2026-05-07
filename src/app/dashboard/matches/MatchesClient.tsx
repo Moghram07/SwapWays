@@ -9,6 +9,7 @@ import { TradeBoardSection } from "@/components/swap-post/TradeBoardSection";
 import { getAirportCity } from "@/utils/airportNames";
 import { isSwapPostExpired, isTradeExpired } from "@/lib/swapExpiry";
 import { swapPostHasDisplayableOffer } from "@/lib/swapPostDisplay";
+import { parseWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
 
 type SwapsTab = "mySwaps" | "tradeBoard" | "lineSwap" | "vacationSwap";
 
@@ -16,7 +17,7 @@ type MySwapsSubTab = "active" | "history";
 
 const TAB_LABELS: { id: SwapsTab; label: string }[] = [
   { id: "mySwaps", label: "My Swaps" },
-  { id: "tradeBoard", label: "Trade Board" },
+  { id: "tradeBoard", label: "Swaps" },
   { id: "lineSwap", label: "Line Swap" },
   { id: "vacationSwap", label: "Vacation Swap" },
 ];
@@ -82,6 +83,7 @@ interface SwapPostRecord {
   wantSameDate?: boolean;
   wantDestinations?: string[];
   wantExclude?: string[];
+  wantAcceptanceOptions?: unknown;
   wtfDays?: number[];
   wantDaysOff?: boolean;
   notes?: string | null;
@@ -181,6 +183,7 @@ function postToCard(p: SwapPostRecord) {
     wantSameDate: p.wantSameDate,
     wantDestinations: p.wantDestinations,
     wantExclude: p.wantExclude,
+    wantAcceptanceOptions: parseWantAcceptanceOptions(p.wantAcceptanceOptions),
     wtfDays: p.wtfDays,
     wantDaysOff: p.wantDaysOff,
     notes: p.notes,
@@ -248,6 +251,7 @@ function vacationTradeToPost(t: VacationTrade) {
     wantSameDate: false,
     wantDestinations: t.desiredDestinations ?? undefined,
     wantExclude: undefined as string[] | undefined,
+    wantAcceptanceOptions: [],
     wtfDays: undefined as number[] | undefined,
     wantDaysOff: false,
     notes: null as string | null,
@@ -415,7 +419,7 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
   const displayedMySwaps = mySwapsSubTab === "active" ? mySwapsActiveRows : mySwapsHistoryRows;
 
   const activeEmptyMessage =
-    "You haven't posted any swaps yet. Go to My Flights to offer trips, or browse the Trade Board.";
+    "You haven't posted any swaps yet. Go to My Flights to offer trips, or browse Swaps.";
   const historyEmptyMessage = "No past swaps yet. Cancelled, completed, and expired listings appear here.";
   const emptyState = (message: string, showCta: boolean) => (
     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 py-12 px-4 shadow-sm">
@@ -429,7 +433,7 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
               style={{ backgroundColor: "var(--primary-cta)" }}
             >
               <Plus className="h-4 w-4" />
-              Post to Trade Board
+              Post a swap
             </Button>
           </Link>
         )}
@@ -504,12 +508,12 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
                   <div
                     className={`rounded-xl border bg-white shadow-sm overflow-hidden ${
                       item.statusPill === "active"
-                        ? "border-l-4 border-l-[var(--primary)] border-slate-200"
+                        ? "border-s-4 border-s-[var(--primary)] border-slate-200"
                         : item.statusPill === "pending"
-                          ? "border-l-4 border-l-amber-500 border-slate-200"
+                          ? "border-s-4 border-s-amber-500 border-slate-200"
                           : item.statusPill === "expired" || item.statusPill === "cancelled"
-                            ? "border-l-4 border-l-slate-400 border-slate-200"
-                            : "border-l-4 border-l-[var(--accent)] border-slate-200"
+                            ? "border-s-4 border-s-slate-400 border-slate-200"
+                            : "border-s-4 border-s-[var(--accent)] border-slate-200"
                     }`}
                   >
                     <SwapPostTradeBoardCard

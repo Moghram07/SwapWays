@@ -14,12 +14,13 @@ export function ConditionalShell({ children }: { children: React.ReactNode }) {
   const isLandingPage = path === "/" || isLocalizedLanding;
   const isDashboard = path?.startsWith("/dashboard");
   const showGlobalNav = !isLandingPage && !isDashboard;
+  const showFooter = isLandingPage;
 
   return (
     <div className="flex min-h-screen flex-col">
       {showGlobalNav && <Navbar />}
       <main className={`flex-1 ${showGlobalNav ? "pt-16" : ""}`}>{children}</main>
-      <Footer />
+      {showFooter && <Footer />}
     </div>
   );
 }

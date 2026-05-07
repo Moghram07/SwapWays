@@ -96,7 +96,7 @@ export function NotificationsClient({
             <li
               key={n.id}
               className={`rounded-xl border bg-white shadow-sm transition-shadow ${
-                n.unread ? "border-l-4 border-l-[#1E6FB9]" : "border-slate-200"
+                n.unread ? "border-s-4 border-s-[#1E6FB9]" : "border-slate-200"
               }`}
             >
               {n.conversationId ? (

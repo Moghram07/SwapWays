@@ -38,7 +38,7 @@ export function TripCard({
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md border-l-4 ${borderColor}`}
+      className={`overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md border-s-4 ${borderColor}`}
     >
       <TripCardHeader
         trip={trip}

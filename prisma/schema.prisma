@@ -331,6 +331,8 @@ model SwapPost {
   wantSameDate     Boolean        @default(false)
   wantDestinations String[]
   wantExclude      String[]
+  /** OR-style acceptance rules: each item is one acceptable alternative (display + future matching). */
+  wantAcceptanceOptions Json?
   wtfDays          Int[]
   wantDaysOff      Boolean        @default(false)
   notes            String?

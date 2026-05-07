@@ -16,6 +16,8 @@ export interface UserAccess {
   canStartNewConversation: boolean;
   canViewConversationHistory: boolean;
   canUploadSchedule: boolean;
+  /** True if the user has at least one uploaded schedule (e.g. PDF line). */
+  hasUploadedSchedule: boolean;
   postExpirationDays: number;
   hasPriorityPlacement: boolean;
   hasAdvancedFilters: boolean;
@@ -40,6 +42,7 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
       trialEndsAt: true,
       subscriptionStatus: true,
       isVerified: true,
+      _count: { select: { schedules: true } },
     },
   });
 
@@ -68,6 +71,7 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
     canStartNewConversation,
     canViewConversationHistory: true,
     canUploadSchedule,
+    hasUploadedSchedule: (user._count.schedules ?? 0) > 0,
     postExpirationDays: 365,
     hasPriorityPlacement: true,
     hasAdvancedFilters: true,

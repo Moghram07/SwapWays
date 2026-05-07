@@ -25,7 +25,7 @@ function getAccentColor(event: CalendarTripEvent): string {
 function getBlockStyles(event: CalendarTripEvent): string {
   const base = `${event.typeInfo.bgColor} ${event.typeInfo.textColor}`;
   const isLayoverDay = event.dayRole === "LAYOVER_DAY";
-  const borderClass = "border-l-[3px]";
+  const borderClass = "border-s-[3px]";
   if (isLayoverDay) {
     return `${base} ${borderClass} border-dashed opacity-80`;
   }

@@ -3,36 +3,75 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { LineType } from "@/types/enums";
-import { getAllAirports } from "@/utils/airportNames";
+import { getInternationalAirports } from "@/utils/airportNames";
+import { getTranslator } from "@/i18n/getTranslator";
+import type { Locale } from "@/i18n/config";
+
+const MONTH_VALUES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+const MONTH_LABEL_KEYS: Record<(typeof MONTH_VALUES)[number], string> = {
+  Jan: "dashboard.monthJan",
+  Feb: "dashboard.monthFeb",
+  Mar: "dashboard.monthMar",
+  Apr: "dashboard.monthApr",
+  May: "dashboard.monthMay",
+  Jun: "dashboard.monthJun",
+  Jul: "dashboard.monthJul",
+  Aug: "dashboard.monthAug",
+  Sep: "dashboard.monthSep",
+  Oct: "dashboard.monthOct",
+  Nov: "dashboard.monthNov",
+  Dec: "dashboard.monthDec",
+};
+
+const LINE_TYPES: LineType[] = [
+  "NORMAL",
+  "US_LINE",
+  "CHINA_LINE",
+  "RESERVE_LINE",
+  "KULN",
+  "INDO",
+  "HJLN",
+  "TRNG",
+];
+
+const LINE_TYPE_LABEL_KEYS: Record<LineType, string> = {
+  NORMAL: "dashboard.lineSwapTypeNORMAL",
+  US_LINE: "dashboard.lineSwapTypeUS_LINE",
+  CHINA_LINE: "dashboard.lineSwapTypeCHINA_LINE",
+  RESERVE_LINE: "dashboard.lineSwapTypeRESERVE_LINE",
+  KULN: "dashboard.lineSwapTypeKULN",
+  INDO: "dashboard.lineSwapTypeINDO",
+  HJLN: "dashboard.lineSwapTypeHJLN",
+  TRNG: "dashboard.lineSwapTypeTRNG",
+};
 
 type LayoverEntry = { destination: string; hours: number };
 
-const monthOptions = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const lineTypeOptions: Array<{ value: LineType; label: string }> = [
-  { value: "NORMAL", label: "Normal" },
-  { value: "US_LINE", label: "US Line" },
-  { value: "CHINA_LINE", label: "China Line" },
-  { value: "RESERVE_LINE", label: "Reserve" },
-  { value: "KULN", label: "KULN" },
-  { value: "INDO", label: "INDO" },
-  { value: "HJLN", label: "HJLN" },
-  { value: "TRNG", label: "TRNG" },
-];
-const wantLineTypeOptions: Array<{ value: "" | LineType; label: string }> = [
-  { value: "", label: "Any" },
-  ...lineTypeOptions,
-];
-
-export function LineSwapForm() {
+export function LineSwapForm({ locale }: { locale: Locale }) {
+  const t = getTranslator(locale);
   const router = useRouter();
-  const airports = getAllAirports().filter((a) => !a.isDomestic);
+  const airports = getInternationalAirports();
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [lineNumber, setLineNumber] = useState("");
   const [lineType, setLineType] = useState<LineType>("NORMAL");
-  const [month, setMonth] = useState("Jan");
+  const [month, setMonth] = useState<(typeof MONTH_VALUES)[number]>("Jan");
   const [year, setYear] = useState(new Date().getFullYear());
   const [daysOffStart, setDaysOffStart] = useState<number | "">("");
   const [daysOffEnd, setDaysOffEnd] = useState<number | "">("");
@@ -56,7 +95,8 @@ export function LineSwapForm() {
         if (!s) return;
         setLineNumber(s.lineNumber || "");
         setLineType(s.lineType || "NORMAL");
-        setMonth(s.month || "Jan");
+        const m = s.month || "Jan";
+        setMonth(MONTH_VALUES.includes(m) ? m : "Jan");
         setYear(s.year || new Date().getFullYear());
         setDaysOffStart(s.daysOffStart || "");
         setDaysOffEnd(s.daysOffEnd || "");
@@ -80,11 +120,11 @@ export function LineSwapForm() {
     e.preventDefault();
     setError(null);
     if (!lineNumber || daysOffStart === "" || daysOffEnd === "") {
-      setError("Line number and days off range are required.");
+      setError(t("dashboard.lineSwapErrLineRequired"));
       return;
     }
     if (hasReserve && reserveDays.length === 0) {
-      setError("Pick at least one RR day when reserve is enabled.");
+      setError(t("dashboard.lineSwapErrReserveDays"));
       return;
     }
 
@@ -115,7 +155,7 @@ export function LineSwapForm() {
     setSubmitting(false);
 
     if (!res.ok) {
-      setError(json?.message || "Failed to post line swap.");
+      setError(json?.message || t("dashboard.lineSwapErrPostFailed"));
       return;
     }
     router.push("/dashboard/line-swap");
@@ -124,55 +164,98 @@ export function LineSwapForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {loadingSummary ? (
-        <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-500">Loading schedule summary...</div>
+        <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-500">
+          {t("dashboard.lineSwapLoadingSummary")}
+        </div>
       ) : (
         <div className="rounded-lg bg-[#E8F5EA] px-3 py-2 text-sm text-[#3BA34A]">
-          Auto-filled from your uploaded schedule. Review and adjust if needed.
+          {t("dashboard.lineSwapAutoFilledHint")}
         </div>
       )}
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+      )}
 
       <div className="rounded-xl border border-slate-200 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-slate-700">My Line</h3>
+        <h3 className="mb-3 text-sm font-semibold text-slate-700">{t("dashboard.lineSwapMyLine")}</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <input name="lineNumber" value={lineNumber} onChange={(e) => setLineNumber(e.target.value)} placeholder="Line # (e.g. 404)" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
-          <select name="month" value={month} onChange={(e) => setMonth(e.target.value)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900">
-            {monthOptions.map((m) => <option key={m}>{m}</option>)}
+          <input
+            name="lineNumber"
+            value={lineNumber}
+            onChange={(e) => setLineNumber(e.target.value)}
+            placeholder={t("dashboard.lineSwapLineNumberPh")}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+          />
+          <select
+            name="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value as (typeof MONTH_VALUES)[number])}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+          >
+            {MONTH_VALUES.map((m) => (
+              <option key={m} value={m}>
+                {t(MONTH_LABEL_KEYS[m])}
+              </option>
+            ))}
           </select>
-          <input name="year" type="number" value={year} onChange={(e) => setYear(Number(e.target.value) || new Date().getFullYear())} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
+          <input
+            name="year"
+            type="number"
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value) || new Date().getFullYear())}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+          />
         </div>
 
         <div className="mt-3">
-          <p className="mb-2 text-xs font-medium text-slate-500">Line type</p>
+          <p className="mb-2 text-xs font-medium text-slate-500">{t("dashboard.lineSwapLineType")}</p>
           <div className="flex flex-wrap gap-2">
-            {lineTypeOptions.map((option) => (
+            {LINE_TYPES.map((value) => (
               <button
-                key={option.value}
+                key={value}
                 type="button"
-                onClick={() => setLineType(option.value)}
+                onClick={() => setLineType(value)}
                 className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition-colors ${
-                  lineType === option.value
+                  lineType === value
                     ? "border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
                     : "border-slate-200 text-slate-600 hover:border-slate-300"
                 }`}
               >
-                {option.label}
+                {t(LINE_TYPE_LABEL_KEYS[value])}
               </button>
             ))}
           </div>
         </div>
 
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <input name="daysOffStart" type="number" value={daysOffStart} onChange={(e) => setDaysOffStart(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Days off from" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
-          <input name="daysOffEnd" type="number" value={daysOffEnd} onChange={(e) => setDaysOffEnd(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Days off to" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
+          <input
+            name="daysOffStart"
+            type="number"
+            value={daysOffStart}
+            onChange={(e) => setDaysOffStart(e.target.value ? Number(e.target.value) : "")}
+            min={1}
+            max={31}
+            placeholder={t("dashboard.lineSwapDaysOffFrom")}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+          />
+          <input
+            name="daysOffEnd"
+            type="number"
+            value={daysOffEnd}
+            onChange={(e) => setDaysOffEnd(e.target.value ? Number(e.target.value) : "")}
+            min={1}
+            max={31}
+            placeholder={t("dashboard.lineSwapDaysOffTo")}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+          />
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
           <input name="hasReserve" type="checkbox" checked={hasReserve} onChange={(e) => setHasReserve(e.target.checked)} />
-          Has Reserve (RR) days
+          {t("dashboard.lineSwapHasReserve")}
         </label>
         {hasReserve && (
           <div className="mt-2 rounded-lg border border-slate-200 p-3">
-            <p className="mb-2 text-xs font-medium text-slate-500">Pick RR days</p>
+            <p className="mb-2 text-xs font-medium text-slate-500">{t("dashboard.lineSwapPickRrDays")}</p>
             <div className="flex flex-wrap gap-1.5">
               {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
                 const active = reserveDays.includes(day);
@@ -198,13 +281,13 @@ export function LineSwapForm() {
         )}
 
         <div className="mt-3 space-y-2">
-          <p className="text-xs font-medium text-slate-500">Layovers</p>
+          <p className="text-xs font-medium text-slate-500">{t("dashboard.lineSwapLayovers")}</p>
           {lineType === "RESERVE_LINE" ? (
-            <p className="text-sm italic text-slate-400">Reserve line - no layovers</p>
+            <p className="text-sm italic text-slate-400">{t("dashboard.lineSwapReserveNoLayovers")}</p>
           ) : (
             <>
               {layovers.map((layover, index) => (
-                <div key={`${index}-${layover.destination}`} className="flex items-center gap-2">
+                <div key={`${index}-${layover.destination}`} className="flex flex-wrap items-center gap-2">
                   <select
                     name={`layoverDestination-${index}`}
                     value={layover.destination}
@@ -213,9 +296,9 @@ export function LineSwapForm() {
                         prev.map((l, i) => (i === index ? { ...l, destination: e.target.value } : l))
                       )
                     }
-                    className="w-48 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+                    className="w-48 max-w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
                   >
-                    <option value="">Select destination</option>
+                    <option value="">{t("dashboard.lineSwapSelectDestination")}</option>
                     {airports.map((airport) => (
                       <option key={airport.code} value={airport.code}>
                         {airport.code} - {airport.city}
@@ -236,13 +319,13 @@ export function LineSwapForm() {
                     className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm text-gray-900 placeholder:text-gray-400"
                     placeholder="0"
                   />
-                  <span className="text-xs text-slate-500">hrs</span>
+                  <span className="text-xs text-slate-500">{t("dashboard.lineSwapHoursAbbr")}</span>
                   <button
                     type="button"
                     onClick={() => setLayovers((prev) => prev.filter((_, i) => i !== index))}
-                    className="ml-1 text-red-500 hover:text-red-700"
+                    className="ms-1 text-red-500 hover:text-red-700"
                   >
-                    x
+                    ×
                   </button>
                 </div>
               ))}
@@ -251,7 +334,7 @@ export function LineSwapForm() {
                 onClick={() => setLayovers((prev) => [...prev, { destination: "", hours: 0 }])}
                 className="text-sm text-[#2668B0] hover:underline"
               >
-                + Add layover
+                {t("dashboard.lineSwapAddLayover")}
               </button>
             </>
           )}
@@ -259,10 +342,28 @@ export function LineSwapForm() {
       </div>
 
       <div className="rounded-xl border border-slate-200 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-slate-700">What I Want</h3>
+        <h3 className="mb-3 text-sm font-semibold text-slate-700">{t("dashboard.lineSwapWhatIWant")}</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <input name="wantDaysOffStart" type="number" value={wantDaysOffStart} onChange={(e) => setWantDaysOffStart(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Preferred days off from" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
-          <input name="wantDaysOffEnd" type="number" value={wantDaysOffEnd} onChange={(e) => setWantDaysOffEnd(e.target.value ? Number(e.target.value) : "")} min={1} max={31} placeholder="Preferred days off to" className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
+          <input
+            name="wantDaysOffStart"
+            type="number"
+            value={wantDaysOffStart}
+            onChange={(e) => setWantDaysOffStart(e.target.value ? Number(e.target.value) : "")}
+            min={1}
+            max={31}
+            placeholder={t("dashboard.lineSwapPreferredDaysOffFrom")}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+          />
+          <input
+            name="wantDaysOffEnd"
+            type="number"
+            value={wantDaysOffEnd}
+            onChange={(e) => setWantDaysOffEnd(e.target.value ? Number(e.target.value) : "")}
+            min={1}
+            max={31}
+            placeholder={t("dashboard.lineSwapPreferredDaysOffTo")}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+          />
         </div>
         <div className="mt-3">
           <select
@@ -271,7 +372,7 @@ export function LineSwapForm() {
             onChange={(e) => setWantDestination(e.target.value)}
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
           >
-            <option value="">Any destination</option>
+            <option value="">{t("dashboard.lineSwapAnyDestination")}</option>
             {airports.map((airport) => (
               <option key={airport.code} value={airport.code}>
                 {airport.code} - {airport.city}
@@ -280,45 +381,68 @@ export function LineSwapForm() {
           </select>
         </div>
         <div className="mt-3">
-          <p className="mb-2 text-xs font-medium text-slate-500">Preferred line type</p>
+          <p className="mb-2 text-xs font-medium text-slate-500">{t("dashboard.lineSwapPreferredLineType")}</p>
           <div className="flex flex-wrap gap-2">
-            {wantLineTypeOptions.map((option) => (
+            <button
+              type="button"
+              onClick={() => setWantLineType("")}
+              className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition-colors ${
+                wantLineType === ""
+                  ? "border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
+                  : "border-slate-200 text-slate-600 hover:border-slate-300"
+              }`}
+            >
+              {t("dashboard.lineSwapWantAny")}
+            </button>
+            {LINE_TYPES.map((value) => (
               <button
-                key={option.value || "ANY"}
+                key={value}
                 type="button"
-                onClick={() => setWantLineType(option.value)}
+                onClick={() => setWantLineType(value)}
                 className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition-colors ${
-                  wantLineType === option.value
+                  wantLineType === value
                     ? "border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
                     : "border-slate-200 text-slate-600 hover:border-slate-300"
                 }`}
               >
-                {option.label}
+                {t(LINE_TYPE_LABEL_KEYS[value])}
               </button>
             ))}
           </div>
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
           <input name="wantNoReserve" type="checkbox" checked={wantNoReserve} onChange={(e) => setWantNoReserve(e.target.checked)} />
-          No Reserve (RR)
+          {t("dashboard.lineSwapNoReserve")}
         </label>
-        <textarea name="notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Looking for off 2-7 please..." className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400" />
+        <textarea
+          name="notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          placeholder={t("dashboard.lineSwapNotesPh")}
+          className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+        />
       </div>
 
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <button
           type="button"
           onClick={() => router.push("/dashboard/add-trade")}
           className="text-sm text-slate-500 hover:underline"
         >
-          ← Back
+          <span className="inline-flex items-center gap-1">
+            <span aria-hidden className="rtl:rotate-180">
+              ←
+            </span>
+            {t("dashboard.lineSwapBack")}
+          </span>
         </button>
         <button
           type="submit"
           disabled={submitting}
           className="rounded-xl bg-[#2668B0] px-6 py-3 text-sm font-medium text-white disabled:opacity-50"
         >
-          {submitting ? "Posting..." : "Post to Line Swap Board"}
+          {submitting ? t("dashboard.lineSwapPosting") : t("dashboard.lineSwapSubmit")}
         </button>
       </div>
     </form>

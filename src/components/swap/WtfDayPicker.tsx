@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 interface WtfDayPickerProps {
   selectedDays: number[];
   scheduledDays: number[];
@@ -9,7 +11,7 @@ interface WtfDayPickerProps {
   /** When set, only days before this (in the month) are disabled; all from this day onward are selectable. */
   minSelectableDay?: number;
   /** Override the label (default: "Willing to fly days"). Set to empty string to hide. */
-  label?: string;
+  label?: ReactNode;
 }
 
 export function WtfDayPicker({

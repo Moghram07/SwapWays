@@ -15,8 +15,6 @@ interface ScheduleUploadCardProps {
 export function ScheduleUploadCard({ onUploadSuccess }: ScheduleUploadCardProps) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
-  const [month, setMonth] = useState(() => new Date().getMonth() + 1);
-  const [year, setYear] = useState(() => new Date().getFullYear());
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -30,8 +28,6 @@ export function ScheduleUploadCard({ onUploadSuccess }: ScheduleUploadCardProps)
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("month", String(month));
-      formData.append("year", String(year));
       const res = await fetch("/api/schedule/upload", {
         method: "POST",
         body: formData,
@@ -58,7 +54,7 @@ export function ScheduleUploadCard({ onUploadSuccess }: ScheduleUploadCardProps)
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Crew Schedule</CardTitle>
+        <CardTitle>Line Schedule</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-xs text-slate-500">
@@ -73,34 +69,6 @@ export function ScheduleUploadCard({ onUploadSuccess }: ScheduleUploadCardProps)
               className="block w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm file:mr-2 file:rounded-lg file:border-0 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white file:bg-[#1E6FB9] file:text-white"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-slate-600">Month</span>
-            <select
-              className="h-11 text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
-              value={month}
-              onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-            >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
-                <option key={m} value={m}>
-                  {new Date(2000, m - 1, 1).toLocaleString("default", { month: "long" })}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-slate-600">Year</span>
-            <select
-              className="h-11 text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
-              value={year}
-              onChange={(e) => setYear(parseInt(e.target.value, 10))}
-            >
-              {[2024, 2025, 2026, 2027].map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
           </label>
           <Button
             onClick={handleUpload}

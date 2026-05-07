@@ -3,6 +3,13 @@ import type { TripType } from "./enums";
 
 export type { SwapPostType, SwapPostStatus, WantType };
 
+/** One acceptable alternative in return (OR with other items). */
+export interface WantAcceptanceOption {
+  airportCodes: string[];
+  minBlockHours?: number | null;
+  maxBlockHours?: number | null;
+}
+
 export interface WantCriteriaData {
   wantType: WantType;
   wantTripTypes: TripType[];
@@ -13,6 +20,13 @@ export interface WantCriteriaData {
   wantSameDate: boolean;
   wantDestinations: string[];
   wantExclude: string[];
+  /**
+   * Client-only: user chose “Anything” for want destinations (persisted as empty `wantDestinations`).
+   * Send on create/update so the API can distinguish from an invalid empty list. Not stored on `SwapPost`.
+   */
+  wantOpenToAnyDestination?: boolean;
+  /** Optional structured “I’ll accept this OR this…” rows (stored as JSON on SwapPost). */
+  wantAcceptanceOptions: WantAcceptanceOption[];
   wtfDays: number[];
   wantDaysOff: boolean;
   notes: string;
@@ -83,6 +97,7 @@ export interface SwapPostData {
   wantSameDate: boolean;
   wantDestinations: string[];
   wantExclude: string[];
+  wantAcceptanceOptions?: WantAcceptanceOption[];
   wtfDays: number[];
   wantDaysOff: boolean;
   notes: string | null;

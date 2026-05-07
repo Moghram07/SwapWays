@@ -1,16 +1,43 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { CreatePostFlow } from "@/components/swap-post/CreatePostFlow";
-import { LineSwapForm } from "@/components/line-swap/LineSwapForm";
 import type { TripOption } from "@/components/swap-post/TripSelector";
 import type { WantCriteriaData } from "@/types/swapPost";
+import { parseWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
 import type { QuickPostOfferedTripData, SwapPostInputSource } from "@/types/swapPost";
 import { isQuickPostEnabledForUser } from "@/lib/featureFlags";
 import { useUserAccess } from "@/hooks/useUserAccess";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
+import { useDashboardLocale } from "@/contexts/DashboardLocaleContext";
+import { getTranslator } from "@/i18n/getTranslator";
+
+const CreatePostFlow = dynamic(
+  () => import("@/components/swap-post/CreatePostFlow").then((m) => ({ default: m.CreatePostFlow })),
+  {
+    loading: () => (
+      <div className="mx-auto max-w-2xl space-y-4 py-4" aria-hidden>
+        <div className="h-1 w-full animate-pulse rounded-full bg-slate-200" />
+        <div className="h-40 rounded-xl border border-slate-200 bg-slate-50/80 animate-pulse" />
+        <div className="h-32 rounded-xl border border-slate-200 bg-slate-50/80 animate-pulse" />
+      </div>
+    ),
+  }
+);
+
+const LineSwapForm = dynamic(
+  () => import("@/components/line-swap/LineSwapForm").then((m) => ({ default: m.LineSwapForm })),
+  {
+    loading: () => (
+      <div className="mx-auto max-w-2xl space-y-3 py-4" aria-hidden>
+        <div className="h-10 rounded-lg bg-slate-100 animate-pulse" />
+        <div className="h-48 rounded-xl border border-slate-200 bg-slate-50/80 animate-pulse" />
+      </div>
+    ),
+  }
+);
 
 function getScheduledDaysFromTrips(
   trips: TripOption[],
@@ -72,6 +99,7 @@ interface EditPostData {
   wantSameDate: boolean;
   wantDestinations: string[];
   wantExclude: string[];
+  wantAcceptanceOptions?: unknown;
   wtfDays: number[];
   wantDaysOff: boolean;
   notes: string | null;
@@ -92,6 +120,8 @@ interface EditPostData {
 }
 
 export default function PostToTradeBoardPage() {
+  const locale = useDashboardLocale();
+  const t = getTranslator(locale);
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -107,9 +137,7 @@ export default function PostToTradeBoardPage() {
   const [editPost, setEditPost] = useState<EditPostData | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>("line_swap");
-  const [upgradeReason, setUpgradeReason] = useState<string>(
-    "Upgrade to Premium to unlock this feature."
-  );
+  const [upgradeReason, setUpgradeReason] = useState<string>("");
   const { access } = useUserAccess();
   const now = new Date();
   const month = now.getMonth() + 1;
@@ -177,7 +205,7 @@ export default function PostToTradeBoardPage() {
   if (status === "loading" || loading) {
     return (
       <div className="flex items-center justify-center py-12 text-slate-500">
-        Loading…
+        {t("dashboard.loading")}
       </div>
     );
   }
@@ -185,15 +213,17 @@ export default function PostToTradeBoardPage() {
   if (!session?.user?.id) {
     return (
       <div className="py-12 text-center text-slate-500">
-        Please sign in.
+        {t("dashboard.pleaseSignIn")}
       </div>
     );
   }
 
   const userDisplay = {
-    firstName: (session.user as { name?: string }).name?.split(" ")[0] ?? "Crew",
-    rank: "Crew",
-    base: "Base",
+    firstName:
+      (session.user as { name?: string }).name?.split(" ")[0] ??
+      t("dashboard.crewFallback"),
+    rank: t("dashboard.crewFallback"),
+    base: t("dashboard.baseSuffix"),
   };
   const quickPostEnabled = isQuickPostEnabledForUser(session.user.id);
 
@@ -255,51 +285,70 @@ export default function PostToTradeBoardPage() {
       ? [tripId]
       : undefined;
   const initialWantCriteria: WantCriteriaData | undefined = editPost
-    ? {
-        wantType: editPost.wantType as WantCriteriaData["wantType"],
-        wantTripTypes: (editPost.wantTripTypes ?? []) as WantCriteriaData["wantTripTypes"],
-        wantMinLayover: editPost.wantMinLayover ?? null,
-        wantMinCredit: editPost.wantMinCredit ?? null,
-        wantMaxCredit: editPost.wantMaxCredit ?? null,
-        wantEqualHours: editPost.wantEqualHours ?? false,
-        wantSameDate: editPost.wantSameDate ?? false,
-        wantDestinations: editPost.wantDestinations ?? [],
-        wantExclude: editPost.wantExclude ?? [],
-        wtfDays: editPost.wtfDays ?? [],
-        wantDaysOff: editPost.wantDaysOff ?? false,
-        notes: editPost.notes ?? "",
-      }
+    ? (() => {
+        const isLegacyAnything = editPost.wantType === "ANYTHING";
+        const wantType = (isLegacyAnything ? "LAYOVER" : editPost.wantType) as WantCriteriaData["wantType"];
+        const destLen = editPost.wantDestinations?.length ?? 0;
+        const wantOpenToAnyDestination =
+          isLegacyAnything ||
+          (destLen === 0 &&
+            editPost.wantType !== "DAYS_OFF" &&
+            editPost.wantType !== "SPECIFIC" &&
+            editPost.wantType !== "ANYTHING");
+        return {
+          wantType,
+          wantTripTypes: (editPost.wantTripTypes ?? []) as WantCriteriaData["wantTripTypes"],
+          wantMinLayover: editPost.wantMinLayover ?? null,
+          wantMinCredit: editPost.wantMinCredit ?? null,
+          wantMaxCredit: editPost.wantMaxCredit ?? null,
+          wantEqualHours: editPost.wantEqualHours ?? false,
+          wantSameDate: editPost.wantSameDate ?? false,
+          wantDestinations: wantOpenToAnyDestination ? [] : (editPost.wantDestinations ?? []),
+          wantExclude: editPost.wantExclude ?? [],
+          wantOpenToAnyDestination,
+          wantAcceptanceOptions: parseWantAcceptanceOptions(editPost.wantAcceptanceOptions),
+          wtfDays: editPost.wtfDays ?? [],
+          wantDaysOff: editPost.wantDaysOff ?? false,
+          notes: editPost.notes ?? "",
+        };
+      })()
     : undefined;
 
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          {isLineSwapMode ? "Line Swap" : editId ? "Edit your post" : "Post to Trade Board"}
+          {isLineSwapMode
+            ? t("dashboard.postLineSwap")
+            : editId
+              ? t("dashboard.postEditYourPost")
+              : t("dashboard.postASwap")}
         </h1>
       </div>
       {isLineSwapMode ? (
         <div className="mx-auto max-w-2xl">
           {access && !access.canPostLineSwap ? (
             <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-              <h2 className="text-xl font-semibold text-slate-900">Line swaps are Premium</h2>
+              <h2 className="text-xl font-semibold text-slate-900">
+                {t("dashboard.lineSwapsPremiumTitle")}
+              </h2>
               <p className="mt-2 text-sm text-slate-600">
-                Upgrade to Premium to post whole-month line swaps.
+                {t("dashboard.lineSwapsPremiumBody")}
               </p>
               <button
                 type="button"
                 onClick={() => {
                   setUpgradeFeature("line_swap");
-                  setUpgradeReason("Line swaps let you trade your entire monthly schedule with another crew member.");
+                  setUpgradeReason(t("dashboard.lineSwapUpgradeReason"));
                   setShowUpgradeModal(true);
                 }}
                 className="mt-4 rounded-lg bg-[#2668B0] px-4 py-2.5 text-sm font-medium text-white"
               >
-                Upgrade to Premium
+                {t("dashboard.upgradeToPremiumCta")}
               </button>
             </div>
           ) : (
-            <LineSwapForm />
+            <LineSwapForm locale={locale} />
           )}
         </div>
       ) : (
@@ -324,7 +373,7 @@ export default function PostToTradeBoardPage() {
           onSelectLineSwap={() => {
             if (access && !access.canPostLineSwap) {
               setUpgradeFeature("line_swap");
-              setUpgradeReason("Line swaps let you trade your entire monthly schedule with another crew member.");
+              setUpgradeReason(t("dashboard.lineSwapUpgradeReason"));
               setShowUpgradeModal(true);
               return;
             }

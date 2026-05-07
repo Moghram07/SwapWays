@@ -6,19 +6,14 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { mutate } from "swr";
 import {
-  LayoutDashboard,
-  Plane,
   ArrowLeftRight,
+  Zap,
   MessageCircle,
-  Bell,
-  User,
+  UserRound,
   ArrowLeft,
-  Calendar,
   PlusCircle,
   Loader2,
   ShieldCheck,
-  LifeBuoy,
-  Smartphone,
 } from "lucide-react";
 import { getTranslator } from "@/i18n/getTranslator";
 import { type Locale } from "@/i18n/config";
@@ -27,21 +22,16 @@ const PRIMARY = "#1E6FB9";
 const ACCENT = "#2DAF66";
 
 const baseLinks = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard, prefetchUrls: ["/api/profile", "/api/trades?mine=1", "/api/matches", "/api/schedule/my-trips", "/api/conversations/unread-count"] },
-  { href: "/dashboard/my-trades", label: "My Flights", icon: Plane, prefetchUrls: ["/api/schedule/my-trips", "/api/trades?mine=1", "/api/profile"] },
-  { href: "/dashboard/add-trade", label: "Post to Trade Board", icon: PlusCircle, prefetchUrls: ["/api/schedule/my-trips"] },
-  { href: "/dashboard/matches", label: "Swaps", icon: ArrowLeftRight, prefetchUrls: ["/api/matches", "/api/swap-posts?mine=1", "/api/profile"] },
-  { href: "/dashboard/messages", label: "Messages", icon: MessageCircle, prefetchUrls: ["/api/conversations", "/api/profile"] },
-  { href: "/dashboard/notifications", label: "Notifications", icon: Bell, prefetchUrls: [] as string[] },
-  { href: "/dashboard/schedule", label: "Crew Schedule", icon: Calendar, prefetchUrls: ["/api/schedule/events"] },
-  { href: "/dashboard/feedback", label: "Help & Feedback", icon: LifeBuoy, prefetchUrls: [] as string[] },
-  { href: "/dashboard/install", label: "Install App", icon: Smartphone, prefetchUrls: [] as string[] },
-  { href: "/dashboard/profile", label: "Profile", icon: User, prefetchUrls: ["/api/profile"] },
+  { href: "/dashboard/board", labelKey: "dashboard.swaps", icon: ArrowLeftRight, prefetchUrls: ["/api/swap-posts/board", "/api/profile"] },
+  { href: "/dashboard/matches", labelKey: "dashboard.matchesTab", icon: Zap, prefetchUrls: ["/api/matches", "/api/profile"] },
+  { href: "/dashboard/add-trade", labelKey: "dashboard.postTab", icon: PlusCircle, prefetchUrls: ["/api/schedule/my-trips"] },
+  { href: "/dashboard/messages", labelKey: "dashboard.messages", icon: MessageCircle, prefetchUrls: ["/api/conversations", "/api/profile"] },
+  { href: "/dashboard/account", labelKey: "dashboard.accountTab", icon: UserRound, prefetchUrls: ["/api/profile"] },
 ];
 
 const adminLink = {
   href: "/dashboard/admin",
-  label: "Admin",
+  labelKey: "dashboard.admin",
   icon: ShieldCheck,
   prefetchUrls: ["/api/admin/feedback", "/api/admin/stats"],
 };
@@ -70,30 +60,7 @@ export function Sidebar({
   const [navigatingHref, setNavigatingHref] = useState<string | null>(null);
   const links = (isAdmin ? [...baseLinks, adminLink] : baseLinks).map((link) => ({
     ...link,
-    label:
-      link.href === "/dashboard"
-        ? t("dashboard.overview")
-        : link.href === "/dashboard/my-trades"
-          ? t("dashboard.myFlights")
-          : link.href === "/dashboard/add-trade"
-            ? t("dashboard.postToTradeBoard")
-            : link.href === "/dashboard/matches"
-              ? t("dashboard.swaps")
-              : link.href === "/dashboard/messages"
-                ? t("dashboard.messages")
-                : link.href === "/dashboard/notifications"
-                  ? t("dashboard.notifications")
-                  : link.href === "/dashboard/schedule"
-                    ? t("dashboard.crewSchedule")
-                    : link.href === "/dashboard/feedback"
-                      ? t("dashboard.helpAndFeedback")
-                      : link.href === "/dashboard/install"
-                        ? t("dashboard.installApp")
-                        : link.href === "/dashboard/profile"
-                          ? t("dashboard.profile")
-                          : link.href === "/dashboard/admin"
-                            ? t("dashboard.admin")
-                            : link.label,
+    label: t(link.labelKey as never),
   }));
 
   useEffect(() => {
@@ -122,7 +89,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="hidden md:flex md:w-64 md:shrink-0 flex-col border-r border-slate-200 bg-white">
+    <aside className="hidden md:flex md:w-64 md:shrink-0 flex-col border-e border-slate-200 bg-white">
       <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-5">
         <Image
           src="/images/swapways-logo.png"
@@ -137,16 +104,16 @@ export function Sidebar({
         </span>
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-4">
-        <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <p className="mb-3 px-3 text-start text-[11px] font-semibold uppercase tracking-wider text-slate-400">
           {t("dashboard.menu")}
         </p>
         {links.map(({ href, label, icon: Icon, prefetchUrls }) => {
-          const isActive = pathname === href;
+          const isActive = pathname === href || pathname.startsWith(`${href}/`);
           const showUnread = href === "/dashboard/messages" && unreadMessages > 0;
           const isNavigating = navigatingHref === href;
           return (
             <Link
-              key={label}
+              key={href}
               href={href}
               prefetch={false}
               onMouseEnter={() => prefetchUrls.forEach(warmCache)}
@@ -178,7 +145,7 @@ export function Sidebar({
                 )}
                 {showUnread && (
                   <span
-                    className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
+                    className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
                     style={{ backgroundColor: PRIMARY }}
                   >
                     {unreadMessages > 99 ? "99+" : unreadMessages}
@@ -192,9 +159,7 @@ export function Sidebar({
       </nav>
       <div className="border-t border-slate-100 px-4 py-3">
         <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-700">
-          {locale === "ar"
-            ? "بيتا مجاني: كل المزايا متاحة الآن. شاركنا ملاحظاتك لتحسين Swap Ways."
-            : "Free beta: all features are unlocked. Share feedback to help us improve Swap Ways."}
+          {t("dashboard.freeBetaMessage")}
         </div>
       </div>
       <div className="border-t border-slate-100 p-4">
@@ -203,7 +168,7 @@ export function Sidebar({
           prefetch={false}
           className="flex items-center gap-4 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
-          <ArrowLeft className="h-5 w-5 shrink-0" strokeWidth={2} />
+          <ArrowLeft className="h-5 w-5 shrink-0 rtl:rotate-180" strokeWidth={2} />
           {t("dashboard.backToHome")}
         </Link>
       </div>

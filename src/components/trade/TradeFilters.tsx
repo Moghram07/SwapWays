@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { getAllAirports } from "@/utils/airportNames";
 
@@ -26,6 +27,8 @@ export function TradeFilters({
   onTradeTypeChange,
   onReset,
 }: TradeFiltersProps) {
+  const airportOptions = useMemo(() => getAllAirports(), []);
+
   return (
     <div className="flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-slate-50/50 p-4">
       <div className="space-y-1">
@@ -54,7 +57,7 @@ export function TradeFilters({
           className="text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
         >
           <option value="">All</option>
-          {getAllAirports().map((a) => (
+          {airportOptions.map((a) => (
             <option key={a.code} value={a.code}>{a.code}</option>
           ))}
         </select>

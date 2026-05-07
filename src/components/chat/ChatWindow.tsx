@@ -103,13 +103,13 @@ export function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
   if (!conversationId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-4 bg-[var(--border-muted)]/50">
-        <p className="text-slate-500">Select a conversation or start one from the Trade Board.</p>
+        <p className="text-slate-500">Select a conversation or start one from Swaps.</p>
         <Link
-          href="/dashboard/matches"
+          href="/dashboard/board"
           className="rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1"
           style={{ backgroundColor: "var(--primary-cta)" }}
         >
-          Go to Trade Board
+          Go to Swaps
         </Link>
       </div>
     );

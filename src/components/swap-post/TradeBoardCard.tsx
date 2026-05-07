@@ -12,6 +12,7 @@ import { TripTypeBadge } from "@/components/trip/TripTypeBadge";
 import { MatchBadge } from "@/components/swap-post/MatchBadge";
 import { NotesDisplay } from "@/components/swap-post/NotesDisplay";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
+import type { WantAcceptanceOption } from "@/types/swapPost";
 
 type WantType =
   | "LAYOVER"
@@ -86,6 +87,7 @@ interface PostCardData {
   wantSameDate?: boolean;
   wantDestinations?: string[];
   wantExclude?: string[];
+  wantAcceptanceOptions?: WantAcceptanceOption[];
   wtfDays?: number[];
   wantDaysOff?: boolean;
   notes?: string | null;
@@ -136,6 +138,8 @@ function asDate(value: Date | string | null | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+const CARD_SECTION_LABEL = "mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500";
+
 function OfferingTripRow({ trip }: { trip: TripRow }) {
   const typeInfo = getTripTypeInfo(trip.tripType);
   const { format: timeMode } = useTimeFormat();
@@ -171,7 +175,7 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
 
   const dateRange = (() => {
     const departureDate = asDate(trip.departureDate);
-    if (!departureDate) return "—";
+    if (!departureDate) return "";
     if (!firstLeg || !lastLeg) {
       return departureDate.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
     }
@@ -194,12 +198,12 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
   })();
 
   const blockValue = trip.blockHours ?? trip.creditHours ?? 0;
-  const blockLabel = blockValue > 0 ? creditHoursToHumanReadable(blockValue) : "—";
+  const blockLabel = blockValue > 0 ? creditHoursToHumanReadable(blockValue) : null;
 
   const reportTime = (() => {
-    if (!trip.reportTime) return "—";
+    if (!trip.reportTime) return null;
     const reportAirport = trip.baseAirportCode ?? firstLeg?.departureAirport ?? "";
-    if (!reportAirport) return "—";
+    if (!reportAirport) return null;
     return timeMode === "zulu"
       ? formatZuluTime(trip.reportTime)
       : zuluToLocal(trip.reportTime, reportAirport).label;
@@ -228,19 +232,21 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
     trip.tripType === "LAYOVER" && trip.layoverHours != null ? creditHoursToHumanReadable(trip.layoverHours) : null;
 
   return (
-    <div className={`w-full rounded-lg border border-slate-200 bg-white p-4 border-l-4 ${typeInfo.borderColor}`}>
-      <div className="mb-3">
-        <div className="flex items-center justify-between mb-1">
+    <div className={`w-full rounded-md bg-slate-50/80 p-2.5 sm:p-3 border-s-4 ${typeInfo.borderColor}`}>
+      <div className="mb-2 sm:mb-3">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-1.5">
           <TripTypeBadge typeInfo={typeInfo} />
-          <span className="text-sm text-gray-500 font-medium">{dateRange}</span>
+          <span className="text-sm font-medium text-gray-500">{dateRange}</span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-base font-bold text-gray-900 truncate pr-3">
+        <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+          <span className="min-w-0 text-sm font-bold leading-snug text-gray-900 sm:text-base">
             SV{firstLeg?.flightNumber ?? trip.flightNumber} · {destinationDisplay}
           </span>
-          <span className="text-sm text-gray-500 whitespace-nowrap">
-            Report: <span className="text-gray-700 font-medium">{reportTime}</span>
-          </span>
+          {reportTime ? (
+            <span className="shrink-0 text-sm text-gray-500">
+              Report: <span className="font-medium text-gray-700">{reportTime}</span>
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -267,7 +273,7 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
           const duration =
             typeof leg.flyingTime === "number"
               ? creditHoursToHumanReadable(leg.flyingTime)
-              : "—";
+              : null;
           const isDeadHead =
             (leg.flightNumber ?? "").toUpperCase().startsWith("DH");
 
@@ -280,34 +286,36 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
 
           return (
             <Fragment key={`leg-${idx}`}>
-              <div className="grid grid-cols-1 sm:grid-cols-[minmax(100px,1fr)_minmax(120px,1fr)_minmax(140px,1fr)_minmax(60px,auto)] gap-x-4 gap-y-1 items-center py-2.5 text-sm">
-                <span className="font-semibold text-gray-900 inline-flex items-center gap-2 min-w-0">
-                  <span className="truncate">{leg.departureAirport} → {leg.arrivalAirport}</span>
+              <div className="grid grid-cols-1 gap-x-2 gap-y-0.5 py-1.5 text-sm max-sm:grid-cols-[1fr_auto] sm:grid-cols-[minmax(100px,1fr)_minmax(120px,1fr)_minmax(140px,1fr)_minmax(60px,auto)] sm:gap-x-3 sm:py-2.5 sm:items-center">
+                <span className="col-span-full inline-flex min-w-0 flex-wrap items-center gap-1.5 font-semibold text-gray-900 sm:col-span-1 sm:gap-2">
+                  <span className="min-w-0 break-words">{leg.departureAirport} → {leg.arrivalAirport}</span>
                   {isDeadHead && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-semibold">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] font-semibold text-purple-700 sm:px-2.5 sm:text-[10px]">
                       DH (No Duty)
                     </span>
                   )}
                 </span>
 
-                <span className="text-gray-600">
+                <span className="text-gray-600 max-sm:col-start-1">
                   Dep: {depTime}
                 </span>
 
-                <span className="text-gray-600">
+                <span className="text-gray-600 max-sm:col-start-2 max-sm:text-end max-sm:row-start-2 sm:col-auto sm:text-start">
                   Arr: {arrTime}
-                  {crossesMidnight && <span className="text-amber-500 text-xs ml-1">+1d</span>}
+                  {crossesMidnight && <span className="ms-0.5 text-xs text-amber-500 sm:ms-1">+1d</span>}
                   {isLastLeg && arrDateStr && (
-                    <span className="text-gray-400 text-xs ml-1">{arrDateStr}</span>
+                    <span className="ms-0.5 text-xs text-gray-400 sm:ms-1">{arrDateStr}</span>
                   )}
                 </span>
 
-                <span className="text-gray-400 text-xs text-right">
-                  {duration}
-                </span>
+                {duration ? (
+                  <span className="col-span-full text-xs text-gray-400 max-sm:pt-0.5 sm:col-span-1 sm:text-end sm:text-sm">
+                    {duration}
+                  </span>
+                ) : null}
               </div>
               {showLayoverBarAfterThisLeg && (
-                <div className="mx-0 my-2 rounded-lg border border-[#3BA34A]/20 bg-[#E8F5EA] px-4 py-3">
+                <div className="mx-0 my-1.5 rounded-lg border border-[#3BA34A]/20 bg-[#E8F5EA] px-2.5 py-2 sm:my-2 sm:px-3 sm:py-2.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <Moon size={18} className="shrink-0 text-[#3BA34A]" />
                     <span className="font-semibold text-[#3BA34A]">
@@ -322,20 +330,23 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
         })}
       </div>
 
-      <div className="mt-3 flex items-center gap-4 text-sm font-semibold text-gray-700">
-        <span>Block: {blockLabel}</span>
-      </div>
+      {blockLabel ? (
+        <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-gray-700 sm:mt-3">
+          <span>Block: {blockLabel}</span>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function WantsDisplay({
+function ForDisplay({
   wantType,
   wantMinLayover,
   wantEqualHours,
   wantSameDate,
   wantDestinations,
   wantExclude,
+  wantAcceptanceOptions,
   offeredDaysOff,
   wtfDays,
 }: {
@@ -345,88 +356,110 @@ function WantsDisplay({
   wantSameDate?: boolean;
   wantDestinations?: string[];
   wantExclude?: string[];
+  wantAcceptanceOptions?: WantAcceptanceOption[];
   offeredDaysOff?: number[];
   wtfDays?: number[];
 }) {
   const hasPreferredDestinations = !!wantDestinations && wantDestinations.length > 0;
-  const shouldShowPrimarySummary =
-    wantType !== "ANYTHING" || !hasPreferredDestinations;
-  const primarySummary = shouldShowPrimarySummary ? getWantTypeLabel(wantType) : null;
+  const typeLabel = getWantTypeLabel(wantType);
+  const showLayoverMin =
+    (wantType === "LAYOVER" || wantType === "LONGER_LAYOVER") && wantMinLayover != null;
+  const showAnyDestinationChip =
+    !hasPreferredDestinations &&
+    wantType !== "DAYS_OFF" &&
+    wantType !== "ANYTHING" &&
+    wantType !== "SPECIFIC";
+
+  function formatAcceptance(opt: WantAcceptanceOption): string {
+    const codes = opt.airportCodes.join("+");
+    const parts: string[] = [codes];
+    if (opt.minBlockHours != null) parts.push(`≥${opt.minBlockHours}h`);
+    if (opt.maxBlockHours != null) parts.push(`≤${opt.maxBlockHours}h`);
+    return parts.filter(Boolean).join(" ");
+  }
 
   return (
-    <div className="space-y-3">
-      {(primarySummary || wantMinLayover != null) && (
-        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-          <p className="text-sm font-medium text-slate-800">
-            {primarySummary ?? "Open to offers"}
-            {wantMinLayover != null ? (
-              <span className="ml-1 font-normal text-slate-700">· Min layover {wantMinLayover}h</span>
-            ) : null}
-          </p>
-        </div>
-      )}
+    <div className="space-y-2.5 text-sm text-slate-700">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+        <span className="inline-flex max-w-full items-center rounded-full bg-slate-200/90 px-2.5 py-1 text-sm font-semibold text-slate-800">
+          <span className="truncate">{typeLabel}</span>
+          {showLayoverMin ? (
+            <span className="ms-1 shrink-0 font-medium text-slate-600">· min {wantMinLayover}h</span>
+          ) : null}
+        </span>
 
-      <div className="grid gap-2 md:grid-cols-2">
         {hasPreferredDestinations && (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 px-3 py-2">
-            <p className="text-sm font-medium text-slate-800">Want</p>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {wantDestinations!.map((d) => (
-                <span
-                  key={d}
-                  className="rounded-full bg-emerald-100 px-2.5 py-1 text-sm font-medium text-emerald-700"
-                >
-                  {d}
-                </span>
-              ))}
-            </div>
-          </div>
+          <>
+            <span className="text-sm font-medium text-slate-500">Want</span>
+            {wantDestinations!.map((d) => (
+              <span
+                key={d}
+                className="rounded-full bg-emerald-100 px-2.5 py-1 text-sm font-semibold text-emerald-800"
+              >
+                {d}
+              </span>
+            ))}
+          </>
+        )}
+
+        {showAnyDestinationChip && (
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-200/80">
+            Any destination
+          </span>
         )}
 
         {wantExclude && wantExclude.length > 0 && (
-          <div className="rounded-lg border border-rose-200 bg-rose-50/60 px-3 py-2">
-            <p className="text-sm font-medium text-slate-800">NO</p>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              {wantExclude.map((d) => (
-                <span
-                  key={d}
-                  className="rounded-full bg-rose-100 px-2.5 py-1 text-sm font-medium text-rose-700"
-                >
-                  {d}
-                </span>
-              ))}
-            </div>
-          </div>
+          <>
+            <span className="text-sm font-medium text-slate-500">No</span>
+            {wantExclude.map((d) => (
+              <span
+                key={d}
+                className="rounded-full bg-rose-100 px-2.5 py-1 text-sm font-semibold text-rose-800"
+              >
+                {d}
+              </span>
+            ))}
+          </>
         )}
 
-        {wtfDays && wtfDays.length > 0 && (
-          <div className="rounded-lg border border-indigo-200 bg-indigo-50/60 px-3 py-2 md:col-span-2">
-            <p className="text-sm font-medium text-slate-800">
-              Willing to fly: <span className="font-semibold text-indigo-700">{formatPreferenceDays(wtfDays)}</span>
-            </p>
-          </div>
-        )}
-        {wantType === "DAYS_OFF" && offeredDaysOff && offeredDaysOff.length > 0 && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 md:col-span-2">
-            <p className="text-sm font-medium text-slate-800">
-              Wants days off: <span className="font-semibold text-amber-700">{formatPreferenceDays(offeredDaysOff)}</span>
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
         {wantEqualHours && (
-          <span className="rounded-full bg-slate-200 px-2.5 py-1 text-sm font-medium text-slate-700">
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-sm font-medium text-slate-700">
             Equal hours
           </span>
         )}
         {wantSameDate && (
-          <span className="rounded-full bg-slate-200 px-2.5 py-1 text-sm font-medium text-slate-700">
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-sm font-medium text-slate-700">
             Same date
           </span>
         )}
       </div>
+
+      {wantAcceptanceOptions && wantAcceptanceOptions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-sm text-slate-700">
+          <span className="font-semibold text-slate-600">Accept:</span>
+          {wantAcceptanceOptions.map((opt, i) => (
+            <Fragment key={i}>
+              {i > 0 && <span className="text-slate-400">· or ·</span>}
+              <span className="rounded-md bg-violet-50 px-2.5 py-1 font-medium text-violet-900">
+                {formatAcceptance(opt)}
+              </span>
+            </Fragment>
+          ))}
+        </div>
+      )}
+
+      {wtfDays && wtfDays.length > 0 && (
+        <p className="text-sm leading-snug text-slate-700">
+          <span className="font-semibold text-indigo-800">Willing to fly:</span>{" "}
+          {formatPreferenceDays(wtfDays)}
+        </p>
+      )}
+      {wantType === "DAYS_OFF" && offeredDaysOff && offeredDaysOff.length > 0 && (
+        <p className="text-sm leading-snug text-slate-700">
+          <span className="font-semibold text-amber-800">For days off:</span>{" "}
+          {formatPreferenceDays(offeredDaysOff)}
+        </p>
+      )}
     </div>
   );
 }
@@ -503,7 +536,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       {statusPill && (
-        <div className="border-b border-slate-100 px-4 py-2 bg-slate-50/50">
+        <div className="border-b border-slate-100 bg-slate-50/50 px-2.5 py-1.5 sm:px-3 sm:py-2">
           <span
             className="inline-block rounded-full px-3 py-1 text-xs font-semibold text-white"
             style={getPillStyle(statusPill)}
@@ -512,7 +545,8 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
           </span>
         </div>
       )}
-      <div className="flex flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="border-b border-slate-100">
+        <div className="flex flex-col gap-2 px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between sm:px-3 sm:py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <div
             className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--primary)]/10"
@@ -523,13 +557,18 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
           </div>
           <div>
             <span className="text-sm font-medium text-slate-900">{post.user.rank.name}</span>
-            <span className="ml-1 text-xs text-slate-500">· {post.user.base.name} Base</span>
+            <span className="ms-1 text-xs text-slate-500">· {post.user.base.name} Base</span>
           </div>
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
           {post.source === "MANUAL_QUICK" ? (
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
-              Quick
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-sm font-semibold text-slate-600">
+              Quick post
+            </span>
+          ) : null}
+          {post.source === "SCHEDULE_PREFILL" ? (
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-200/80">
+              From schedule
             </span>
           ) : null}
           {typeof post.matchPercent === "number" && post.matchPercent > 0 && (
@@ -572,18 +611,13 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
             </button>
           )}
         </div>
+        </div>
       </div>
 
-      <div className="px-4 py-3 border-b border-slate-100">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          {post.postType === "VACATION_SWAP"
-            ? "Offering"
-            : offeringTrips.length > 1
-              ? `Offering (${offeringTrips.length} trips · Total block: ${creditHoursToHumanReadable(totalHours)})`
-              : "Offering"}
-        </p>
-        {post.postType === "VACATION_SWAP" ? (
-          (() => {
+      {post.postType === "VACATION_SWAP" ? (
+        <div className="border-b border-slate-100 px-2.5 py-2 sm:px-3 sm:py-2.5">
+          <p className={CARD_SECTION_LABEL}>Offering</p>
+          {(() => {
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             const hasBlock =
               post.vacationYear != null && post.vacationMonth != null && post.vacationMonth >= 1 && post.vacationMonth <= 12;
@@ -604,73 +638,93 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
                   : null;
             if (periodOnly != null || wantLabel != null) {
               return (
-                <div className="rounded-lg border border-violet-200 bg-violet-50/80 px-3 py-2.5 text-sm text-violet-900">
+                <div className="rounded-lg border border-violet-200 bg-violet-50/80 px-2.5 py-2.5 text-sm leading-snug text-violet-900 sm:px-3 sm:py-3">
                   <p className="font-semibold">🏖️ Vacation Swap</p>
-                  <p className="mt-1">
-                    <span className="font-medium">Offering:</span> {periodOnly ?? "—"}
-                  </p>
-                  <p>
-                    <span className="font-medium">Looking for:</span> {wantLabel ?? "—"}
-                  </p>
+                  {periodOnly ? (
+                    <p className="mt-1.5">
+                      <span className="font-medium">Offering:</span> {periodOnly}
+                    </p>
+                  ) : null}
+                  {wantLabel ? (
+                    <p className="mt-0.5">
+                      <span className="font-medium">Looking for:</span> {wantLabel}
+                    </p>
+                  ) : null}
                 </div>
               );
             }
             return null;
-          })()
-        ) : offeringTrips.length > 0 ? (
-          <div className="space-y-1.5">
-            {offeringTrips.map((trip, i) => (
-              <div
-                key={i}
-                className={
-                  offeringTrips.length > 1 &&
-                  typeof post.bestTripIndex === "number" &&
-                  post.bestTripIndex === i &&
-                  typeof post.matchPercent === "number" &&
-                  post.matchPercent > 0
-                    ? "rounded-xl ring-2 ring-[#3BA34A]/25"
-                    : ""
-                }
-              >
-                <OfferingTripRow trip={trip} />
-                {offeringTrips.length > 1 &&
-                  typeof post.bestTripIndex === "number" &&
-                  post.bestTripIndex === i &&
-                  typeof post.matchPercent === "number" &&
-                  post.matchPercent > 0 && (
-                    <p className="mt-1 pl-1 text-xs font-semibold text-[#3BA34A]">
-                      ⭐ Best match for you
-                    </p>
-                  )}
+          })()}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 border-b border-slate-100 lg:grid-cols-2 lg:items-stretch lg:divide-x lg:divide-slate-100">
+          <div className="flex min-h-0 min-w-0 flex-col px-2.5 py-2 sm:px-3 sm:py-2.5">
+            <p className={CARD_SECTION_LABEL}>
+              {offeringTrips.length > 1
+                ? `Offering (${offeringTrips.length} trips · ${creditHoursToHumanReadable(totalHours)})`
+                : "Offering"}
+            </p>
+            {offeringTrips.length > 0 ||
+            (post.offeringDaysOff && post.offeredDaysOff && post.offeredDaysOff.length > 0) ? (
+              <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-3">
+                {offeringTrips.length > 0 ? (
+                  <div className="min-w-0 space-y-2">
+                    {offeringTrips.map((trip, i) => (
+                      <div
+                        key={i}
+                        className={
+                          offeringTrips.length > 1 &&
+                          typeof post.bestTripIndex === "number" &&
+                          post.bestTripIndex === i &&
+                          typeof post.matchPercent === "number" &&
+                          post.matchPercent > 0
+                            ? "rounded-lg ring-2 ring-[#3BA34A]/25 sm:rounded-md"
+                            : ""
+                        }
+                      >
+                        <OfferingTripRow trip={trip} />
+                        {offeringTrips.length > 1 &&
+                          typeof post.bestTripIndex === "number" &&
+                          post.bestTripIndex === i &&
+                          typeof post.matchPercent === "number" &&
+                          post.matchPercent > 0 && (
+                            <p className="mt-1 ps-0.5 text-sm font-semibold text-[#3BA34A] sm:ps-1">
+                              ⭐ Best match for you
+                            </p>
+                          )}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+                {offeringTrips.length > 1 && (
+                  <div className="mt-3 text-center text-sm text-slate-500">
+                    📦 Package deal — swap all {offeringTrips.length} trips together
+                  </div>
+                )}
+                {post.offeringDaysOff && post.offeredDaysOff && post.offeredDaysOff.length > 0 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1 text-sm text-slate-700">
+                    <span>Days off: {post.offeredDaysOff.join(", ")}</span>
+                  </div>
+                )}
               </div>
-            ))}
+            ) : null}
           </div>
-        ) : null}
-        {offeringTrips.length > 1 && (
-          <div className="mt-3 text-center text-xs text-slate-500">
-            📦 Package deal — swap all {offeringTrips.length} trips together
+          <div className="flex min-h-0 min-w-0 flex-col border-t border-slate-100 px-2.5 py-2 sm:px-3 sm:py-2.5 lg:border-t-0">
+            <p className={CARD_SECTION_LABEL}>For</p>
+            <div className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white p-2.5 sm:p-3">
+              <ForDisplay
+                wantType={post.wantType}
+                wantMinLayover={post.wantMinLayover}
+                wantEqualHours={post.wantEqualHours}
+                wantSameDate={post.wantSameDate}
+                wantDestinations={post.wantDestinations}
+                wantExclude={post.wantExclude}
+                wantAcceptanceOptions={post.wantAcceptanceOptions}
+                offeredDaysOff={post.offeredDaysOff}
+                wtfDays={post.wtfDays}
+              />
+            </div>
           </div>
-        )}
-        {post.offeringDaysOff && post.offeredDaysOff && post.offeredDaysOff.length > 0 && (
-          <div className="mt-2 flex items-center gap-2 text-sm text-slate-700">
-            <span>Days off: {post.offeredDaysOff.join(", ")}</span>
-          </div>
-        )}
-      </div>
-
-      {post.postType !== "VACATION_SWAP" && (
-        <div className="bg-slate-50/50 px-4 py-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Wants</p>
-          <WantsDisplay
-            wantType={post.wantType}
-            wantMinLayover={post.wantMinLayover}
-            wantEqualHours={post.wantEqualHours}
-            wantSameDate={post.wantSameDate}
-            wantDestinations={post.wantDestinations}
-            wantExclude={post.wantExclude}
-            offeredDaysOff={post.offeredDaysOff}
-            wtfDays={post.wtfDays}
-          />
         </div>
       )}
 

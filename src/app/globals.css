@@ -55,6 +55,13 @@ body {
   font-family: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* RTL: keep form controls aligned with text direction */
+[dir="rtl"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  text-align: start;
+}
+
 .logo-wordmark {
   font-family: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0.01em;

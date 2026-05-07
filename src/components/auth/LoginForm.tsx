@@ -19,7 +19,7 @@ export function LoginForm() {
   const callbackUrl =
     callbackUrlRaw && callbackUrlRaw.startsWith("/") && !callbackUrlRaw.startsWith("//")
       ? callbackUrlRaw
-      : "/dashboard";
+      : "/dashboard/board";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

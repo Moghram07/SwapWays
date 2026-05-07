@@ -13,7 +13,7 @@ export default async function DashboardLayout({
   const locale: Locale = isLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    redirect(`${localizePath("/login", locale)}?callbackUrl=/dashboard`);
+    redirect(`${localizePath("/login", locale)}?callbackUrl=/dashboard/board`);
   }
   const isAdmin = !!(session.user as { isAdmin?: boolean }).isAdmin;
   return <DashboardShell isAdmin={isAdmin} locale={locale}>{children}</DashboardShell>;

@@ -17,6 +17,7 @@ import { getPremiumViewerIds, getUserAccess } from "@/utils/featureGates";
 import { HIGH_MATCH_NOTIFICATION_MIN_PERCENT } from "@/constants/subscription";
 import { withTiming } from "@/lib/apiTimer";
 import { getVacationSwapYearRange, isAllowedVacationSwapYear } from "@/lib/vacationSwapYearBounds";
+import { normalizeWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
 
 function normalizeFlightNumber(raw: string | null | undefined): string {
   const s = (raw ?? "").trim();
@@ -44,6 +45,13 @@ function normalizeAirportCodes(input: unknown): string[] {
     .map((s) => String(s).trim().toUpperCase())
     .filter(Boolean)
     .slice(0, 8);
+}
+
+function normalizeReportTime(raw: string | null | undefined): string | null {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.replace(".", ":").replace(/Z$/i, "");
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(normalized) ? normalized : null;
 }
 
 function addDays(date: Date, days: number): Date {
@@ -107,6 +115,10 @@ function normalizeManualOfferedTrips(
     if (trip.tripType === "LAYOVER" && !(Number(trip.layoverHours) > 0)) {
       return { trips: [], errorMessage: "Layover trips need a duration" };
     }
+    const reportTime = normalizeReportTime(trip.reportTime);
+    if (!reportTime) {
+      return { trips: [], errorMessage: "Each offered trip needs report time in HH:MM format" };
+    }
 
     out.push({
       tripType: trip.tripType,
@@ -114,7 +126,7 @@ function normalizeManualOfferedTrips(
       destinations: trip.tripType === "MULTI_STOP" ? destinations : [singleDestination],
       departureDate: new Date(`${trip.date}T00:00:00.000Z`),
       layoverHours: trip.tripType === "LAYOVER" ? Number(trip.layoverHours) : null,
-      reportTime: trip.reportTime?.trim() ? trip.reportTime.trim() : null,
+      reportTime,
       aircraftType: trip.aircraftTypeCode?.trim() ? trip.aircraftTypeCode.trim().toUpperCase() : null,
       blockHours: trip.blockHours != null ? Number(trip.blockHours) : null,
       flightNumber: trip.flightNumber?.trim() ? normalizeFlightNumber(trip.flightNumber) : null,
@@ -180,9 +192,12 @@ export async function POST(request: Request) {
       wantSameDate?: boolean;
       wantDestinations?: string[];
       wantExclude?: string[];
+      /** Explicit “Anything” for want destinations (stored as empty wantDestinations). */
+      wantOpenToAnyDestination?: boolean;
       wtfDays?: number[];
       wantDaysOff?: boolean;
       notes?: string;
+      wantAcceptanceOptions?: unknown[];
     };
     vacationStartDate?: string;
     vacationEndDate?: string;
@@ -296,6 +311,22 @@ export async function POST(request: Request) {
     return error("Flight Swap requires selectedTrips or offeredTrips data", 400);
   }
 
+  const acceptanceRes = normalizeWantAcceptanceOptions(wantCriteria.wantAcceptanceOptions);
+  if (!acceptanceRes.ok) {
+    return error(acceptanceRes.message, 400);
+  }
+
+  const wantOpenToAnyDestination =
+    wantCriteria.wantOpenToAnyDestination === true || wantCriteria.wantType === "ANYTHING";
+  const normalizedWantDestinations = wantOpenToAnyDestination
+    ? []
+    : normalizeAirportCodes(wantCriteria.wantDestinations);
+  const normalizedWantExclude = normalizeAirportCodes(wantCriteria.wantExclude);
+  const wtfDaysRaw = Array.isArray(wantCriteria.wtfDays) ? wantCriteria.wtfDays : [];
+  const normalizedWtfDays = wtfDaysRaw
+    .map((d) => Number(d))
+    .filter((d) => Number.isInteger(d) && d >= 1 && d <= 31);
+
   const criteria = {
     wantType: wantCriteria.wantType as "LAYOVER" | "LONGER_LAYOVER" | "ROUND_TRIP" | "ANY_FLIGHT" | "DAYS_OFF" | "ANYTHING" | "SPECIFIC",
     wantTripTypes: (wantCriteria.wantTripTypes ?? []) as ("LAYOVER" | "TURNAROUND" | "MULTI_STOP")[],
@@ -304,9 +335,10 @@ export async function POST(request: Request) {
     wantMaxCredit: wantCriteria.wantMaxCredit ?? null,
     wantEqualHours: wantCriteria.wantEqualHours ?? false,
     wantSameDate: wantCriteria.wantSameDate ?? false,
-    wantDestinations: wantCriteria.wantDestinations ?? [],
-    wantExclude: wantCriteria.wantExclude ?? [],
-    wtfDays: wantCriteria.wtfDays ?? [],
+    wantDestinations: normalizedWantDestinations,
+    wantExclude: normalizedWantExclude,
+    wantAcceptanceOptions: acceptanceRes.value ? acceptanceRes.value : [],
+    wtfDays: normalizedWtfDays,
     wantDaysOff: wantCriteria.wantDaysOff ?? false,
     notes: wantCriteria.notes ?? "",
   };
@@ -315,6 +347,20 @@ export async function POST(request: Request) {
   }
   if (criteria.wantType === "DAYS_OFF" && selectedDaysOff.length === 0) {
     return error("selectedDaysOff is required when wantType is DAYS_OFF", 400);
+  }
+
+  if (postType === "OFFERING_TRIPS") {
+    if (criteria.wtfDays.length === 0) {
+      return error("Choose at least one willing-to-fly day (WTF)", 400);
+    }
+    if (criteria.wantType !== "DAYS_OFF") {
+      if (!wantOpenToAnyDestination && criteria.wantDestinations.length === 0) {
+        return error("Choose want destinations or Anything", 400);
+      }
+      if (wantOpenToAnyDestination && normalizedWantDestinations.length > 0) {
+        return error("Cannot combine Anything with specific want destinations", 400);
+      }
+    }
   }
 
   const swapPostTrips: {

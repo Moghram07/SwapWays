@@ -160,7 +160,7 @@ function CalendarGrid({
         {dayLabels.map((d) => (
           <div
             key={d}
-            className="border-r border-slate-200 py-2 text-center text-xs font-medium text-slate-600 last:border-r-0"
+            className="border-e border-slate-200 py-2 text-center text-xs font-medium text-slate-600 last:border-e-0"
           >
             {d}
           </div>
@@ -177,7 +177,7 @@ function CalendarGrid({
             dayData = overflowDays[i - startPad - primaryDays.length];
           }
           if (!dayData) {
-            return <div key={i} className="min-h-[120px] border-r border-b border-slate-100 bg-slate-50/50 last:border-r-0" />;
+            return <div key={i} className="min-h-[120px] border-e border-b border-slate-100 bg-slate-50/50 last:border-e-0" />;
           }
           return <CalendarDayCell key={i} day={dayData} />;
         })}

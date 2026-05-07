@@ -68,14 +68,14 @@ export function DesiredDestinations({ selected, onChange, hideLabel }: DesiredDe
       <div className="relative">
         <Search
           size={16}
-          className="pointer-events-none absolute left-3 top-2.5 text-gray-500"
+          className="pointer-events-none absolute start-3 top-2.5 text-gray-500"
         />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by city or airport code…"
-          className="w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 pl-9 pr-3 text-sm placeholder:text-gray-400"
+          className="w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 ps-9 pe-3 text-sm placeholder:text-gray-400"
         />
       </div>
 
@@ -92,7 +92,7 @@ export function DesiredDestinations({ selected, onChange, hideLabel }: DesiredDe
                   toggle(airport.code);
                   setSearch("");
                 }}
-                className={`flex w-full items-center justify-between px-3 py-2 text-left text-gray-800 hover:bg-gray-100 hover:text-gray-900 ${
+                className={`flex w-full items-center justify-between px-3 py-2 text-start text-gray-800 hover:bg-gray-100 hover:text-gray-900 ${
                   selected.includes(airport.code)
                     ? "bg-[#E8F5EA] font-medium text-[#166534]"
                     : ""

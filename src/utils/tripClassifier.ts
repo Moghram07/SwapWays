@@ -48,7 +48,7 @@ export function getTripTypeInfo(type: TripType): TripTypeInfo {
         label: "Layover",
         bgColor: "bg-[#E8F5EA]",
         textColor: "text-[#3BA34A]",
-        borderColor: "border-l-[#3BA34A]",
+        borderColor: "border-s-[#3BA34A]",
         icon: "Moon",
       };
     case "TURNAROUND":
@@ -57,7 +57,7 @@ export function getTripTypeInfo(type: TripType): TripTypeInfo {
         label: "Round Trip",
         bgColor: "bg-[#E3EFF9]",
         textColor: "text-[#2668B0]",
-        borderColor: "border-l-[#2668B0]",
+        borderColor: "border-s-[#2668B0]",
         icon: "RotateCcw",
       };
     case "MULTI_STOP":
@@ -66,7 +66,7 @@ export function getTripTypeInfo(type: TripType): TripTypeInfo {
         label: "Multi-Stop",
         bgColor: "bg-amber-50",
         textColor: "text-amber-700",
-        borderColor: "border-l-amber-500",
+        borderColor: "border-s-amber-500",
         icon: "Route",
       };
   }

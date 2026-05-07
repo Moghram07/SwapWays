@@ -3,15 +3,14 @@
 import type { WantCriteriaData } from "@/types/swapPost";
 import type { SwapPostType } from "@/types/swapPost";
 import type { WantType } from "@/types/swapPost";
-import { DesiredDestinations } from "@/components/swap/DesiredDestinations";
 import { WtfDayPicker } from "@/components/swap/WtfDayPicker";
+import { WantDestinationsField, ExcludeDestinationsField } from "@/components/swap/WantDestinationsField";
 
 const wantTypeOptions: { value: WantType; label: string; icon: string }[] = [
   { value: "LAYOVER", label: "Layover", icon: "🟢" },
   { value: "ROUND_TRIP", label: "Round Trip", icon: "🔵" },
   { value: "ANY_FLIGHT", label: "Any flight", icon: "✈️" },
   { value: "DAYS_OFF", label: "Days off", icon: "🏖️" },
-  { value: "ANYTHING", label: "Anything", icon: "🔄" },
 ];
 
 interface WantCriteriaProps {
@@ -41,8 +40,15 @@ export function WantCriteria({
 }: WantCriteriaProps) {
   const isVacationMode = postType === "VACATION_SWAP";
   const needsOffDaysSelection = criteria.wantType === "DAYS_OFF";
+
+  const openAny = criteria.wantOpenToAnyDestination ?? false;
+  const wantsOk =
+    needsOffDaysSelection
+      ? desiredDaysOff.length > 0
+      : openAny || criteria.wantDestinations.length > 0;
+
   const canProceed =
-    !needsOffDaysSelection || (desiredDaysOff.length > 0 && criteria.wtfDays.length > 0);
+    criteria.wtfDays.length > 0 && wantsOk && (!needsOffDaysSelection || desiredDaysOff.length > 0);
 
   return (
     <div className="space-y-5">
@@ -52,13 +58,20 @@ export function WantCriteria({
       )}
 
       <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">Type</label>
+        <label className="mb-2 block text-sm font-medium text-slate-700">Return trip type</label>
         <div className="flex flex-wrap gap-2">
           {wantTypeOptions.map((opt) => (
             <button
               key={opt.value}
               type="button"
-              onClick={() => onChange({ ...criteria, wantType: opt.value })}
+              onClick={() => {
+                const next: WantCriteriaData = { ...criteria, wantType: opt.value };
+                if (opt.value === "DAYS_OFF") {
+                  next.wantOpenToAnyDestination = false;
+                  next.wantDestinations = [];
+                }
+                onChange(next);
+              }}
               className={`rounded-lg border-2 px-3 py-2 text-sm transition-colors ${
                 (opt.value === "LAYOVER"
                   ? criteria.wantType === "LAYOVER" || criteria.wantType === "LONGER_LAYOVER"
@@ -94,7 +107,9 @@ export function WantCriteria({
 
       {needsOffDaysSelection && (
         <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
-          <p className="text-sm font-medium text-slate-800">Select the days off you want (required)</p>
+          <p className="text-sm font-medium text-slate-800">
+            Select the days off you want <span className="text-rose-600">*</span>
+          </p>
           <WtfDayPicker
             label="Days off I want"
             selectedDays={desiredDaysOff}
@@ -135,29 +150,41 @@ export function WantCriteria({
         </label>
       </div>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">
-          Preferred destinations (optional)
-        </label>
-        <DesiredDestinations
-          selected={criteria.wantDestinations}
-          onChange={(d) => onChange({ ...criteria, wantDestinations: d })}
-          hideLabel
-        />
-      </div>
+      {!needsOffDaysSelection && (
+        <>
+          <div>
+            <WantDestinationsField
+              label="Want destinations"
+              description="Pick specific airports or Anything."
+              required
+              wantOpenToAnyDestination={openAny}
+              wantDestinations={criteria.wantDestinations}
+              accentClassName="border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
+              onChange={({ wantOpenToAnyDestination, wantDestinations }) =>
+                onChange({ ...criteria, wantOpenToAnyDestination, wantDestinations })
+              }
+            />
+            {!openAny && criteria.wantDestinations.length === 0 && (
+              <p className="mt-1 text-xs text-rose-600">Choose at least one destination or Anything.</p>
+            )}
+          </div>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Exclude destinations</label>
-        <DesiredDestinations
-          selected={criteria.wantExclude}
-          onChange={(d) => onChange({ ...criteria, wantExclude: d })}
-          hideLabel
-        />
-      </div>
+          <ExcludeDestinationsField
+            label="Exclude destinations (optional)"
+            wantExclude={criteria.wantExclude}
+            accentClassName="border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
+            onChange={(wantExclude) => onChange({ ...criteria, wantExclude })}
+          />
+        </>
+      )}
 
       <div className="space-y-2 rounded-lg border border-[#2668B0]/20 bg-[#2668B0]/5 p-3">
         <WtfDayPicker
-          label="I am willing to fly on"
+          label={
+            <>
+              I am willing to fly on <span className="text-rose-600">*</span>
+            </>
+          }
           selectedDays={criteria.wtfDays}
           scheduledDays={scheduledDays}
           month={month}
@@ -165,7 +192,7 @@ export function WantCriteria({
           minSelectableDay={new Date().getDate()}
           onChange={(d) => onChange({ ...criteria, wtfDays: d })}
         />
-        {needsOffDaysSelection && criteria.wtfDays.length === 0 && (
+        {criteria.wtfDays.length === 0 && (
           <p className="text-xs text-rose-600">Choose at least one day you are willing to fly.</p>
         )}
       </div>

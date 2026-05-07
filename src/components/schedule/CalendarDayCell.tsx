@@ -35,7 +35,7 @@ export function CalendarDayCell({ day, onTripClick }: CalendarDayCellProps) {
 
   return (
     <div
-      className={`min-h-[120px] p-1.5 border-b border-r border-gray-100 ${
+      className={`min-h-[120px] p-1.5 border-b border-e border-gray-100 ${
         day.isOverflow ? "bg-gray-50/50" : "bg-white"
       } ${isToday ? "ring-2 ring-inset ring-[#2668B0]/30" : ""}`}
     >

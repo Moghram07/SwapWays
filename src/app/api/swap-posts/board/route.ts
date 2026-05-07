@@ -82,12 +82,13 @@ export async function GET(request: Request) {
           (post.user.subscriptionStatus === "TRIALING" &&
             post.user.trialEndsAt.getTime() > Date.now()));
       const totalBlock = post.offeredTrips.reduce(
-        (sum, t) => sum + (t.blockHours ?? t.creditHours ?? 0),
+        (sum: number, t: { blockHours?: number | null; creditHours?: number | null }) =>
+          sum + (t.blockHours ?? t.creditHours ?? 0),
         0
       );
       const firstDate = post.offeredTrips
-        .map((t) => new Date(t.departureDate))
-        .sort((a, b) => a.getTime() - b.getTime())[0];
+        .map((t: { departureDate: string | Date }) => new Date(t.departureDate))
+        .sort((a: Date, b: Date) => a.getTime() - b.getTime())[0];
       return {
         ...post,
         notes: notesView.notes,

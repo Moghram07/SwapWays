@@ -10,9 +10,11 @@ import { PostPreview } from "./PostPreview";
 import { VacationSwapFields } from "@/components/trade/VacationSwapFields";
 import { QuickPostForm } from "./QuickPostForm";
 import type { QuickPostOfferedTripData, SwapPostInputSource } from "@/types/swapPost";
+import { useDashboardLocale } from "@/contexts/DashboardLocaleContext";
+import { getTranslator } from "@/i18n/getTranslator";
 
 const defaultWantCriteria: WantCriteriaData = {
-  wantType: "ANYTHING",
+  wantType: "LAYOVER",
   wantTripTypes: [],
   wantMinLayover: null,
   wantMinCredit: null,
@@ -21,6 +23,8 @@ const defaultWantCriteria: WantCriteriaData = {
   wantSameDate: false,
   wantDestinations: [],
   wantExclude: [],
+  wantOpenToAnyDestination: false,
+  wantAcceptanceOptions: [],
   wtfDays: [],
   wantDaysOff: false,
   notes: "",
@@ -95,6 +99,8 @@ export function CreatePostFlow({
   canPostVacationSwap = true,
   onPremiumRequired,
 }: CreatePostFlowProps) {
+  const locale = useDashboardLocale();
+  const t = getTranslator(locale);
   const hasPreselected = initialSelectedTripIds != null && initialSelectedTripIds.length > 0;
   const hasInitialType = initialPostType === "VACATION_SWAP";
   const isEditMode = initialPostId != null && initialPostId !== "";
@@ -113,9 +119,16 @@ export function CreatePostFlow({
   const [vacationStartDay, setVacationStartDay] = useState<number | "">(initialVacationStartDay ?? "");
   const [vacationEndDay, setVacationEndDay] = useState<number | "">(initialVacationEndDay ?? "");
   const [desiredVacationMonths, setDesiredVacationMonths] = useState<number[]>(initialDesiredVacationMonths ?? []);
-  const [wantCriteria, setWantCriteria] = useState<WantCriteriaData>(initialWantCriteria ?? defaultWantCriteria);
+  const [wantCriteria, setWantCriteria] = useState<WantCriteriaData>(() => {
+    const base = initialWantCriteria ? { ...defaultWantCriteria, ...initialWantCriteria } : defaultWantCriteria;
+    return {
+      ...base,
+      wantAcceptanceOptions: base.wantAcceptanceOptions ?? [],
+      wantOpenToAnyDestination: base.wantOpenToAnyDestination ?? false,
+    };
+  });
   const [offeringInputMode, setOfferingInputMode] = useState<"quick" | "schedule">(
-    hasPreselected || !quickPostEnabled ? "schedule" : "quick"
+    hasPreselected || myTrips.length > 0 || !quickPostEnabled ? "schedule" : "quick"
   );
   const [offeredTrips, setOfferedTrips] = useState<QuickPostOfferedTripData[]>([
     {
@@ -136,7 +149,7 @@ export function CreatePostFlow({
 
   const currentStepIndex = steps.indexOf(step);
 
-  const selectedTripObjects = myTrips.filter((t) => selectedTrips.includes(t.id));
+  const selectedTripObjects = myTrips.filter((trip) => selectedTrips.includes(trip.id));
 
   const vacationSwapPolicyYear = new Date().getFullYear();
   const legacyVacationYearForPicker =
@@ -173,7 +186,7 @@ export function CreatePostFlow({
         }),
       });
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to create post. Please try again.");
+      setSubmitError(err instanceof Error ? err.message : t("dashboard.postFlowSubmitFailed"));
     } finally {
       setIsSubmitting(false);
     }
@@ -213,17 +226,6 @@ export function CreatePostFlow({
                 <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-1">
                   <button
                     type="button"
-                    onClick={() => setOfferingInputMode("quick")}
-                    className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-                      offeringInputMode === "quick"
-                        ? "bg-white text-[#2668B0] shadow-sm"
-                        : "text-slate-600"
-                    }`}
-                  >
-                    Quick Post
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setOfferingInputMode("schedule")}
                     className={`rounded-md px-3 py-1.5 text-sm font-medium ${
                       offeringInputMode === "schedule"
@@ -231,7 +233,18 @@ export function CreatePostFlow({
                         : "text-slate-600"
                     }`}
                   >
-                    From Schedule
+                    {t("dashboard.postFlowFromSchedule")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOfferingInputMode("quick")}
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium ${
+                      offeringInputMode === "quick"
+                        ? "bg-white text-[#2668B0] shadow-sm"
+                        : "text-slate-600"
+                    }`}
+                  >
+                    {t("dashboard.postFlowQuickPost")}
                   </button>
                 </div>
               )}
@@ -263,9 +276,7 @@ export function CreatePostFlow({
           )}
           {postType === "VACATION_SWAP" && (
             <div className="space-y-4">
-              <p className="text-sm text-slate-500">
-                Enter your vacation month and which months you are looking for.
-              </p>
+              <p className="text-sm text-slate-500">{t("dashboard.postFlowVacationHelp")}</p>
               <VacationSwapFields
                 vacationYear={vacationYear}
                 vacationMonth={vacationMonth}
@@ -285,7 +296,7 @@ export function CreatePostFlow({
                   onClick={() => setStep("type")}
                   className="text-sm text-slate-500 hover:underline"
                 >
-                  Back
+                  {t("dashboard.postFlowBack")}
                 </button>
                 <button
                   type="button"
@@ -297,7 +308,7 @@ export function CreatePostFlow({
                   }
                   className="rounded-xl bg-[#2668B0] px-6 py-2.5 text-sm font-medium text-white disabled:opacity-50"
                 >
-                  Next
+                  {t("dashboard.postFlowNext")}
                 </button>
               </div>
             </div>
@@ -363,7 +374,7 @@ export function CreatePostFlow({
             onClick={onClose}
             className="text-sm text-slate-500 hover:underline"
           >
-            Cancel
+            {t("dashboard.postFlowCancel")}
           </button>
         </div>
       )}

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { swapPostHasDisplayableOffer } from "@/lib/swapPostDisplay";
-import { SwapPostType as PrismaSwapPostType } from "@/generated/prisma";
+import { Prisma, SwapPostType as PrismaSwapPostType } from "@/generated/prisma";
 import type { SwapPostType } from "@/types/swapPost";
 import type { WantCriteriaData } from "@/types/swapPost";
 import type { QuickPostAdvancedData, QuickPostTripData, SwapPostInputSource } from "@/types/swapPost";
@@ -21,6 +21,7 @@ const swapPostSelect = {
   wantSameDate: true,
   wantDestinations: true,
   wantExclude: true,
+  wantAcceptanceOptions: true,
   wtfDays: true,
   wantDaysOff: true,
   notes: true,
@@ -176,6 +177,10 @@ export async function createSwapPost(
       wantSameDate: data.wantCriteria.wantSameDate,
       wantDestinations: data.wantCriteria.wantDestinations,
       wantExclude: data.wantCriteria.wantExclude,
+      wantAcceptanceOptions:
+        data.wantCriteria.wantAcceptanceOptions?.length
+          ? (data.wantCriteria.wantAcceptanceOptions as unknown as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
       wtfDays: data.wantCriteria.wtfDays,
       wantDaysOff: data.wantCriteria.wantDaysOff,
       notes: data.wantCriteria.notes || null,
@@ -255,32 +260,50 @@ export async function findSwapPostsForBoard(
     where.user.rankId = filters.rankId;
   }
 
-  const posts = await prisma.swapPost.findMany({
-    where,
-    take: 20,
-    orderBy: { createdAt: "desc" },
-    select: swapPostBoardSelect,
-  });
+  let posts: any[] = [];
+  try {
+    posts = await prisma.swapPost.findMany({
+      where,
+      take: 20,
+      orderBy: { createdAt: "desc" },
+      select: swapPostBoardSelect,
+    });
+  } catch (err) {
+    const code = err && typeof err === "object" && "code" in err ? (err as { code?: string }).code : null;
+    // Backward compatibility: if DB migration for wantAcceptanceOptions hasn't been applied yet,
+    // fall back to the legacy select so board cards still load.
+    if (code !== "P2022") throw err;
+    const legacyPosts = await prisma.swapPost.findMany({
+      where,
+      take: 20,
+      orderBy: { createdAt: "desc" },
+      select: {
+        ...swapPostBoardSelect,
+        wantAcceptanceOptions: false,
+      },
+    });
+    posts = legacyPosts.map((post) => ({ ...post, wantAcceptanceOptions: null }));
+  }
 
   let filtered = posts;
   if (filters?.tripType) {
-    filtered = filtered.filter((p) =>
-      p.offeredTrips.some((t) => t.tripType === filters.tripType) ||
+    filtered = filtered.filter((p: any) =>
+      p.offeredTrips.some((t: any) => t.tripType === filters.tripType) ||
       p.quickTripType === filters.tripType
     );
   }
   if (filters?.destination) {
     const wanted = filters.destination.toUpperCase();
-    filtered = filtered.filter((p) =>
-      p.offeredTrips.some((t) => t.destination.toUpperCase() === wanted) ||
-      (p.quickDestinations ?? []).some((d) => d.toUpperCase() === wanted)
+    filtered = filtered.filter((p: any) =>
+      p.offeredTrips.some((t: any) => t.destination.toUpperCase() === wanted) ||
+      (p.quickDestinations ?? []).some((d: string) => d.toUpperCase() === wanted)
     );
   }
 
   if (filters?.dateFrom) {
     const fromDate = new Date(`${filters.dateFrom}T00:00:00.000Z`);
     if (!Number.isNaN(fromDate.getTime())) {
-      filtered = filtered.filter((p) => {
+      filtered = filtered.filter((p: any) => {
         if (p.postType === "VACATION_SWAP") {
           if (p.vacationStartDate) return new Date(p.vacationStartDate) >= fromDate;
           if (p.vacationYear && p.vacationMonth && p.vacationStartDay) {
@@ -290,7 +313,7 @@ export async function findSwapPostsForBoard(
           return false;
         }
         return (
-          p.offeredTrips.some((t) => new Date(t.departureDate) >= fromDate) ||
+          p.offeredTrips.some((t: any) => new Date(t.departureDate) >= fromDate) ||
           (p.quickDate ? new Date(p.quickDate) >= fromDate : false)
         );
       });
@@ -418,6 +441,10 @@ export async function updateSwapPost(
     wantSameDate: data.wantCriteria.wantSameDate,
     wantDestinations: data.wantCriteria.wantDestinations,
     wantExclude: data.wantCriteria.wantExclude,
+    wantAcceptanceOptions:
+      data.wantCriteria.wantAcceptanceOptions?.length
+        ? (data.wantCriteria.wantAcceptanceOptions as unknown as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
     wtfDays: data.wantCriteria.wtfDays,
     wantDaysOff: data.wantCriteria.wantDaysOff,
     notes: data.wantCriteria.notes || null,

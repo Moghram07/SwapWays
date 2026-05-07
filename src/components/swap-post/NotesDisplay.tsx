@@ -10,7 +10,7 @@ export function NotesDisplay({ notes, isTruncated, onUpgradeClick }: NotesDispla
   if (!notes) return null;
 
   return (
-    <div className="border-t border-slate-100 px-4 py-2">
+    <div className="border-t border-slate-100 px-2.5 py-1.5 sm:px-3 sm:py-2">
       <p className="relative text-sm italic text-slate-600">
         &quot;{notes}
         {isTruncated && (
@@ -19,7 +19,7 @@ export function NotesDisplay({ notes, isTruncated, onUpgradeClick }: NotesDispla
             {onUpgradeClick && (
               <button
                 onClick={onUpgradeClick}
-                className="ml-1 text-xs font-semibold not-italic text-[#2668B0] hover:underline"
+                className="ms-1 text-xs font-semibold not-italic text-[#2668B0] hover:underline"
               >
                 Upgrade to read
               </button>

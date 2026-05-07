@@ -172,31 +172,36 @@ function scoreDestination(
     return 0;
   }
 
-  if (post.wantType === "ANYTHING" || post.wantType === "ANY_FLIGHT") {
+  const openToAnyDestinationPreference =
+    post.wantType === "ANYTHING" ||
+    post.wantType === "ANY_FLIGHT" ||
+    (post.wantDestinations.length === 0 && post.wantType !== "SPECIFIC");
+
+  if (openToAnyDestinationPreference) {
+    if (post.wantExclude.length > 0) {
+      const excluded = new Set(post.wantExclude.map((d) => d.toUpperCase()));
+      let hasNonExcluded = false;
+      for (const trip of viewerTrips) {
+        const tripDests = getUniqueDestinations(trip).map((d) => d.toUpperCase());
+        const isExcluded = tripDests.some((d) => excluded.has(d));
+        if (!isExcluded) {
+          hasNonExcluded = true;
+          matchingTrips.push(trip.instanceId);
+        }
+      }
+      if (!hasNonExcluded) {
+        reasons.push("All available destinations are excluded");
+        return 0;
+      }
+      reasons.push("Has non-excluded destinations");
+      return 15;
+    }
     reasons.push("Poster open to any destination");
     return 12;
   }
 
-  if (post.wantExclude.length > 0) {
-    const excluded = new Set(post.wantExclude.map((d) => d.toUpperCase()));
-    let hasNonExcluded = false;
-    for (const trip of viewerTrips) {
-      const tripDests = getUniqueDestinations(trip).map((d) => d.toUpperCase());
-      const isExcluded = tripDests.some((d) => excluded.has(d));
-      if (!isExcluded) {
-        hasNonExcluded = true;
-        matchingTrips.push(trip.instanceId);
-      }
-    }
-    if (!hasNonExcluded) {
-      reasons.push("All available destinations are excluded");
-      return 0;
-    }
-    reasons.push("Has non-excluded destinations");
-    return 15;
-  }
-
-  return 10;
+  reasons.push("No destination preference specified");
+  return 0;
 }
 
 function scoreBlockHours(

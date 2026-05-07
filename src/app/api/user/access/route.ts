@@ -31,6 +31,7 @@ export async function GET() {
       canStartNewConversation: true,
       canViewConversationHistory: true,
       canUploadSchedule: true,
+      hasUploadedSchedule: false,
       postExpirationDays: 365,
       hasPriorityPlacement: true,
       hasAdvancedFilters: true,

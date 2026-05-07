@@ -114,6 +114,7 @@ export function PostPreview({
     wantSameDate: wantCriteria.wantSameDate,
     wantDestinations: wantCriteria.wantDestinations,
     wantExclude: wantCriteria.wantExclude,
+    wantAcceptanceOptions: wantCriteria.wantAcceptanceOptions ?? [],
     wtfDays: wantCriteria.wtfDays,
     wantDaysOff: wantCriteria.wantDaysOff,
     notes: wantCriteria.notes || null,
@@ -153,7 +154,7 @@ export function PostPreview({
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-slate-900">Preview your post</h2>
       <p className="text-sm text-slate-500">
-        This is how your post will appear on the Trade Board.
+        This is how your post will appear on Swaps.
       </p>
 
       <div className="rounded-xl border-2 border-dashed border-slate-300 p-4">
@@ -191,7 +192,7 @@ export function PostPreview({
               ? "Posting..."
               : isClickAcknowledged
                 ? "Submitting..."
-                : "Post to Trade Board"}
+                : "Post to Swaps"}
           </span>
         </button>
       </div>

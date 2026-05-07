@@ -2,6 +2,8 @@
 
 import { Trash2 } from "lucide-react";
 import { formatTimeAgo } from "@/utils/dateUtils";
+import { useDashboardLocale } from "@/contexts/DashboardLocaleContext";
+import { getTranslator } from "@/i18n/getTranslator";
 
 interface ConversationListItemProps {
   id: string;
@@ -30,6 +32,8 @@ export function ConversationListItem({
   onUpgradeClick,
   onDelete,
 }: ConversationListItemProps) {
+  const locale = useDashboardLocale();
+  const t = getTranslator(locale);
   const initial = (otherName || "?").charAt(0).toUpperCase();
   const date = lastMessageAt ? new Date(lastMessageAt) : null;
   const timeLabel = date && !Number.isNaN(date.getTime()) ? formatTimeAgo(date) : null;
@@ -70,7 +74,7 @@ export function ConversationListItem({
               )}
             </div>
             <p className="text-sm text-slate-500 truncate mt-0.5">
-              {lastMessagePreview ?? "No messages yet"}
+              {lastMessagePreview ?? t("dashboard.messagesEmptyPreview")}
             </p>
           </div>
           {unreadCount > 0 && (
@@ -90,7 +94,7 @@ export function ConversationListItem({
             }}
             className="pointer-events-auto rounded-md bg-slate-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-slate-800"
           >
-            Upgrade to unlock
+            {t("dashboard.messagesUpgradeToUnlock")}
           </button>
         </div>
       )}
@@ -99,11 +103,11 @@ export function ConversationListItem({
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            if (typeof confirm !== "undefined" && !confirm("Delete this conversation?")) return;
+            if (typeof confirm !== "undefined" && !confirm(t("dashboard.messagesDeleteConfirm"))) return;
             onDelete(id);
           }}
-          className="absolute right-2 top-8 p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-70 focus:opacity-100 focus:outline-none md:opacity-0 md:group-hover:opacity-100"
-          aria-label="Delete conversation"
+          className="absolute end-2 top-8 p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-70 focus:opacity-100 focus:outline-none md:opacity-0 md:group-hover:opacity-100"
+          aria-label={t("dashboard.messagesDeleteConversation")}
         >
           <Trash2 size={16} />
         </button>

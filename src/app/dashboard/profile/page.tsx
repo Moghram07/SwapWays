@@ -4,12 +4,16 @@ import { authOptions } from "@/lib/auth";
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { withTimeout } from "@/lib/withTimeout";
 import { prisma } from "@/lib/prisma";
+import { getDashboardLocale } from "../_lib/locale";
+import { getTranslator } from "@/i18n/getTranslator";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     redirect("/login?callbackUrl=/dashboard/profile");
   }
+  const locale = await getDashboardLocale();
+  const t = getTranslator(locale);
   let user = null;
   try {
     user = await withTimeout(
@@ -52,14 +56,14 @@ export default async function ProfilePage() {
     console.error("[dashboard/profile] user query degraded", error);
   }
   const fallbackNameParts = (session.user.name ?? "").trim().split(/\s+/).filter(Boolean);
-  const fallbackFirstName = fallbackNameParts[0] ?? "Crew";
+  const fallbackFirstName = fallbackNameParts[0] ?? t("dashboard.crewFallback");
   const fallbackLastName = fallbackNameParts.slice(1).join(" ") || "Member";
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Profile</h1>
-        <p className="mt-2 text-slate-600">Manage your crew details and aircraft qualifications.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("dashboard.profileTitle")}</h1>
+        <p className="mt-2 text-slate-600">{t("dashboard.profileSubtitle")}</p>
       </div>
       <div className="max-w-2xl">
         <ProfileForm

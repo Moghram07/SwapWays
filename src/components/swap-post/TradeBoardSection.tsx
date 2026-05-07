@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { TradeboardFilterBar, type SwapBoardFilters } from "@/components/swap-post/TradeboardFilterBar";
 import { SwapPostTradeBoardCard } from "@/components/swap-post/TradeBoardCard";
+import { parseWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
 import { getAirportCity } from "@/utils/airportNames";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { useUserAccess } from "@/hooks/useUserAccess";
@@ -28,6 +29,7 @@ interface BoardPost {
   wantSameDate: boolean;
   wantDestinations: string[];
   wantExclude: string[];
+  wantAcceptanceOptions?: unknown;
   wtfDays: number[];
   wantDaysOff: boolean;
   notes: string | null;
@@ -309,6 +311,7 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
       wantSameDate: p.wantSameDate,
       wantDestinations: p.wantDestinations,
       wantExclude: p.wantExclude,
+      wantAcceptanceOptions: parseWantAcceptanceOptions(p.wantAcceptanceOptions),
       wtfDays: p.wtfDays,
       wantDaysOff: p.wantDaysOff,
       notes: p.notes,
@@ -422,7 +425,7 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
                   </p>
                   {selectedPost.postType !== "VACATION_SWAP" && (
                     <p className="mt-0.5">
-                      Wants: {wantTypeLabel[selectedPost.wantType] ?? "Open to offers"}
+                      For: {wantTypeLabel[selectedPost.wantType] ?? "Open to offers"}
                     </p>
                   )}
                   <p className="mt-1 text-xs text-slate-500">

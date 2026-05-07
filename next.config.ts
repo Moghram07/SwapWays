@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
   async redirects() {
     return [{ source: "/4", destination: "/", permanent: true }];
   },

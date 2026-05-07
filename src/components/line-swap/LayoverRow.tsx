@@ -43,7 +43,7 @@ export function LayoverRow({
         placeholder="0"
       />
       <span className="text-xs text-gray-500">m</span>
-      <button type="button" onClick={onRemove} className="ml-1 text-sm text-red-500 hover:text-red-700">
+      <button type="button" onClick={onRemove} className="ms-1 text-sm text-red-500 hover:text-red-700">
         x
       </button>
     </div>

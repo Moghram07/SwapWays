@@ -3,8 +3,8 @@
 import { useMemo } from "react";
 import { getAllAirports } from "@/utils/airportNames";
 import type { QuickPostOfferedTripData, WantCriteriaData } from "@/types/swapPost";
-import { DesiredDestinations } from "@/components/swap/DesiredDestinations";
 import { WtfDayPicker } from "@/components/swap/WtfDayPicker";
+import { WantDestinationsField, ExcludeDestinationsField } from "@/components/swap/WantDestinationsField";
 import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
 
 interface QuickPostFormProps {
@@ -27,10 +27,10 @@ const tripTypeOptions: Array<{ value: QuickPostOfferedTripData["tripType"]; labe
   { value: "MULTI_STOP", label: "Multi-stop" },
 ];
 
-const wantTypeOptions: Array<{ value: WantCriteriaData["wantType"]; label: string }> = [
+const returnTripTypeOptions: Array<{ value: WantCriteriaData["wantType"]; label: string }> = [
   { value: "LAYOVER", label: "Layover" },
   { value: "ROUND_TRIP", label: "Round trip" },
-  { value: "ANYTHING", label: "Anything" },
+  { value: "ANY_FLIGHT", label: "Any flight" },
   { value: "DAYS_OFF", label: "Days off" },
 ];
 
@@ -56,6 +56,28 @@ function formatHours(decimal: number): string {
   return `${hours}h ${minutes}m`;
 }
 
+function normalizeTimeValue(raw: string): string {
+  return raw.trim().replace(".", ":").replace(/Z$/i, "");
+}
+
+function sanitizeTimeInput(raw: string): string {
+  const normalized = raw.replace(/[^\d:.]/g, "").replace(".", ":");
+  if (!normalized) return "";
+  if (!normalized.includes(":")) {
+    const digits = normalized.slice(0, 4);
+    if (digits.length <= 2) return digits;
+    return `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
+  }
+  const [h = "", m = ""] = normalized.split(":", 2);
+  const hh = h.slice(0, 2);
+  const mm = m.slice(0, 2);
+  return `${hh}:${mm}`;
+}
+
+function isValidTimeValue(raw: string): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(normalizeTimeValue(raw));
+}
+
 export function QuickPostForm({
   offeredTrips,
   wantCriteria,
@@ -74,10 +96,19 @@ export function QuickPostForm({
   const totalBlockHours = offeredTrips.reduce((sum, trip) => sum + (trip.blockHours ?? 0), 0);
   const canAddMore = offeredTrips.length < MAX_TRIPS_PER_POST;
 
+  const openAny = wantCriteria.wantOpenToAnyDestination ?? false;
+  const wantsOk =
+    wantCriteria.wantType === "DAYS_OFF"
+      ? selectedDaysOff.length > 0
+      : openAny || wantCriteria.wantDestinations.length > 0;
+
+  const wtfOk = wantCriteria.wtfDays.length > 0;
+
   const canProceed =
     offeredTrips.length >= MIN_TRIPS_PER_POST &&
     offeredTrips.every((trip) => {
       if (!trip.date) return false;
+      if (!isValidTimeValue(trip.reportTime ?? "")) return false;
       if (trip.tripType === "MULTI_STOP") {
         return trip.destinations.filter(Boolean).length >= 2;
       }
@@ -87,8 +118,8 @@ export function QuickPostForm({
       }
       return true;
     }) &&
-    (wantCriteria.wantType !== "DAYS_OFF" ||
-      (selectedDaysOff.length > 0 && wantCriteria.wtfDays.length > 0));
+    wantsOk &&
+    wtfOk;
 
   const updateTrip = (tripId: number | undefined, updates: Partial<QuickPostOfferedTripData>) => {
     onOfferedTripsChange(
@@ -113,7 +144,7 @@ export function QuickPostForm({
         <p className="text-sm text-slate-500">Offer up to {MAX_TRIPS_PER_POST} trips as one package.</p>
       </div>
 
-      <section className="rounded-2xl border border-slate-200 border-l-4 border-l-[#2668B0] bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 border-s-4 border-s-[#2668B0] bg-white p-6 shadow-sm">
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl">📤</span>
@@ -249,6 +280,21 @@ export function QuickPostForm({
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
                   />
                 </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Report time <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={5}
+                    value={normalizeTimeValue(trip.reportTime ?? "")}
+                    onChange={(e) => updateTrip(trip.id, { reportTime: sanitizeTimeInput(e.target.value) })}
+                    placeholder="20:15"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                  />
+                  <p className="mt-1 text-xs text-slate-500">Use local 24-hour format HH:MM</p>
+                </div>
                 {trip.tripType === "LAYOVER" && (
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">Layover hours</label>
@@ -270,16 +316,6 @@ export function QuickPostForm({
                   More details (optional)
                 </summary>
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-xs text-slate-500">Report time</label>
-                    <input
-                      type="text"
-                      value={trip.reportTime ?? ""}
-                      onChange={(e) => updateTrip(trip.id, { reportTime: e.target.value })}
-                      placeholder="08.30Z"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-                    />
-                  </div>
                   <div>
                     <label className="mb-1 block text-xs text-slate-500">Aircraft type</label>
                     <input
@@ -338,20 +374,27 @@ export function QuickPostForm({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 border-l-4 border-l-[#3BA34A] bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 border-s-4 border-s-[#3BA34A] bg-white p-6 shadow-sm">
         <div className="mb-5 flex items-center gap-2">
           <span className="text-xl">📥</span>
           <h3 className="text-base font-bold text-slate-900">WHAT I WANT IN RETURN</h3>
         </div>
 
         <div className="mb-4">
-          <label className="mb-2 block text-sm font-medium text-slate-700">Want type</label>
+          <label className="mb-2 block text-sm font-medium text-slate-700">Return trip type</label>
           <div className="flex flex-wrap gap-2">
-            {wantTypeOptions.map((opt) => (
+            {returnTripTypeOptions.map((opt) => (
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => onWantCriteriaChange({ ...wantCriteria, wantType: opt.value })}
+                onClick={() => {
+                  const next: WantCriteriaData = { ...wantCriteria, wantType: opt.value };
+                  if (opt.value === "DAYS_OFF") {
+                    next.wantOpenToAnyDestination = false;
+                    next.wantDestinations = [];
+                  }
+                  onWantCriteriaChange(next);
+                }}
                 className={`rounded-lg border-2 px-3 py-2 text-sm ${
                   wantCriteria.wantType === opt.value
                     ? "border-[#3BA34A] bg-[#E8F5EA] text-[#3BA34A]"
@@ -367,27 +410,37 @@ export function QuickPostForm({
         {wantCriteria.wantType !== "DAYS_OFF" ? (
           <>
             <div className="mb-4">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Want destinations (optional)</label>
-              <DesiredDestinations
-                selected={wantCriteria.wantDestinations}
-                onChange={(d) => onWantCriteriaChange({ ...wantCriteria, wantDestinations: d })}
-                hideLabel
+              <WantDestinationsField
+                label="Want destinations"
+                description="Pick specific airports or Anything."
+                required
+                wantOpenToAnyDestination={openAny}
+                wantDestinations={wantCriteria.wantDestinations}
+                onChange={({ wantOpenToAnyDestination, wantDestinations }) =>
+                  onWantCriteriaChange({ ...wantCriteria, wantOpenToAnyDestination, wantDestinations })
+                }
               />
+              {!openAny && wantCriteria.wantDestinations.length === 0 && (
+                <p className="mt-1 text-xs text-rose-600">Choose at least one destination or Anything.</p>
+              )}
             </div>
 
             <div className="mb-4">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Exclude destinations (optional)</label>
-              <DesiredDestinations
-                selected={wantCriteria.wantExclude}
-                onChange={(d) => onWantCriteriaChange({ ...wantCriteria, wantExclude: d })}
-                hideLabel
+              <ExcludeDestinationsField
+                label="Exclude destinations (optional)"
+                wantExclude={wantCriteria.wantExclude}
+                onChange={(wantExclude) => onWantCriteriaChange({ ...wantCriteria, wantExclude })}
               />
             </div>
           </>
         ) : (
           <div className="mb-4 rounded-lg border border-slate-200 p-3">
             <WtfDayPicker
-              label="Days off I want (required)"
+              label={
+                <>
+                  Days off I want <span className="text-rose-600">*</span>
+                </>
+              }
               selectedDays={selectedDaysOff}
               scheduledDays={[]}
               month={month}
@@ -401,9 +454,9 @@ export function QuickPostForm({
         <div className="mb-4 rounded-lg border border-slate-200 p-3">
           <WtfDayPicker
             label={
-              wantCriteria.wantType === "DAYS_OFF"
-                ? "I am willing to fly on (required)"
-                : "WTF days (optional)"
+              <>
+                I am willing to fly on <span className="text-rose-600">*</span>
+              </>
             }
             selectedDays={wantCriteria.wtfDays}
             scheduledDays={scheduledDays}
@@ -411,6 +464,9 @@ export function QuickPostForm({
             year={year}
             onChange={(days) => onWantCriteriaChange({ ...wantCriteria, wtfDays: days })}
           />
+          {wantCriteria.wtfDays.length === 0 && (
+            <p className="mt-1 text-xs text-rose-600">Choose at least one day you are willing to fly.</p>
+          )}
         </div>
 
         <div>

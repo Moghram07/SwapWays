@@ -4,10 +4,11 @@ import { useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { TradeBoardSection } from "@/components/swap-post/TradeBoardSection";
 import { LineSwapBoardSection } from "@/components/line-swap/LineSwapBoardSection";
+import { MatchesClient } from "@/app/dashboard/matches/MatchesClient";
 import { getTranslator } from "@/i18n/getTranslator";
 import type { Locale } from "@/i18n/config";
 
-type BoardMode = "flight" | "line" | "vacation";
+type BoardMode = "flight" | "line" | "vacation" | "mySwaps";
 
 export function BoardPageClient({ locale }: { locale: Locale }) {
   const t = getTranslator(locale);
@@ -17,6 +18,7 @@ export function BoardPageClient({ locale }: { locale: Locale }) {
       { id: "flight", label: tr("dashboard.flights") },
       { id: "line", label: tr("dashboard.lines") },
       { id: "vacation", label: tr("dashboard.vacation") },
+      { id: "mySwaps", label: tr("dashboard.mySwaps") },
     ];
   }, [locale]);
   const router = useRouter();
@@ -25,7 +27,7 @@ export function BoardPageClient({ locale }: { locale: Locale }) {
 
   const mode = useMemo<BoardMode>(() => {
     const raw = searchParams.get("mode");
-    if (raw === "line" || raw === "vacation") return raw;
+    if (raw === "line" || raw === "vacation" || raw === "mySwaps") return raw;
     return "flight";
   }, [searchParams]);
 
@@ -63,6 +65,7 @@ export function BoardPageClient({ locale }: { locale: Locale }) {
       {mode === "flight" && <TradeBoardSection mode="tradeBoard" />}
       {mode === "vacation" && <TradeBoardSection mode="vacationSwap" />}
       {mode === "line" && <LineSwapBoardSection compactHeader locale={locale} />}
+      {mode === "mySwaps" && <MatchesClient embeddedMySwapsOnly />}
     </div>
   );
 }

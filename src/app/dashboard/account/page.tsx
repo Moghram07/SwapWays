@@ -82,7 +82,6 @@ export default async function AccountPage() {
           }
         />
         <Row href="/dashboard/my-trades" label={t("dashboard.myFlights")} />
-        <Row href="/dashboard/matches?tab=mySwaps" label={t("dashboard.mySwaps")} />
       </section>
 
       <section className="space-y-2">

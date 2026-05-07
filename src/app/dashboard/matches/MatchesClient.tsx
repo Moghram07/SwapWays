@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Plus, Inbox, Pencil } from "lucide-react";
 import { SwapPostTradeBoardCard } from "@/components/swap-post/TradeBoardCard";
@@ -11,15 +12,15 @@ import { isSwapPostExpired, isTradeExpired } from "@/lib/swapExpiry";
 import { swapPostHasDisplayableOffer } from "@/lib/swapPostDisplay";
 import { parseWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
 
-type SwapsTab = "mySwaps" | "tradeBoard" | "lineSwap" | "vacationSwap";
+type SwapsTab = "tradeBoard" | "lineSwap" | "vacationSwap" | "mySwaps";
 
 type MySwapsSubTab = "active" | "history";
 
 const TAB_LABELS: { id: SwapsTab; label: string }[] = [
-  { id: "mySwaps", label: "My Swaps" },
   { id: "tradeBoard", label: "Swaps" },
   { id: "lineSwap", label: "Line Swap" },
   { id: "vacationSwap", label: "Vacation Swap" },
+  { id: "mySwaps", label: "My Swaps" },
 ];
 
 interface MatchRecord {
@@ -108,11 +109,6 @@ interface SwapPostRecord {
   advancedBlockHours?: number | null;
   advancedFlightNumber?: string | null;
   expiresAt?: string | null;
-}
-
-interface MatchesClientProps {
-  initialMatches: MatchRecord[];
-  currentUserId: string;
 }
 
 type SwapStatusPill = "active" | "pending" | "completed" | "expired" | "cancelled";
@@ -282,10 +278,38 @@ type MySwapRow = {
   recordStatus: string;
 };
 
-export function MatchesClient({ initialMatches }: MatchesClientProps) {
-  const [activeTab, setActiveTab] = useState<SwapsTab>("mySwaps");
+interface MatchesClientProps {
+  initialMatches?: MatchRecord[];
+  currentUserId?: string;
+  embeddedMySwapsOnly?: boolean;
+}
+
+export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOnly = false }: MatchesClientProps = {}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<SwapsTab>(embeddedMySwapsOnly ? "mySwaps" : "tradeBoard");
   const [mySwapsSubTab, setMySwapsSubTab] = useState<MySwapsSubTab>("active");
   void initialMatches;
+  void currentUserId;
+
+  useEffect(() => {
+    if (embeddedMySwapsOnly) {
+      setActiveTab("mySwaps");
+      return;
+    }
+    const requestedTab = searchParams.get("tab");
+    if (
+      requestedTab === "tradeBoard" ||
+      requestedTab === "lineSwap" ||
+      requestedTab === "vacationSwap" ||
+      requestedTab === "mySwaps"
+    ) {
+      setActiveTab(requestedTab);
+      return;
+    }
+    setActiveTab("tradeBoard");
+  }, [searchParams, embeddedMySwapsOnly]);
   const [vacationTradesActive, setVacationTradesActive] = useState<VacationTrade[]>([]);
   const [vacationTradesHistory, setVacationTradesHistory] = useState<VacationTrade[]>([]);
   const [mySwapPostsActive, setMySwapPostsActive] = useState<SwapPostRecord[]>([]);
@@ -443,28 +467,35 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
 
   return (
     <div className="space-y-5">
-      <div
-        className="inline-flex rounded-lg border border-slate-200 bg-slate-50/80 p-1"
-        role="tablist"
-        aria-label="Swaps sections"
-      >
-        {TAB_LABELS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === id}
-            onClick={() => setActiveTab(id)}
-            className={`rounded-md px-4 py-2 text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 ${
-              activeTab === id
-                ? "bg-white text-[var(--primary-cta)] shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {!embeddedMySwapsOnly && (
+        <div
+          className="inline-flex rounded-lg border border-slate-200 bg-slate-50/80 p-1"
+          role="tablist"
+          aria-label="Swaps sections"
+        >
+          {TAB_LABELS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === id}
+              onClick={() => {
+                setActiveTab(id);
+                const next = new URLSearchParams(searchParams.toString());
+                next.set("tab", id);
+                router.replace(`${pathname}?${next.toString()}`);
+              }}
+              className={`rounded-md px-4 py-2 text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 ${
+                activeTab === id
+                  ? "bg-white text-[var(--primary-cta)] shadow-sm"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {activeTab === "mySwaps" && (
         <div className="space-y-4">

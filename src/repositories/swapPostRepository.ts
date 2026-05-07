@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { swapPostHasDisplayableOffer } from "@/lib/swapPostDisplay";
+import { isSwapPostExpired } from "@/lib/swapExpiry";
 import { Prisma, SwapPostType as PrismaSwapPostType } from "@/generated/prisma";
 import type { SwapPostType } from "@/types/swapPost";
 import type { WantCriteriaData } from "@/types/swapPost";
@@ -346,15 +347,26 @@ export async function findActiveSwapPostsByUserId(userId: string) {
   });
 }
 
-/** My Swaps — past listings for history UI (drops orphan flight posts with no trips / quick date). */
+/**
+ * My Swaps — past listings for history UI.
+ * Includes terminal statuses plus OPEN posts that are already expired,
+ * so users can still find older swaps before background expiry jobs run.
+ */
 export async function findHistorySwapPostsByUserId(userId: string, take = 30) {
   const rows = await prisma.swapPost.findMany({
-    where: { userId, status: { in: ["EXPIRED", "CANCELLED", "COMPLETED"] } },
+    where: { userId },
     select: swapPostSelect,
     orderBy: { createdAt: "desc" },
     take: take * 3,
   });
-  return rows.filter(swapPostHasDisplayableOffer).slice(0, take);
+  const now = new Date();
+  return rows
+    .filter((row) => {
+      if (!swapPostHasDisplayableOffer(row)) return false;
+      if (row.status === "EXPIRED" || row.status === "CANCELLED" || row.status === "COMPLETED") return true;
+      return row.status === "OPEN" && isSwapPostExpired(row, now);
+    })
+    .slice(0, take);
 }
 
 export async function findSwapPostById(id: string) {

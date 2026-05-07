@@ -6,7 +6,7 @@ import type { SwapPostType } from "@/types/swapPost";
 import type { WantCriteriaData } from "@/types/swapPost";
 import type { QuickPostAdvancedData, QuickPostTripData, SwapPostInputSource } from "@/types/swapPost";
 
-const swapPostSelect = {
+export const swapPostSelect = {
   id: true,
   userId: true,
   postType: true,

@@ -85,6 +85,7 @@ export default async function NotificationsPage() {
       icon: "plane" as const,
       iconBg: "#1E6FB920",
       iconColor: "#1E6FB9",
+      linkHref: "/dashboard/matches",
       _createdAt: new Date(m.createdAt),
     };
   });
@@ -140,6 +141,7 @@ export default async function NotificationsPage() {
           icon: "plane" as const,
           iconBg: "#1E6FB920",
           iconColor: "#1E6FB9",
+          linkHref: "/dashboard/matches",
           _createdAt: n.createdAt,
         };
       }

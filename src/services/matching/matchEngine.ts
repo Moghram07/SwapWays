@@ -248,26 +248,7 @@ export async function getTradeboardForViewer(
     calculated = await Promise.all(
       limitedMissingPostIds.map((postId) => calculateSwapPostMatch(viewerId, postId))
     );
-    if (calculated.length > 0) {
-      await Promise.all(
-        calculated.map((item) =>
-          prisma.matchCache.upsert({
-            where: { postId_viewerId: { postId: item.postId, viewerId: item.viewerId } },
-            create: {
-              postId: item.postId,
-              viewerId: item.viewerId,
-              matchPercent: Math.round(item.matchPercent),
-              reasons: item.reasons,
-            },
-            update: {
-              matchPercent: Math.round(item.matchPercent),
-              reasons: item.reasons,
-              calculatedAt: new Date(),
-            },
-          })
-        )
-      );
-    }
+    await cacheMatchResults(calculated);
   } catch (error) {
     const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
     if (code !== "P2021") throw error;
@@ -293,6 +274,33 @@ export async function getTradeboardForViewer(
     return b.matchPercent - a.matchPercent;
   });
   return results;
+}
+
+export async function cacheMatchResults(results: SwapPostMatchResult[]) {
+  if (results.length === 0) return;
+  try {
+    await Promise.all(
+      results.map((item) =>
+        prisma.matchCache.upsert({
+          where: { postId_viewerId: { postId: item.postId, viewerId: item.viewerId } },
+          create: {
+            postId: item.postId,
+            viewerId: item.viewerId,
+            matchPercent: Math.round(item.matchPercent),
+            reasons: item.reasons,
+          },
+          update: {
+            matchPercent: Math.round(item.matchPercent),
+            reasons: item.reasons,
+            calculatedAt: new Date(),
+          },
+        })
+      )
+    );
+  } catch (error) {
+    const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
+    if (code !== "P2021") throw error;
+  }
 }
 
 export async function invalidateMatchCacheForPosts(postIds: string[]) {
@@ -330,10 +338,16 @@ export async function findMatchesForPost(postId: string): Promise<SwapPostMatchR
   const results = await Promise.all(
     candidates.map((candidate) => calculateSwapPostMatch(candidate.id, postId))
   );
-  return results
+  const ranked = results
     .filter((r) => r.matchPercent > 0)
     .sort((a, b) => b.matchPercent - a.matchPercent)
     .slice(0, MAX_MATCHES_TO_SAVE);
+
+  await cacheMatchResults(ranked).catch((err) =>
+    console.error("[matchEngine] failed to cache post-creation matches", err)
+  );
+
+  return ranked;
 }
 
 function emptyBreakdown(): ScoreBreakdown {

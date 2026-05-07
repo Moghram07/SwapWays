@@ -25,6 +25,7 @@ export type NotificationItem = {
   iconBg: string;
   iconColor: string;
   conversationId?: string;
+  linkHref?: string;
 };
 
 export function NotificationsClient({
@@ -101,6 +102,10 @@ export function NotificationsClient({
             >
               {n.conversationId ? (
                 <Link href={`/dashboard/messages?conversation=${n.conversationId}`} className="block">
+                  {content}
+                </Link>
+              ) : n.linkHref ? (
+                <Link href={n.linkHref} className="block">
                   {content}
                 </Link>
               ) : (

@@ -142,6 +142,8 @@ model User {
 
   @@unique([airlineId, crewId])
   @@index([subscriptionStatus, trialEndsAt])
+  @@index([baseId])
+  @@index([rankId])
 }
 
 model EmailVerificationCode {

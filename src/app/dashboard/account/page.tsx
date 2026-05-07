@@ -59,6 +59,7 @@ export default async function AccountPage() {
   const baseLabel = user?.base?.name ? `${user.base.name} Base` : null;
   const details = [fullName, rankLabel, baseLabel].filter(Boolean).join(" · ");
   const isVerifiedWithSchedule = Boolean(user?.isVerified && (user?._count?.schedules ?? 0) > 0);
+  const isAdmin = !!(session.user as { isAdmin?: boolean }).isAdmin;
 
   return (
     <div className="space-y-6">
@@ -94,6 +95,13 @@ export default async function AccountPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("dashboard.appSection")}</p>
         <Row href="/dashboard/install" label={t("dashboard.installSwapways")} />
       </section>
+
+      {isAdmin && (
+        <section className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("dashboard.admin")}</p>
+          <Row href="/dashboard/admin" label={t("dashboard.admin")} />
+        </section>
+      )}
 
       <section>
         <AccountSignOutButton />

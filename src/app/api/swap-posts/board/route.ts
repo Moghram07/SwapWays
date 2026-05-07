@@ -20,7 +20,9 @@ export async function GET(request: Request) {
   const timer = withTiming("GET /api/swap-posts/board");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return timer.end(unauthorized());
-  await trackSession(session.user.id, request);
+
+  // Fire-and-forget — session tracking must never block the primary request
+  void trackSession(session.user.id, request);
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -43,26 +45,64 @@ export async function GET(request: Request) {
   const dateFrom = searchParams.get("dateFrom") || undefined;
   const excludeVacation = searchParams.get("excludeVacation") === "1";
 
+  // DB-level filters that don't depend on access tier
+  const dbFilters: Parameters<typeof findSwapPostsForBoard>[2] = {
+    postType: postType as "OFFERING_TRIPS" | "VACATION_SWAP",
+    excludeVacation,
+  };
+  if (postType === "VACATION_SWAP" && user.rankId) {
+    dbFilters.rankId = user.rankId;
+  }
+
   try {
-    const access = await getUserAccess(session.user.id);
+    // Fetch access rules and board posts in parallel — they are independent DB calls
+    const [access, rawPosts] = await Promise.all([
+      getUserAccess(session.user.id),
+      findSwapPostsForBoard(session.user.id, user.baseId, dbFilters),
+    ]);
+
     const sortBy = access.canSeeExactMatch ? requestedSortBy : requestedSortBy === "match" ? "recent" : requestedSortBy;
     const effectiveTripType = access.hasAdvancedFilters ? tripType : undefined;
     const effectiveDestination = access.hasAdvancedFilters ? destination : undefined;
     const effectiveDateFrom = access.hasAdvancedFilters ? dateFrom : undefined;
-    const filters: Parameters<typeof findSwapPostsForBoard>[2] = {
-      postType: postType as "OFFERING_TRIPS" | "VACATION_SWAP",
-      tripType: effectiveTripType,
-      destination: effectiveDestination,
-      dateFrom: effectiveDateFrom,
-      excludeVacation,
-    };
-    if (filters.postType === "VACATION_SWAP" && user.rankId) {
-      filters.rankId = user.rankId;
-    }
+
     const now = new Date();
-    const posts = (await findSwapPostsForBoard(session.user.id, user.baseId, filters)).filter(
-      (post) => !isSwapPostExpired(post, now)
-    );
+    const posts = rawPosts
+      .filter((post) => !isSwapPostExpired(post, now))
+      .filter((post: any) => {
+        if (effectiveTripType && post.postType !== "VACATION_SWAP") {
+          const match =
+            post.offeredTrips?.some((t: any) => t.tripType === effectiveTripType) ||
+            post.quickTripType === effectiveTripType;
+          if (!match) return false;
+        }
+        if (effectiveDestination) {
+          const wanted = effectiveDestination.toUpperCase();
+          const match =
+            post.offeredTrips?.some((t: any) => t.destination?.toUpperCase() === wanted) ||
+            (post.quickDestinations ?? []).some((d: string) => d.toUpperCase() === wanted);
+          if (!match) return false;
+        }
+        if (effectiveDateFrom) {
+          const fromDate = new Date(`${effectiveDateFrom}T00:00:00.000Z`);
+          if (!Number.isNaN(fromDate.getTime())) {
+            if (post.postType === "VACATION_SWAP") {
+              if (post.vacationStartDate) return new Date(post.vacationStartDate) >= fromDate;
+              if (post.vacationYear && post.vacationMonth && post.vacationStartDay) {
+                const d = new Date(Date.UTC(post.vacationYear, post.vacationMonth - 1, post.vacationStartDay));
+                return d >= fromDate;
+              }
+              return false;
+            }
+            const match =
+              post.offeredTrips?.some((t: any) => new Date(t.departureDate) >= fromDate) ||
+              (post.quickDate ? new Date(post.quickDate) >= fromDate : false);
+            if (!match) return false;
+          }
+        }
+        return true;
+      });
+
     const matchResults = await getTradeboardForViewer(
       session.user.id,
       posts.map((p) => p.id),

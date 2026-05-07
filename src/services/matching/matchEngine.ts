@@ -39,7 +39,7 @@ export async function findMatchesForTrade(tradeId: string): Promise<MatchResult[
   const ranked = scored.sort((a, b) => b.score - a.score).slice(0, MAX_MATCHES_TO_SAVE);
 
   for (const { candidate, score } of ranked) {
-    await matchRepo.createMatch({
+    await matchRepo.createOrRefreshPendingMatch({
       tradeId: trade.id,
       offererId: trade.userId,
       receiverId: candidate.userId,

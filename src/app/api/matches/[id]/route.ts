@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
-import { findMatchById, updateMatchStatus } from "@/repositories/matchRepository";
+import { findMatchById, updateMatchStatus, isValidMatchStatusTransition } from "@/repositories/matchRepository";
 
 export async function GET(
   _request: Request,
@@ -41,9 +41,18 @@ export async function PATCH(
   }
   const body = await request.json().catch(() => ({}));
   const { status, rejectionReason } = body as { status?: string; rejectionReason?: string };
-  if (status === "ACCEPTED" || status === "REJECTED") {
-    const updated = await updateMatchStatus(id, status, rejectionReason);
-    return NextResponse.json({ data: updated, error: null, message: `Match ${status.toLowerCase()}` });
+  if (!status || !["ACCEPTED", "REJECTED", "EXPIRED"].includes(status)) {
+    return NextResponse.json(
+      { data: null, error: "BadRequest", message: "Invalid or missing status" },
+      { status: 400 }
+    );
   }
-  return NextResponse.json({ data: match, error: null, message: null });
+  if (!isValidMatchStatusTransition(match.status, status)) {
+    return NextResponse.json(
+      { data: null, error: "Conflict", message: `Cannot transition from ${match.status} to ${status}` },
+      { status: 409 }
+    );
+  }
+  const updated = await updateMatchStatus(id, status as "ACCEPTED" | "REJECTED" | "EXPIRED", rejectionReason);
+  return NextResponse.json({ data: updated, error: null, message: `Match ${status.toLowerCase()}` });
 }

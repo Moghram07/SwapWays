@@ -330,6 +330,19 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
         })}
       </div>
 
+      {/* Fallback layover bar for quick posts / trips without leg data */}
+      {legs.length === 0 && trip.tripType === "LAYOVER" && trip.layoverHours != null && layoverDurationLabel && (
+        <div className="mx-0 mt-1.5 rounded-lg border border-[#3BA34A]/20 bg-[#E8F5EA] px-2.5 py-2 sm:mt-2 sm:px-3 sm:py-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <Moon size={18} className="shrink-0 text-[#3BA34A]" />
+            <span className="font-semibold text-[#3BA34A]">
+              Layover{layoverCity ? ` in ${getAirportCity(layoverCity)}` : ""}
+            </span>
+            <span className="font-medium text-[#3BA34A]/80">— {layoverDurationLabel}</span>
+          </div>
+        </div>
+      )}
+
       {blockLabel ? (
         <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-gray-700 sm:mt-3">
           <span>Block: {blockLabel}</span>

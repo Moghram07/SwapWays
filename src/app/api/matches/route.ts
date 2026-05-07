@@ -22,7 +22,7 @@ export async function GET(request: Request) {
         error: "ServiceUnavailable",
         message: "Matches are temporarily unavailable. Please refresh in a moment.",
       },
-      { status: 200 }
+      { status: 503 }
     );
   }
 }

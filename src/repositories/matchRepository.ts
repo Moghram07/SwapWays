@@ -23,6 +23,44 @@ export async function createMatch(data: {
   });
 }
 
+export async function createOrRefreshPendingMatch(data: {
+  tradeId: string;
+  offererId: string;
+  receiverId: string;
+  matchScore: number;
+}) {
+  const existing = await prisma.match.findFirst({
+    where: {
+      tradeId: data.tradeId,
+      offererId: data.offererId,
+      receiverId: data.receiverId,
+      status: "PENDING",
+    },
+  });
+
+  if (existing) {
+    return prisma.match.update({
+      where: { id: existing.id },
+      data: { matchScore: data.matchScore },
+    });
+  }
+
+  return prisma.match.create({
+    data: { ...data, status: "PENDING" },
+  });
+}
+
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ["ACCEPTED", "REJECTED", "EXPIRED"],
+  ACCEPTED: ["REJECTED"],
+  REJECTED: [],
+  EXPIRED: [],
+};
+
+export function isValidMatchStatusTransition(from: string, to: string): boolean {
+  return (VALID_TRANSITIONS[from] ?? []).includes(to);
+}
+
 export async function findMatchesByUserId(userId: string, statusOrOptions?: MatchStatus | FindMatchesOptions) {
   const options: FindMatchesOptions =
     typeof statusOrOptions === "object" && statusOrOptions !== null

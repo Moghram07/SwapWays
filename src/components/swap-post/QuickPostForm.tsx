@@ -297,7 +297,7 @@ export function QuickPostForm({
                 </div>
                 {trip.tripType === "LAYOVER" && (
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Layover hours</label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Layover hours <span className="text-rose-600">*</span></label>
                     <input
                       type="number"
                       min={1}

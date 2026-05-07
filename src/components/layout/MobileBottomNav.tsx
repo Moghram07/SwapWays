@@ -32,7 +32,8 @@ export function MobileBottomNav({ locale }: { locale: Locale }) {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-1 pb-[max(env(safe-area-inset-bottom),0.35rem)] pt-1 backdrop-blur md:hidden"
+      className="fixed inset-x-0 z-40 border-t border-slate-200 bg-white/95 px-1 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-1.5 backdrop-blur md:hidden"
+      style={{ bottom: "max(env(safe-area-inset-bottom), 0.4rem)" }}
       aria-label={t("dashboard.navPrimary")}
     >
       <ul className="mx-auto flex w-full max-w-xl items-end justify-between gap-1">

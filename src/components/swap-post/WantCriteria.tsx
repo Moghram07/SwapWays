@@ -89,16 +89,17 @@ export function WantCriteria({
       {(criteria.wantType === "LAYOVER" || criteria.wantType === "LONGER_LAYOVER") && (
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">
-            Minimum layover duration (hours)
+            Layover duration (hours)
           </label>
           <input
-            type="number"
-            min={0}
-            step={1}
+            type="text"
+            inputMode="numeric"
+            maxLength={2}
             value={criteria.wantMinLayover ?? ""}
-            onChange={(e) =>
-              onChange({ ...criteria, wantMinLayover: e.target.value ? Number(e.target.value) : null })
-            }
+            onChange={(e) => {
+              const raw = e.target.value.replace(/\D/g, "").slice(0, 2);
+              onChange({ ...criteria, wantMinLayover: raw ? Number(raw) : null });
+            }}
             placeholder="e.g. 24"
             className="w-32 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
           />

@@ -8,7 +8,11 @@ import {
 } from "@/repositories/swapPostRepository";
 import { prisma } from "@/lib/prisma";
 import { classifyTrip, getUniqueDestinations } from "@/utils/tripClassifier";
-import { findMatchesForPost, invalidateMatchCacheForPosts } from "@/services/matching/matchEngine";
+import {
+  findMatchesForPost,
+  invalidateMatchCacheForPosts,
+  invalidateMatchCacheForViewer,
+} from "@/services/matching/matchEngine";
 import { createNotification } from "@/lib/notifications";
 import { isSwapPostExpired } from "@/lib/swapExpiry";
 import { trackEventServer } from "@/lib/analytics/server";
@@ -585,6 +589,8 @@ export async function POST(request: Request) {
     }).catch(() => {});
 
     await invalidateMatchCacheForPosts([post.id]).catch(() => {});
+    // The viewer's own wants now influence every cached pair they see; flush their cache.
+    await invalidateMatchCacheForViewer(session.user.id).catch(() => {});
     return timer.end(json(post));
   } catch (err) {
     const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : null;

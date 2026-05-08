@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
-import { findHighAffinityPostsForUser } from "@/repositories/matchRepository";
+import { findHighAffinityPostsForUser } from "@/services/matching/matchEngine";
 import { isSwapPostExpired } from "@/lib/swapExpiry";
 import { withTimeout } from "@/lib/withTimeout";
 

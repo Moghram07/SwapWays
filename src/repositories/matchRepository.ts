@@ -1,8 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { swapPostSelect } from "@/repositories/swapPostRepository";
 import type { MatchStatus } from "@/types/enums";
-
-const swapPostFullSelect = swapPostSelect;
 
 type FindMatchesOptions = {
   status?: MatchStatus;
@@ -127,41 +124,4 @@ export async function countPendingMatchesForUser(userId: string) {
   return prisma.match.count({
     where: { OR: [{ offererId: userId }, { receiverId: userId }], status: "PENDING" },
   });
-}
-
-export async function findHighAffinityPostsForUser(userId: string, minPercent = 40, take = 20) {
-  const rows = await prisma.matchCache.findMany({
-    where: { viewerId: userId, matchPercent: { gte: minPercent } },
-    orderBy: { matchPercent: "desc" },
-    take,
-    select: {
-      postId: true,
-      matchPercent: true,
-      reasons: true,
-    },
-  });
-
-  if (rows.length === 0) return [];
-
-  const postIds = rows.map((r) => r.postId);
-  const posts = await prisma.swapPost.findMany({
-    where: { id: { in: postIds }, status: "OPEN" },
-    select: swapPostFullSelect,
-  });
-
-  const postMap = new Map(posts.map((p) => [p.id, p]));
-  const matchMap = new Map(rows.map((r) => [r.postId, r]));
-
-  return postIds
-    .map((postId) => {
-      const post = postMap.get(postId);
-      const cache = matchMap.get(postId);
-      if (!post || !cache) return null;
-      return {
-        ...post,
-        matchPercent: cache.matchPercent,
-        matchReasons: cache.reasons,
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null);
 }

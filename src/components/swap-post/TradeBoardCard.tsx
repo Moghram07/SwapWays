@@ -397,7 +397,7 @@ function ForDisplay({
         <span className="inline-flex max-w-full items-center rounded-full bg-slate-200/90 px-2.5 py-1 text-sm font-semibold text-slate-800">
           <span className="truncate">{typeLabel}</span>
           {showLayoverMin ? (
-            <span className="ms-1 shrink-0 font-medium text-slate-600">· min {wantMinLayover}h</span>
+            <span className="ms-1 shrink-0 font-medium text-slate-600">· {wantMinLayover}h</span>
           ) : null}
         </span>
 

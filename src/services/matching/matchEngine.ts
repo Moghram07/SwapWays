@@ -6,9 +6,15 @@ import * as userRepo from "@/repositories/userRepository";
 import { filterByHardConstraints } from "./matchValidator";
 import { scoreSingleMatch } from "./matchScorer";
 import { checkHardConstraints } from "./hardConstraints";
-import { calculateMatchScore, type ScoreBreakdown } from "./softScoring";
+import {
+  calculateMatchScore,
+  calculateMutualMatchScore,
+  type ScoreBreakdown,
+} from "./softScoring";
 import { prisma } from "@/lib/prisma";
 import type { MatchResult } from "@/types/match";
+import { swapPostSelect } from "@/repositories/swapPostRepository";
+import { matchCacheNeedsRecompute } from "./matchCacheLegacy";
 
 const MAX_MATCHES_TO_SAVE = 10;
 
@@ -105,9 +111,10 @@ export async function calculateSwapPostMatch(
   viewerId: string,
   postId: string
 ): Promise<SwapPostMatchResult> {
-  const [viewer, post] = await Promise.all([
+  const [viewer, post, viewerActivePost] = await Promise.all([
     userRepo.findUserById(viewerId),
     swapPostRepo.findSwapPostByIdWithMatchingDetails(postId),
+    swapPostRepo.findActiveSwapPostForUser(viewerId),
   ]);
 
   if (!viewer || !post || post.status !== "OPEN") {
@@ -174,7 +181,8 @@ export async function calculateSwapPostMatch(
     allViewerTrips,
     post,
     postOwner,
-    primarySchedule.trips
+    primarySchedule.trips,
+    viewerActivePost
   );
 
   if (!hardResult.passes) {
@@ -198,7 +206,9 @@ export async function calculateSwapPostMatch(
   };
 
   const scoreSingle = (postCandidate: typeof post, bestTripIndex?: number) => {
-    const score = calculateMatchScore(scheduleForScoring, viewerMonthlyBlock, postCandidate);
+    const score = viewerActivePost
+      ? calculateMutualMatchScore(viewerActivePost, postCandidate, scheduleForScoring)
+      : calculateMatchScore(scheduleForScoring, viewerMonthlyBlock, postCandidate);
     return {
       postId,
       viewerId,
@@ -241,10 +251,18 @@ export async function getTradeboardForViewer(
       where: { viewerId, postId: { in: postIds } },
       select: { postId: true, viewerId: true, matchPercent: true, reasons: true },
     });
-    const cachedByPost = new Map(cached.map((c) => [c.postId, c]));
+    const trustedCacheRows = cached.filter((c) => !matchCacheNeedsRecompute(c.reasons));
+    const cachedByPost = new Map(trustedCacheRows.map((c) => [c.postId, c]));
+    const stalePostIds = new Set(
+      cached.filter((c) => matchCacheNeedsRecompute(c.reasons)).map((c) => c.postId)
+    );
     const missingPostIds = postIds.filter((id) => !cachedByPost.has(id));
+    const orderedMissing = [
+      ...missingPostIds.filter((id) => stalePostIds.has(id)),
+      ...missingPostIds.filter((id) => !stalePostIds.has(id)),
+    ];
     const limitedMissingPostIds =
-      options?.maxCompute != null ? missingPostIds.slice(0, Math.max(0, options.maxCompute)) : missingPostIds;
+      options?.maxCompute != null ? orderedMissing.slice(0, Math.max(0, options.maxCompute)) : orderedMissing;
     calculated = await Promise.all(
       limitedMissingPostIds.map((postId) => calculateSwapPostMatch(viewerId, postId))
     );
@@ -256,16 +274,18 @@ export async function getTradeboardForViewer(
     calculated = await Promise.all(postIds.map((postId) => calculateSwapPostMatch(viewerId, postId)));
   }
 
-  const cachedResults: SwapPostMatchResult[] = cached.map((item) => ({
-    postId: item.postId,
-    viewerId,
-    matchPercent: item.matchPercent,
-    breakdown: emptyBreakdown(),
-    matchingTrips: [],
-    reasons: item.reasons,
-    failReason: null,
-    bestTripIndex: null,
-  }));
+  const cachedResults: SwapPostMatchResult[] = cached
+    .filter((c) => !matchCacheNeedsRecompute(c.reasons))
+    .map((item) => ({
+      postId: item.postId,
+      viewerId,
+      matchPercent: item.matchPercent,
+      breakdown: emptyBreakdown(),
+      matchingTrips: [],
+      reasons: item.reasons,
+      failReason: null,
+      bestTripIndex: null,
+    }));
   const results = [...cachedResults, ...calculated];
 
   results.sort((a, b) => {
@@ -348,6 +368,60 @@ export async function findMatchesForPost(postId: string): Promise<SwapPostMatchR
   );
 
   return ranked;
+}
+
+/** High-affinity swap posts for /dashboard/matches — refreshes legacy cached reasons automatically. */
+export async function findHighAffinityPostsForUser(userId: string, minPercent = 40, take = 20) {
+  let rows = await prisma.matchCache.findMany({
+    where: { viewerId: userId, matchPercent: { gte: minPercent } },
+    orderBy: { matchPercent: "desc" },
+    take,
+    select: {
+      postId: true,
+      matchPercent: true,
+      reasons: true,
+    },
+  });
+
+  const stale = rows.filter((r) => matchCacheNeedsRecompute(r.reasons));
+  if (stale.length > 0) {
+    const refreshed = await Promise.all(stale.map((r) => calculateSwapPostMatch(userId, r.postId)));
+    await cacheMatchResults(refreshed);
+    rows = await prisma.matchCache.findMany({
+      where: { viewerId: userId, matchPercent: { gte: minPercent } },
+      orderBy: { matchPercent: "desc" },
+      take,
+      select: {
+        postId: true,
+        matchPercent: true,
+        reasons: true,
+      },
+    });
+  }
+
+  if (rows.length === 0) return [];
+
+  const postIds = rows.map((r) => r.postId);
+  const posts = await prisma.swapPost.findMany({
+    where: { id: { in: postIds }, status: "OPEN" },
+    select: swapPostSelect,
+  });
+
+  const postMap = new Map(posts.map((p) => [p.id, p]));
+  const matchMap = new Map(rows.map((r) => [r.postId, r]));
+
+  return postIds
+    .map((postId) => {
+      const post = postMap.get(postId);
+      const cache = matchMap.get(postId);
+      if (!post || !cache) return null;
+      return {
+        ...post,
+        matchPercent: cache.matchPercent,
+        matchReasons: cache.reasons,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
 function emptyBreakdown(): ScoreBreakdown {

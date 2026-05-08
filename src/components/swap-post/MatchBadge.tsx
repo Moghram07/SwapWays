@@ -66,6 +66,9 @@ export function MatchBadge({
             <p className="mb-1 font-semibold">
               Why this score{bestTripLabel ? ` (${bestTripLabel})` : ""}
             </p>
+            <p className="mb-1.5 border-b border-white/15 pb-1.5 text-[10px] font-normal leading-snug opacity-80">
+              Each line is how this swap fits your post and theirs (mutual match). “You” means you; “They” is the crew member who posted.
+            </p>
             {reasons.slice(0, 4).map((reason, idx) => (
               <p key={idx} className="opacity-85">
                 • {reason}

@@ -299,11 +299,14 @@ export function QuickPostForm({
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">Layover hours <span className="text-rose-600">*</span></label>
                     <input
-                      type="number"
-                      min={1}
-                      max={99}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={2}
                       value={trip.layoverHours ?? ""}
-                      onChange={(e) => updateTrip(trip.id, { layoverHours: e.target.value ? Number(e.target.value) : null })}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, "").slice(0, 2);
+                        updateTrip(trip.id, { layoverHours: raw ? Number(raw) : null });
+                      }}
                       placeholder="e.g. 32"
                       className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                     />

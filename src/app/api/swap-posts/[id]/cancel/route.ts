@@ -2,6 +2,10 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  invalidateMatchCacheForPosts,
+  invalidateMatchCacheForViewer,
+} from "@/services/matching/matchEngine";
 
 const NON_CANCELLABLE_STATUSES = ["AGREED", "COMPLETED", "EXPIRED", "CANCELLED"];
 
@@ -38,6 +42,11 @@ export async function PATCH(
     where: { id },
     data: { status: "CANCELLED" },
   });
+
+  // Cancelling our own post means viewers' cached match scores were based on stale wants;
+  // also clear any rows for this post so it disappears from the board.
+  await invalidateMatchCacheForPosts([id]).catch(() => {});
+  await invalidateMatchCacheForViewer(session.user.id).catch(() => {});
 
   return NextResponse.json({ data: updated });
 }

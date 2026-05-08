@@ -106,7 +106,7 @@ export async function GET(request: Request) {
     const matchResults = await getTradeboardForViewer(
       session.user.id,
       posts.map((p) => p.id),
-      { maxCompute: 5 }
+      { maxCompute: 25 }
     );
     const matchMap = new Map(matchResults.map((m) => [m.postId, m]));
 

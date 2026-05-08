@@ -348,6 +348,55 @@ export async function findActiveSwapPostsByUserId(userId: string) {
 }
 
 /**
+ * Most recent active (`OPEN`) post for a user, with only the fields the matching engine needs.
+ * Used by the mutual scorer so the viewer's wants (destinations, trip type, layover, wtfDays)
+ * are factored into match percentages.
+ */
+export async function findActiveSwapPostForUser(userId: string) {
+  return prisma.swapPost.findFirst({
+    where: { userId, status: "OPEN" },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      userId: true,
+      postType: true,
+      wantType: true,
+      wantTripTypes: true,
+      wantMinLayover: true,
+      wantMinCredit: true,
+      wantMaxCredit: true,
+      wantEqualHours: true,
+      wantSameDate: true,
+      wantDestinations: true,
+      wantExclude: true,
+      wtfDays: true,
+      wantDaysOff: true,
+      offeredTrips: {
+        select: {
+          id: true,
+          destination: true,
+          destinations: true,
+          departureDate: true,
+          tripType: true,
+          creditHours: true,
+          blockHours: true,
+          hasLayover: true,
+          layoverHours: true,
+        },
+      },
+      quickTripType: true,
+      quickDestinations: true,
+      quickDate: true,
+      quickLayoverHours: true,
+    },
+  });
+}
+
+export type ViewerActiveSwapPost = NonNullable<
+  Awaited<ReturnType<typeof findActiveSwapPostForUser>>
+>;
+
+/**
  * My Swaps — past listings for history UI.
  * Includes terminal statuses plus OPEN posts that are already expired,
  * so users can still find older swaps before background expiry jobs run.

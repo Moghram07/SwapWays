@@ -5,6 +5,10 @@ import { findSwapPostById, updateSwapPost } from "@/repositories/swapPostReposit
 import { prisma } from "@/lib/prisma";
 import { classifyTrip, getUniqueDestinations } from "@/utils/tripClassifier";
 import { trackEventServer } from "@/lib/analytics/server";
+import {
+  invalidateMatchCacheForPosts,
+  invalidateMatchCacheForViewer,
+} from "@/services/matching/matchEngine";
 import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
 import { getVacationSwapYearRange, isAllowedVacationSwapYear } from "@/lib/vacationSwapYearBounds";
 import { normalizeWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
@@ -480,6 +484,11 @@ export async function PATCH(
           (selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
       },
     }).catch(() => {});
+
+    // Wants/offer changed: cached match scores are stale for both this post (viewers seeing it)
+    // and for this user (they may match other posts differently now).
+    await invalidateMatchCacheForPosts([id]).catch(() => {});
+    await invalidateMatchCacheForViewer(session.user.id).catch(() => {});
 
     return json(post);
   } catch (err) {

@@ -24,7 +24,9 @@ type ViewerScheduleTripLike = { legs: ScheduleLegLike[] };
 type PostLike = {
   wantExclude: string[];
   advancedAircraftTypeCode?: string | null;
+  quickDate?: Date | null;
   offeredTrips: {
+    departureDate?: Date;
     scheduleTrip: {
       legs: {
         departureDate: Date;
@@ -38,6 +40,11 @@ type PostLike = {
   }[];
 };
 
+type ViewerActivePostLike = {
+  wtfDays: number[];
+  offeredTrips: { departureDate: Date }[];
+};
+
 export interface HardConstraintResult {
   passes: boolean;
   failReason: string | null;
@@ -48,7 +55,8 @@ export function checkHardConstraints(
   viewerScheduleTrips: ViewerScheduleTripLike[],
   post: PostLike,
   postOwner: ViewerLike,
-  viewerCandidateTrips: ViewerScheduleTripLike[] = viewerScheduleTrips
+  viewerCandidateTrips: ViewerScheduleTripLike[] = viewerScheduleTrips,
+  viewerActivePost: ViewerActivePostLike | null = null
 ): HardConstraintResult {
   const baseResult = checkBase(viewer, postOwner);
   if (!baseResult.passes) return baseResult;
@@ -78,6 +86,38 @@ export function checkHardConstraints(
   const conflictResult = checkScheduleConflict(viewerScheduleTrips, post);
   if (!conflictResult.passes) return conflictResult;
 
+  const wtfResult = checkViewerWtfDays(viewerActivePost, post);
+  if (!wtfResult.passes) return wtfResult;
+
+  return { passes: true, failReason: null };
+}
+
+/**
+ * If the viewer has an active swap post with explicit willing-to-fly days,
+ * every offered trip departure date in the candidate post must fall on one of those days.
+ * Without this, viewers see matches on dates they explicitly didn't say they're willing to fly.
+ */
+function checkViewerWtfDays(
+  viewerActivePost: ViewerActivePostLike | null,
+  post: PostLike
+): HardConstraintResult {
+  if (!viewerActivePost) return { passes: true, failReason: null };
+  if (viewerActivePost.wtfDays.length === 0) return { passes: true, failReason: null };
+
+  const wtfSet = new Set(viewerActivePost.wtfDays);
+  const offeredDates: Date[] = [];
+  for (const trip of post.offeredTrips) {
+    if (trip.departureDate) offeredDates.push(trip.departureDate);
+  }
+  if (offeredDates.length === 0 && post.quickDate) offeredDates.push(post.quickDate);
+  if (offeredDates.length === 0) return { passes: true, failReason: null };
+
+  for (const date of offeredDates) {
+    const day = date.getUTCDate();
+    if (!wtfSet.has(day)) {
+      return { passes: false, failReason: "Trip date not in your willing-to-fly days" };
+    }
+  }
   return { passes: true, failReason: null };
 }
 

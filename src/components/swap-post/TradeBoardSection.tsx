@@ -8,6 +8,8 @@ import { parseWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
 import { getAirportCity } from "@/utils/airportNames";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { useUserAccess } from "@/hooks/useUserAccess";
+import { useDashboardLocale } from "@/contexts/DashboardLocaleContext";
+import { getTranslator } from "@/i18n/getTranslator";
 
 const defaultFilters: SwapBoardFilters = {
   tripType: "",
@@ -121,9 +123,16 @@ const domesticCodes = [
 
 export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard" | "vacationSwap" }) {
   const router = useRouter();
+  const locale = useDashboardLocale();
+  const t = getTranslator(locale);
   const [filters, setFilters] = useState<SwapBoardFilters>(defaultFilters);
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [includeLowMatches, setIncludeLowMatches] = useState(false);
+  const [boardMeta, setBoardMeta] = useState({
+    omittedLowMatchCount: 0,
+    boardMatchPercentThreshold: 40,
+  });
   const [messagePostId, setMessagePostId] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
   const [offeredTripId, setOfferedTripId] = useState<string>("");
@@ -147,6 +156,7 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
     if (filters.destination) params.set("destination", filters.destination);
     if (filters.sortBy) params.set("sortBy", filters.sortBy);
     if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+    if (mode === "tradeBoard" && includeLowMatches) params.set("includeLowMatches", "true");
     setLoading(true);
     fetch(`/api/swap-posts/board?${params}`)
       .then(async (r) => {
@@ -157,10 +167,17 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
           return { data: null };
         }
       })
-      .then((json) => setPosts(json.data ?? []))
+      .then((json) => {
+        setPosts(json.data ?? []);
+        setBoardMeta({
+          omittedLowMatchCount: typeof json.omittedLowMatchCount === "number" ? json.omittedLowMatchCount : 0,
+          boardMatchPercentThreshold:
+            typeof json.boardMatchPercentThreshold === "number" ? json.boardMatchPercentThreshold : 40,
+        });
+      })
       .catch(() => setPosts([]))
       .finally(() => setLoading(false));
-  }, [filters, mode]);
+  }, [filters, mode, includeLowMatches]);
 
   useEffect(() => {
     fetchBoard();
@@ -359,6 +376,33 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
           })
         }
       />
+      {mode === "tradeBoard" && !loading && boardMeta.omittedLowMatchCount > 0 && !includeLowMatches ? (
+        <div className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2.5 text-sm text-amber-950 sm:flex-row sm:items-center sm:justify-between">
+          <p className="leading-snug">
+            {t("dashboard.boardLowMatchesHidden")
+              .replace("{count}", String(boardMeta.omittedLowMatchCount))
+              .replace("{threshold}", String(boardMeta.boardMatchPercentThreshold))}
+          </p>
+          <button
+            type="button"
+            className="shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+            onClick={() => setIncludeLowMatches(true)}
+          >
+            {t("dashboard.boardShowLowerMatches")}
+          </button>
+        </div>
+      ) : null}
+      {mode === "tradeBoard" && includeLowMatches ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="text-xs font-medium text-[#2668B0] underline hover:no-underline"
+            onClick={() => setIncludeLowMatches(false)}
+          >
+            {t("dashboard.boardHideLowerMatches")}
+          </button>
+        </div>
+      ) : null}
       {loading ? (
         <p className="py-8 text-center text-slate-600">Loading…</p>
       ) : filtered.length === 0 ? (

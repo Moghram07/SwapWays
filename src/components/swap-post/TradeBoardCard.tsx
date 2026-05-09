@@ -590,20 +590,17 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
               tier={post.matchTier}
               reasons={post.matchReasons ?? []}
               userTier={post.userTier ?? "PREMIUM"}
-              bestTripLabel={
-                offeringTrips.length > 1 && typeof post.bestTripIndex === "number"
-                  ? `Trip ${post.bestTripIndex + 1}`
-                  : undefined
-              }
             />
           )}
           {(post.userTier ?? "PREMIUM") === "FREE" &&
             post.matchTier &&
-            post.matchTier !== "none" && (
+            post.matchTier !== "none" &&
+            (post.matchPercent == null || post.matchPercent <= 0) && (
               <MatchBadge
                 percent={null}
                 tier={post.matchTier}
                 reasons={[]}
+                showTooltip={false}
                 userTier="FREE"
               />
             )}
@@ -696,15 +693,6 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
                         }
                       >
                         <OfferingTripRow trip={trip} />
-                        {offeringTrips.length > 1 &&
-                          typeof post.bestTripIndex === "number" &&
-                          post.bestTripIndex === i &&
-                          typeof post.matchPercent === "number" &&
-                          post.matchPercent > 0 && (
-                            <p className="mt-1 ps-0.5 text-sm font-semibold text-[#3BA34A] sm:ps-1">
-                              ⭐ Best match for you
-                            </p>
-                          )}
                       </div>
                     ))}
                   </div>

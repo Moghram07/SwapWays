@@ -169,6 +169,38 @@ export async function createScheduleFromParsed(
   return schedule;
 }
 
+/** All schedules for a user with trips + legs (+ layovers when available). Used for viewer match signals. */
+export async function findSchedulesForUser(userId: string) {
+  try {
+    return await prisma.schedule.findMany({
+      where: { userId },
+      orderBy: [{ year: "desc" }, { month: "desc" }],
+      include: {
+        trips: {
+          include: {
+            legs: { orderBy: { legOrder: "asc" } },
+            layovers: { orderBy: { afterLegOrder: "asc" } },
+          },
+        },
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Unknown arg") || msg.includes("layovers") || isLayoverTableMissing(err)) {
+      return prisma.schedule.findMany({
+        where: { userId },
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+        include: {
+          trips: {
+            include: { legs: { orderBy: { legOrder: "asc" } } },
+          },
+        },
+      });
+    }
+    throw err;
+  }
+}
+
 export async function findScheduleByUserAndMonth(userId: string, month: number, year: number) {
   try {
     return await prisma.schedule.findUnique({

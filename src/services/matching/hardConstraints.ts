@@ -1,4 +1,5 @@
 import { tripRequiresVisa, userHasRequiredVisas } from "@/utils/visaRequirements";
+import { dateKeyUTC } from "./dateMatch";
 
 type ViewerLike = {
   id: string;
@@ -40,9 +41,10 @@ type PostLike = {
   }[];
 };
 
-type ViewerActivePostLike = {
-  wtfDays: number[];
-  offeredTrips: { departureDate: Date }[];
+export type ViewerWtfGate = {
+  /** When true, every candidate departure must fall on one of wtfDateKeys. */
+  hasExplicitWtfFromPosts: boolean;
+  wtfDateKeys: Set<string>;
 };
 
 export interface HardConstraintResult {
@@ -56,7 +58,7 @@ export function checkHardConstraints(
   post: PostLike,
   postOwner: ViewerLike,
   viewerCandidateTrips: ViewerScheduleTripLike[] = viewerScheduleTrips,
-  viewerActivePost: ViewerActivePostLike | null = null
+  viewerWtfGate: ViewerWtfGate | null = null
 ): HardConstraintResult {
   const baseResult = checkBase(viewer, postOwner);
   if (!baseResult.passes) return baseResult;
@@ -86,7 +88,7 @@ export function checkHardConstraints(
   const conflictResult = checkScheduleConflict(viewerScheduleTrips, post);
   if (!conflictResult.passes) return conflictResult;
 
-  const wtfResult = checkViewerWtfDays(viewerActivePost, post);
+  const wtfResult = checkViewerWtfDays(viewerWtfGate, post);
   if (!wtfResult.passes) return wtfResult;
 
   return { passes: true, failReason: null };
@@ -98,13 +100,12 @@ export function checkHardConstraints(
  * Without this, viewers see matches on dates they explicitly didn't say they're willing to fly.
  */
 function checkViewerWtfDays(
-  viewerActivePost: ViewerActivePostLike | null,
+  gate: ViewerWtfGate | null,
   post: PostLike
 ): HardConstraintResult {
-  if (!viewerActivePost) return { passes: true, failReason: null };
-  if (viewerActivePost.wtfDays.length === 0) return { passes: true, failReason: null };
+  if (!gate || !gate.hasExplicitWtfFromPosts) return { passes: true, failReason: null };
+  if (gate.wtfDateKeys.size === 0) return { passes: true, failReason: null };
 
-  const wtfSet = new Set(viewerActivePost.wtfDays);
   const offeredDates: Date[] = [];
   for (const trip of post.offeredTrips) {
     if (trip.departureDate) offeredDates.push(trip.departureDate);
@@ -113,8 +114,8 @@ function checkViewerWtfDays(
   if (offeredDates.length === 0) return { passes: true, failReason: null };
 
   for (const date of offeredDates) {
-    const day = date.getUTCDate();
-    if (!wtfSet.has(day)) {
+    const key = dateKeyUTC(date);
+    if (!gate.wtfDateKeys.has(key)) {
       return { passes: false, failReason: "Trip date not in your willing-to-fly days" };
     }
   }

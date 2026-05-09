@@ -78,13 +78,6 @@ export function DashboardPageClient({ locale }: { locale: Locale }) {
         `Use my invite link to sign up on Swap Ways:\n\n${referral.referralLink}`
       )}`
     : "#";
-  const tierText = (tier: "low" | "medium" | "high" | "none") => {
-    if (tier === "high") return t("dashboard.greatMatch");
-    if (tier === "medium") return t("dashboard.goodMatch");
-    if (tier === "low") return t("dashboard.lowMatch");
-    return t("dashboard.match");
-  };
-
   async function copyReferralLink() {
     if (!referral?.referralLink) return;
     try {
@@ -284,9 +277,11 @@ export function DashboardPageClient({ locale }: { locale: Locale }) {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-slate-900">
                           <span className={`mr-2 inline-block h-2.5 w-2.5 rounded-full ${tripTypeDotClass(match.tripType)}`} />
-                          {match.matchPercent != null
-                            ? `${Math.round(match.matchPercent)}% match`
-                            : tierText(match.matchTier)}{" "}
+                          {match.matchPercent != null ? (
+                            <>{Math.round(match.matchPercent)}% </>
+                          ) : (
+                            <span className="inline-block h-2.5 w-2.5 rounded-full bg-slate-400 align-middle" title="" />
+                          )}
                           · {flightLabel} {destination} {tripLabel} · {match.posterRank} · {match.posterBase}
                         </p>
                       </div>

@@ -232,13 +232,7 @@ function HowMatchingWorks({ t }: { t: ReturnType<typeof getTranslator> }) {
         <li>{t("dashboard.matchExplainerHardAircraft")}</li>
       </ul>
       <p className="font-semibold text-slate-900">{t("dashboard.matchExplainerScoreTitle")}</p>
-      <ul className="list-disc space-y-1 pl-5">
-        <li>{t("dashboard.matchExplainerScoreDest")}</li>
-        <li>{t("dashboard.matchExplainerScoreDate")}</li>
-        <li>{t("dashboard.matchExplainerScoreCredit")}</li>
-        <li>{t("dashboard.matchExplainerScoreWtf")}</li>
-        <li>{t("dashboard.matchExplainerScoreLayover")}</li>
-      </ul>
+      <p>{t("dashboard.matchExplainerScoreSummary")}</p>
       <p>{t("dashboard.matchExplainerRanking")}</p>
     </div>
   );

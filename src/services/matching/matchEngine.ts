@@ -6,17 +6,53 @@ import * as userRepo from "@/repositories/userRepository";
 import { filterByHardConstraints } from "./matchValidator";
 import { scoreSingleMatch } from "./matchScorer";
 import { checkHardConstraints } from "./hardConstraints";
-import {
-  calculateMatchScore,
-  calculateMutualMatchScore,
-  type ScoreBreakdown,
-} from "./softScoring";
+import type { ScoreBreakdown } from "./softScoring";
+import { scoreWithSignalsOrFallbackSchedule } from "./signalScoring";
+import { buildViewerSignals, viewerHasComparableSignals, type ViewerSignals } from "./viewerSignals";
 import { prisma } from "@/lib/prisma";
 import type { MatchResult } from "@/types/match";
 import { swapPostSelect } from "@/repositories/swapPostRepository";
 import { matchCacheNeedsRecompute } from "./matchCacheLegacy";
+import type { PostLike } from "./softScoring";
+import type { WantType } from "@/types/enums";
+import { withTimeout, TimeoutError } from "@/lib/withTimeout";
+import { MATCHES_FEED_MIN_MATCH_PERCENT } from "./matchThresholds";
 
 const MAX_MATCHES_TO_SAVE = 10;
+
+type SwapPostWithMatching = NonNullable<Awaited<ReturnType<typeof swapPostRepo.findSwapPostByIdWithMatchingDetails>>>;
+
+function toPostLikeForScoring(post: SwapPostWithMatching): PostLike {
+  return {
+    wantType: post.wantType as WantType,
+    wantDestinations: [...(post.wantDestinations ?? [])],
+    wantExclude: [...(post.wantExclude ?? [])],
+    wantMinLayover: post.wantMinLayover ?? null,
+    offeredTrips: post.offeredTrips.map((t) => ({
+      departureDate: t.departureDate,
+      destination: t.destination,
+      creditHours: t.creditHours,
+      blockHours: t.blockHours ?? null,
+      hasLayover: t.hasLayover,
+      layoverHours: t.layoverHours,
+      tripType: t.tripType as PostLike["offeredTrips"][number]["tripType"],
+      scheduleTrip: t.scheduleTrip
+        ? {
+            legs: t.scheduleTrip.legs.map((leg) => ({
+              departureAirport: leg.departureAirport,
+              arrivalAirport: leg.arrivalAirport,
+            })),
+          }
+        : null,
+    })),
+    wtfDays: [...(post.wtfDays ?? [])],
+    quickTripType: (post.quickTripType ?? null) as PostLike["quickTripType"],
+    quickDestinations: post.quickDestinations ?? undefined,
+    quickDate: post.quickDate ?? null,
+    quickLayoverHours: post.quickLayoverHours ?? null,
+    advancedBlockHours: post.advancedBlockHours ?? null,
+  };
+}
 
 export async function findMatchesForTrade(tradeId: string): Promise<MatchResult[]> {
   const trade = await tradeRepo.findTradeById(tradeId);
@@ -109,12 +145,27 @@ export interface SwapPostMatchResult {
 
 export async function calculateSwapPostMatch(
   viewerId: string,
-  postId: string
+  postId: string,
+  options?: { viewerSignals?: ViewerSignals }
 ): Promise<SwapPostMatchResult> {
-  const [viewer, post, viewerActivePost] = await Promise.all([
+  const viewerSignals = options?.viewerSignals ?? (await buildViewerSignals(viewerId));
+
+  if (!viewerHasComparableSignals(viewerSignals)) {
+    return {
+      postId,
+      viewerId,
+      matchPercent: 0,
+      breakdown: emptyBreakdown(),
+      matchingTrips: [],
+      reasons: [],
+      failReason: "no signals to compare",
+      bestTripIndex: null,
+    };
+  }
+
+  const [viewer, post] = await Promise.all([
     userRepo.findUserById(viewerId),
     swapPostRepo.findSwapPostByIdWithMatchingDetails(postId),
-    swapPostRepo.findActiveSwapPostForUser(viewerId),
   ]);
 
   if (!viewer || !post || post.status !== "OPEN") {
@@ -176,13 +227,21 @@ export async function calculateSwapPostMatch(
     };
   }
 
+  const wtfGate =
+    viewerSignals.hasExplicitWtfFromPosts && viewerSignals.wtfDateKeys.size > 0
+      ? {
+          hasExplicitWtfFromPosts: true,
+          wtfDateKeys: viewerSignals.wtfDateKeys,
+        }
+      : null;
+
   const hardResult = checkHardConstraints(
     viewer,
     allViewerTrips,
     post,
     postOwner,
     primarySchedule.trips,
-    viewerActivePost
+    wtfGate
   );
 
   if (!hardResult.passes) {
@@ -206,9 +265,15 @@ export async function calculateSwapPostMatch(
   };
 
   const scoreSingle = (postCandidate: typeof post, bestTripIndex?: number) => {
-    const score = viewerActivePost
-      ? calculateMutualMatchScore(viewerActivePost, postCandidate, scheduleForScoring)
-      : calculateMatchScore(scheduleForScoring, viewerMonthlyBlock, postCandidate);
+    const postLike = toPostLikeForScoring(postCandidate);
+    const score = scoreWithSignalsOrFallbackSchedule(
+      viewerSignals,
+      postLike,
+      primaryYear,
+      primaryMonth,
+      scheduleForScoring,
+      viewerMonthlyBlock
+    );
     return {
       postId,
       viewerId,
@@ -241,9 +306,26 @@ export async function calculateSwapPostMatch(
 export async function getTradeboardForViewer(
   viewerId: string,
   postIds: string[],
-  options?: { maxCompute?: number }
+  options?: { maxCompute?: number; viewerSignals?: ViewerSignals; persistCache?: boolean }
 ): Promise<SwapPostMatchResult[]> {
   if (postIds.length === 0) return [];
+  const persistCache = options?.persistCache !== false;
+  const viewerSignals =
+    options?.viewerSignals ?? (await buildViewerSignals(viewerId));
+
+  if (!viewerHasComparableSignals(viewerSignals)) {
+    return postIds.map((postId) => ({
+      postId,
+      viewerId,
+      matchPercent: 0,
+      breakdown: emptyBreakdown(),
+      matchingTrips: [],
+      reasons: [],
+      failReason: "no signals to compare",
+      bestTripIndex: null,
+    }));
+  }
+
   let cached: Array<{ postId: string; viewerId: string; matchPercent: number; reasons: string[] }> = [];
   let calculated: SwapPostMatchResult[] = [];
   try {
@@ -264,14 +346,17 @@ export async function getTradeboardForViewer(
     const limitedMissingPostIds =
       options?.maxCompute != null ? orderedMissing.slice(0, Math.max(0, options.maxCompute)) : orderedMissing;
     calculated = await Promise.all(
-      limitedMissingPostIds.map((postId) => calculateSwapPostMatch(viewerId, postId))
+      limitedMissingPostIds.map((postId) =>
+        calculateSwapPostMatch(viewerId, postId, { viewerSignals })
+      )
     );
-    await cacheMatchResults(calculated);
+    await cacheMatchResults(calculated, { persist: persistCache });
   } catch (error) {
     const code = error && typeof error === "object" && "code" in error ? (error as { code?: string }).code : undefined;
     if (code !== "P2021") throw error;
-    // MatchCache table not migrated yet: fallback to on-demand matching.
-    calculated = await Promise.all(postIds.map((postId) => calculateSwapPostMatch(viewerId, postId)));
+    calculated = await Promise.all(
+      postIds.map((postId) => calculateSwapPostMatch(viewerId, postId, { viewerSignals }))
+    );
   }
 
   const cachedResults: SwapPostMatchResult[] = cached
@@ -286,7 +371,24 @@ export async function getTradeboardForViewer(
       failReason: null,
       bestTripIndex: null,
     }));
-  const results = [...cachedResults, ...calculated];
+  const merged = new Map<string, SwapPostMatchResult>();
+  for (const r of [...cachedResults, ...calculated]) {
+    merged.set(r.postId, r);
+  }
+
+  const results: SwapPostMatchResult[] = postIds.map(
+    (postId) =>
+      merged.get(postId) ?? {
+        postId,
+        viewerId,
+        matchPercent: 0,
+        breakdown: emptyBreakdown(),
+        matchingTrips: [],
+        reasons: [],
+        failReason: null,
+        bestTripIndex: null,
+      }
+  );
 
   results.sort((a, b) => {
     if (a.matchPercent > 0 && b.matchPercent === 0) return -1;
@@ -296,8 +398,11 @@ export async function getTradeboardForViewer(
   return results;
 }
 
-export async function cacheMatchResults(results: SwapPostMatchResult[]) {
-  if (results.length === 0) return;
+export async function cacheMatchResults(
+  results: SwapPostMatchResult[],
+  opts?: { persist?: boolean }
+) {
+  if (opts?.persist === false || results.length === 0) return;
   try {
     await Promise.all(
       results.map((item) =>
@@ -370,8 +475,21 @@ export async function findMatchesForPost(postId: string): Promise<SwapPostMatchR
   return ranked;
 }
 
-/** High-affinity swap posts for /dashboard/matches — refreshes legacy cached reasons automatically. */
-export async function findHighAffinityPostsForUser(userId: string, minPercent = 40, take = 20) {
+/**
+ * High-affinity swap posts for /dashboard/matches — refreshes legacy cached reasons automatically.
+ * `minPercent` defaults to `MATCHES_FEED_MIN_MATCH_PERCENT` (stricter than the trade board).
+ */
+export async function findHighAffinityPostsForUser(
+  userId: string,
+  minPercent = MATCHES_FEED_MIN_MATCH_PERCENT,
+  take = 20
+) {
+  const viewer = await userRepo.findUserById(userId);
+  if (!viewer?.baseId) return [];
+
+  const signals = await buildViewerSignals(userId);
+  if (!viewerHasComparableSignals(signals)) return [];
+
   let rows = await prisma.matchCache.findMany({
     where: { viewerId: userId, matchPercent: { gte: minPercent } },
     orderBy: { matchPercent: "desc" },
@@ -385,8 +503,49 @@ export async function findHighAffinityPostsForUser(userId: string, minPercent = 
 
   const stale = rows.filter((r) => matchCacheNeedsRecompute(r.reasons));
   if (stale.length > 0) {
-    const refreshed = await Promise.all(stale.map((r) => calculateSwapPostMatch(userId, r.postId)));
+    const refreshed = await Promise.all(
+      stale.map((r) => calculateSwapPostMatch(userId, r.postId, { viewerSignals: signals }))
+    );
     await cacheMatchResults(refreshed);
+    rows = await prisma.matchCache.findMany({
+      where: { viewerId: userId, matchPercent: { gte: minPercent } },
+      orderBy: { matchPercent: "desc" },
+      take,
+      select: {
+        postId: true,
+        matchPercent: true,
+        reasons: true,
+      },
+    });
+  }
+
+  if (rows.length < 10) {
+    const recent = await prisma.swapPost.findMany({
+      where: {
+        status: "OPEN",
+        userId: { not: userId },
+        user: { baseId: viewer.baseId },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+      select: { id: true },
+    });
+    const have = new Set(rows.map((r) => r.postId));
+    const toCompute = recent.map((p) => p.id).filter((id) => !have.has(id));
+    try {
+      const computed = await withTimeout(
+        Promise.all(toCompute.map((postId) => calculateSwapPostMatch(userId, postId, { viewerSignals: signals }))),
+        10_000,
+        "matches fallback batch"
+      );
+      await cacheMatchResults(
+        computed.filter((c) => c.failReason == null),
+        { persist: true }
+      );
+    } catch (e) {
+      if (!(e instanceof TimeoutError)) throw e;
+    }
+
     rows = await prisma.matchCache.findMany({
       where: { viewerId: userId, matchPercent: { gte: minPercent } },
       orderBy: { matchPercent: "desc" },
@@ -432,5 +591,9 @@ function emptyBreakdown(): ScoreBreakdown {
     tripTypeMatch: 0,
     sameDateBonus: 0,
     layoverDuration: 0,
+    mutualSwap: 0,
+    oneSidedFit: 0,
+    dateAlignment: 0,
+    blockBand: 0,
   };
 }

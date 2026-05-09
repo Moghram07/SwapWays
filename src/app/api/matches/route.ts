@@ -3,7 +3,13 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { findHighAffinityPostsForUser } from "@/services/matching/matchEngine";
 import { isSwapPostExpired } from "@/lib/swapExpiry";
-import { withTimeout } from "@/lib/withTimeout";
+import { TimeoutError, withTimeout } from "@/lib/withTimeout";
+
+/** Match pipeline loads signals, may refresh many stale cache rows, then runs a 10s-capped cold batch — 5s was too tight and caused 503s. */
+const MATCHES_QUERY_TIMEOUT_MS = 30_000;
+
+/** Allow the handler to run long enough for cold cache + batch scoring on Vercel (default is often 10s). */
+export const maxDuration = 60;
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -13,7 +19,7 @@ export async function GET() {
   try {
     const posts = await withTimeout(
       findHighAffinityPostsForUser(session.user.id),
-      5000,
+      MATCHES_QUERY_TIMEOUT_MS,
       "matches query"
     );
 
@@ -22,7 +28,11 @@ export async function GET() {
 
     return NextResponse.json({ data: filtered, error: null, message: null });
   } catch (error) {
-    console.error("[api/matches] degraded response due to transient DB failure", error);
+    if (error instanceof TimeoutError) {
+      console.error("[api/matches] timed out after", MATCHES_QUERY_TIMEOUT_MS, "ms");
+    } else {
+      console.error("[api/matches] degraded response due to transient DB failure", error);
+    }
     return NextResponse.json(
       {
         data: [],

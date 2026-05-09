@@ -3,11 +3,18 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { findSwapPostsForBoard } from "@/repositories/swapPostRepository";
 import { getTradeboardForViewer } from "@/services/matching/matchEngine";
+import { buildViewerSignals } from "@/services/matching/viewerSignals";
+import { TRADE_BOARD_DEFAULT_MIN_MATCH_PERCENT } from "@/services/matching/matchThresholds";
 import { isSwapPostExpired } from "@/lib/swapExpiry";
 import { getMatchTier, getUserAccess, truncateNotesForFree } from "@/utils/featureGates";
 import { withTiming } from "@/lib/apiTimer";
 import { prisma } from "@/lib/prisma";
 import { trackSession } from "@/lib/sessionTracker";
+
+/** Over-fetch from DB before % filter; must stay in sync with `maxCompute` below so every row is scored. */
+const BOARD_FETCH_SIZE = 50;
+/** Default page size after filtering ( cap 20 per product spec ). */
+const BOARD_PAGE_SIZE_MAX = 20;
 
 function unauthorized() {
   return NextResponse.json(
@@ -21,7 +28,6 @@ export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return timer.end(unauthorized());
 
-  // Fire-and-forget — session tracking must never block the primary request
   void trackSession(session.user.id, request);
 
   const user = await prisma.user.findUnique({
@@ -29,10 +35,9 @@ export async function GET(request: Request) {
     select: { baseId: true, rankId: true },
   });
   if (!user?.baseId) {
-    return timer.end(NextResponse.json(
-      { data: null, error: "Forbidden", message: "No base assigned" },
-      { status: 403 }
-    ));
+    return timer.end(
+      NextResponse.json({ data: null, error: "Forbidden", message: "No base assigned" }, { status: 403 })
+    );
   }
 
   const { searchParams } = new URL(request.url);
@@ -41,24 +46,28 @@ export async function GET(request: Request) {
   const destination = searchParams.get("destination") || undefined;
   const requestedSortBy = searchParams.get("sortBy") || "match";
   const cursor = searchParams.get("cursor");
-  const limit = Math.min(50, Math.max(1, Number(searchParams.get("limit") || "20")));
+  const pageSize = Math.min(
+    BOARD_PAGE_SIZE_MAX,
+    Math.max(1, Number(searchParams.get("limit") || String(BOARD_PAGE_SIZE_MAX)))
+  );
   const dateFrom = searchParams.get("dateFrom") || undefined;
   const excludeVacation = searchParams.get("excludeVacation") === "1";
+  const includeLowMatches = searchParams.get("includeLowMatches") === "true";
 
-  // DB-level filters that don't depend on access tier
   const dbFilters: Parameters<typeof findSwapPostsForBoard>[2] = {
     postType: postType as "OFFERING_TRIPS" | "VACATION_SWAP",
     excludeVacation,
+    take: BOARD_FETCH_SIZE,
   };
   if (postType === "VACATION_SWAP" && user.rankId) {
     dbFilters.rankId = user.rankId;
   }
 
   try {
-    // Fetch access rules and board posts in parallel — they are independent DB calls
-    const [access, rawPosts] = await Promise.all([
+    const [access, rawPosts, viewerSignals] = await Promise.all([
       getUserAccess(session.user.id),
       findSwapPostsForBoard(session.user.id, user.baseId, dbFilters),
+      buildViewerSignals(session.user.id),
     ]);
 
     const sortBy = access.canSeeExactMatch ? requestedSortBy : requestedSortBy === "match" ? "recent" : requestedSortBy;
@@ -103,11 +112,10 @@ export async function GET(request: Request) {
         return true;
       });
 
-    const matchResults = await getTradeboardForViewer(
-      session.user.id,
-      posts.map((p) => p.id),
-      { maxCompute: 25 }
-    );
+    const matchResults = await getTradeboardForViewer(session.user.id, posts.map((p) => p.id), {
+      maxCompute: BOARD_FETCH_SIZE,
+      viewerSignals,
+    });
     const matchMap = new Map(matchResults.map((m) => [m.postId, m]));
 
     const enriched = posts.map((post) => {
@@ -119,8 +127,7 @@ export async function GET(request: Request) {
       const ownerIsPriority =
         post.user.tier === "PREMIUM" &&
         (post.user.subscriptionStatus === "ACTIVE" ||
-          (post.user.subscriptionStatus === "TRIALING" &&
-            post.user.trialEndsAt.getTime() > Date.now()));
+          (post.user.subscriptionStatus === "TRIALING" && post.user.trialEndsAt.getTime() > Date.now()));
       const totalBlock = post.offeredTrips.reduce(
         (sum: number, t: { blockHours?: number | null; creditHours?: number | null }) =>
           sum + (t.blockHours ?? t.creditHours ?? 0),
@@ -161,33 +168,52 @@ export async function GET(request: Request) {
       return bScore - aScore;
     });
 
-    const clean = sorted.map((item) => {
+    const threshold = TRADE_BOARD_DEFAULT_MIN_MATCH_PERCENT;
+    const countBeforeVisibility = sorted.length;
+    const visibilityFiltered = includeLowMatches
+      ? sorted
+      : sorted.filter((row) => (typeof row.matchPercent === "number" ? row.matchPercent : 0) >= threshold);
+    const omittedLowMatchCount = includeLowMatches ? 0 : countBeforeVisibility - visibilityFiltered.length;
+
+    const clean = visibilityFiltered.map((item) => {
       const { __sortBlock, __sortDate, ...rest } = item;
       void __sortBlock;
       void __sortDate;
       return rest;
     });
+
     const startIndex = cursor ? clean.findIndex((item) => item.id === cursor) + 1 : 0;
-    const pageSlice = clean.slice(startIndex, startIndex + limit + 1);
-    const hasMore = pageSlice.length > limit;
-    const data = hasMore ? pageSlice.slice(0, limit) : pageSlice;
+    const pageSlice = clean.slice(startIndex, startIndex + pageSize + 1);
+    const hasMore = pageSlice.length > pageSize;
+    const data = hasMore ? pageSlice.slice(0, pageSize) : pageSlice;
     const nextCursor = hasMore ? data[data.length - 1]?.id ?? null : null;
+
     return timer.end(
-      NextResponse.json({ data, nextCursor, hasMore, error: null, message: null })
+      NextResponse.json({
+        data,
+        nextCursor,
+        hasMore,
+        includeLowMatches,
+        boardMatchPercentThreshold: threshold,
+        omittedLowMatchCount,
+        error: null,
+        message: null,
+      })
     );
   } catch (err) {
     const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : null;
     if (code === "P2021") {
       console.error("[swap-posts/board] Database table missing. Run: npx prisma db push");
-      return timer.end(NextResponse.json(
-        { data: null, error: "ServerConfig", message: "Trade board is not available. Please try again later." },
-        { status: 503 }
-      ));
+      return timer.end(
+        NextResponse.json(
+          { data: null, error: "ServerConfig", message: "Trade board is not available. Please try again later." },
+          { status: 503 }
+        )
+      );
     }
     console.error("[swap-posts/board]", err);
-    return timer.end(NextResponse.json(
-      { data: null, error: "ServerError", message: "Failed to load trade board." },
-      { status: 500 }
-    ));
+    return timer.end(
+      NextResponse.json({ data: null, error: "ServerError", message: "Failed to load trade board." }, { status: 500 })
+    );
   }
 }

@@ -324,13 +324,20 @@ const ar = {
     matchExplainerHardBase: "نفس القاعدة",
     matchExplainerHardRank: "نفس الرتبة",
     matchExplainerHardAircraft: "توافق تأهيل الطائرات في الاتجاهين",
-    matchExplainerScoreTitle: "النتيجة (0–100%)",
+    matchExplainerScoreTitle: "كيف نحسب النتيجة (0–100%)",
     matchExplainerScoreDest: "وجهات متبادلة — يقدمون ما تريده وتقدم ما يريدونه",
     matchExplainerScoreDate: "توافق التواريخ — كل تاريخ مغادرة معروض يقع ضمن أيام الاستعداد للطيران لكلا الطرفين",
     matchExplainerScoreCredit: "توازن ساعات الكتلة — قريبة من إجمالي ساعاتك المعروضة عند طلب ساعات متساوية",
     matchExplainerScoreWtf: "توافق أيام الاستعداد للطيران — تُطبَّق أيامك كفلتر صارم على تواريخ الرحلات المعروضة",
     matchExplainerScoreLayover: "ملاءمة مدة التوقف — التوقف المعروض يلبي حدّك الأدنى (وحدّهم)",
-    matchExplainerRanking: "يجب أن يتطابق الطرفان. تُحتسب النتيجة بأخذ الأقل من الاتجاهين، فالتطابق القوي يعني أنك تحصل على ما تريده وهم يحصلون على ما يريدونه.",
+    matchExplainerScoreSummary:
+      "تُدمج عوامل أربعة: إمكان التبديل في الاتجاهين (هل تناسب عروض الطرفين بعضهما)، الملاءمة مع ما ذكره كلٌ منكما، التداخل التقويمي مع أيام الاستعداد للطيران ومع جدولك، وتوازن ساعات الكتلة عندما يكون ذلك مهمًا.",
+    matchExplainerRanking:
+      "نعرض منشورات يوجد فيها مساحة للتفاوض عادةً — استخدم الرسائل لترتيب التفاصيل.",
+    boardLowMatchesHidden:
+      "تم إخفاء {count} منشورًا بدرجة تطابق أقل من {threshold}٪. يمكنك إظهار القائمة الأوسع إن رغبت.",
+    boardShowLowerMatches: "إظهار المنشورات ذات التطابق الأدنى",
+    boardHideLowerMatches: "إخفاء المنشورات ذات التطابق الأدنى",
     matchDefaultDestination: "تبديل",
     matchDefaultCrewName: "فرد طاقم",
     matchStatusPending: "معلّق",

@@ -6,6 +6,7 @@ import { getMatchTier, getUserAccess } from "@/utils/featureGates";
 import { withTiming } from "@/lib/apiTimer";
 import { withTimeout } from "@/lib/withTimeout";
 import { trackSession } from "@/lib/sessionTracker";
+import { MATCHES_FEED_MIN_MATCH_PERCENT } from "@/services/matching/matchThresholds";
 
 const OVERVIEW_CACHE_TTL_MS = 20_000;
 const OVERVIEW_DB_TIMEOUT_MS = 5000;
@@ -188,7 +189,10 @@ type TopMatchItem = {
 
 async function getTopMatchesForUser(userId: string, limit: number): Promise<TopMatchItem[]> {
   const cached = await prisma.matchCache.findMany({
-    where: { viewerId: userId, matchPercent: { gte: 40 } },
+    where: {
+      viewerId: userId,
+      matchPercent: { gte: MATCHES_FEED_MIN_MATCH_PERCENT },
+    },
     orderBy: { matchPercent: "desc" },
     take: limit * 3,
     select: { postId: true, matchPercent: true, reasons: true },

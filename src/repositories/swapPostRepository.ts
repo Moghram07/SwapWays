@@ -242,6 +242,9 @@ export async function findSwapPostsForBoard(
     excludeVacation?: boolean;
     routeType?: "DOMESTIC" | "INTERNATIONAL";
     rankId?: string;
+    /** Default 20. Board match path uses 50 to over-fetch before percent filter. */
+    take?: number;
+    skip?: number;
   }
 ) {
   const where: {
@@ -261,11 +264,15 @@ export async function findSwapPostsForBoard(
     where.user.rankId = filters.rankId;
   }
 
+  const take = Math.min(200, Math.max(1, filters?.take ?? 20));
+  const skip = Math.max(0, filters?.skip ?? 0);
+
   let posts: any[] = [];
   try {
     posts = await prisma.swapPost.findMany({
       where,
-      take: 20,
+      take,
+      skip,
       orderBy: { createdAt: "desc" },
       select: swapPostBoardSelect,
     });
@@ -276,7 +283,8 @@ export async function findSwapPostsForBoard(
     if (code !== "P2022") throw err;
     const legacyPosts = await prisma.swapPost.findMany({
       where,
-      take: 20,
+      take,
+      skip,
       orderBy: { createdAt: "desc" },
       select: {
         ...swapPostBoardSelect,

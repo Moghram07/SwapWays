@@ -327,13 +327,20 @@ const en = {
     matchExplainerHardBase: "Same base",
     matchExplainerHardRank: "Same rank",
     matchExplainerHardAircraft: "Aircraft qualification compatibility both ways",
-    matchExplainerScoreTitle: "Score (0–100%)",
+    matchExplainerScoreTitle: "How we score (0–100%)",
     matchExplainerScoreDest: "Mutual destinations — they offer what you want and you offer what they want",
     matchExplainerScoreDate: "Date alignment — every offered departure falls on willing-to-fly days for both sides",
     matchExplainerScoreCredit: "Block hours balance — close to your offered total when you ask for equal hours",
     matchExplainerScoreWtf: "Willing-to-fly fit — your wtf days are enforced as a hard filter on offered trip dates",
     matchExplainerScoreLayover: "Layover duration fit — offered layover meets your minimum (and theirs)",
-    matchExplainerRanking: "Both sides have to fit. The score takes the lower of the two directions, so a strong match means you get what you want AND they get what they want.",
+    matchExplainerScoreSummary:
+      "Matches blend four factors: bidirectional swap potential (whether both sides’ offers can work together), fit with what each person said they want, calendar overlap with willing-to-fly days and your line, and block-hour balance when that matters.",
+    matchExplainerRanking:
+      "We surface posts where there’s usually room to negotiate—use Messages to agree the details.",
+    boardLowMatchesHidden:
+      "{count} posts scored below {threshold}% are hidden. Open the list to weaker fits if you want to browse everything.",
+    boardShowLowerMatches: "Show lower-scoring posts",
+    boardHideLowerMatches: "Hide lower-scoring posts",
     matchDefaultDestination: "Swap",
     matchDefaultCrewName: "Crew member",
     matchStatusPending: "Pending",

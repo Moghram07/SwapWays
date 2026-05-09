@@ -170,6 +170,7 @@ function checkAircraftQualification(viewer: ViewerLike, post: PostLike): HardCon
     const legs = trip.scheduleTrip?.legs ?? [];
     for (const leg of legs) {
       if (isDeadHeadFlightNumber(leg.flightNumber)) continue;
+      if (!leg.aircraftTypeCode?.trim()) continue;
       hasAircraftEvidence = true;
       const legFamily = normalizeAircraftFamily(leg.aircraftTypeCode);
       if (!viewerCodes.has(legFamily)) {
@@ -212,7 +213,7 @@ function checkReverseAircraftQualification(
     const requiredFamilies = new Set<string>();
     for (const leg of trip.legs) {
       if (isDeadHeadFlightNumber(leg.flightNumber ?? "")) continue;
-      if (!leg.aircraftTypeCode) continue;
+      if (!leg.aircraftTypeCode?.trim()) continue;
       requiredFamilies.add(normalizeAircraftFamily(leg.aircraftTypeCode));
     }
     if (requiredFamilies.size === 0) continue;

@@ -3,13 +3,35 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { findUserById } from "@/repositories/userRepository";
 import { parseScheduleFromText } from "@/services/schedule/scheduleParser";
+import { detectScheduleFormat, type SchedulePdfFormat } from "@/services/schedule/detectScheduleFormat";
+import { parseCalendarSchedule } from "@/services/schedule/calendarParser";
+import {
+  extractFullPdfTextWithPdfJs,
+  extractFullPdfTextWithPdfParse,
+  extractPageText,
+} from "@/services/schedule/pdfTextExtract";
 import * as scheduleRepo from "@/repositories/scheduleRepository";
 import { trackEventServer } from "@/lib/analytics/server";
 import { prisma } from "@/lib/prisma";
 import { withTiming } from "@/lib/apiTimer";
 import { invalidateMatchCacheForViewer } from "@/services/matching/matchEngine";
+import type { ParsedSchedule } from "@/types/schedule";
+import type { CalendarParseMetadata } from "@/services/schedule/calendarParser";
 
 export const maxDuration = 60;
+
+const UNSUPPORTED = "UNSUPPORTED_PDF_FORMAT";
+
+function jsonUnsupported(message: string) {
+  return NextResponse.json(
+    {
+      error: "Unsupported format",
+      errorCode: UNSUPPORTED,
+      message,
+    },
+    { status: 422 }
+  );
+}
 
 export async function POST(request: Request) {
   const timer = withTiming("POST /api/schedule/upload");
@@ -18,9 +40,10 @@ export async function POST(request: Request) {
     return timer.end(NextResponse.json({ error: "Unauthorized", message: "Please sign in" }, { status: 401 }));
   }
 
-  let rawText: string;
+  let rawText = "";
   let month: number;
   let year: number;
+  let uploadFormat: SchedulePdfFormat;
 
   try {
     const formData = await request.formData();
@@ -50,17 +73,48 @@ export async function POST(request: Request) {
 
     if (mimeType === "text/plain" || name.endsWith(".txt")) {
       rawText = buffer.toString("utf-8");
+      uploadFormat = detectScheduleFormat(rawText);
+      if (uploadFormat === "UNKNOWN") {
+        return timer.end(
+          jsonUnsupported(
+            "We could not recognize this schedule. Upload a CrewTool calendar export or a Saudia line schedule (.txt/.pdf)."
+          )
+        );
+      }
     } else if (mimeType === "application/pdf" || name.endsWith(".pdf")) {
+      let pageOneText: string;
       try {
-        const pdfModule = await import("pdf-parse");
-        const pdfParse = pdfModule.default ?? pdfModule;
-        const data = await pdfParse(buffer);
-        rawText = (data && typeof data === "object" && "text" in data ? data.text : "") || "";
+        pageOneText = await extractPageText(buffer, 1);
       } catch {
-        return timer.end(NextResponse.json(
-          { error: "Parse error", message: "Failed to extract text from PDF" },
-          { status: 422 }
-        ));
+        return timer.end(
+          NextResponse.json(
+            { error: "Parse error", message: "Failed to extract text from PDF" },
+            { status: 422 }
+          )
+        );
+      }
+      uploadFormat = detectScheduleFormat(pageOneText);
+      if (uploadFormat === "UNKNOWN") {
+        return timer.end(
+          jsonUnsupported(
+            "We could not recognize this PDF. Upload a CrewTool calendar export or a Saudia line schedule PDF."
+          )
+        );
+      }
+
+      try {
+        if (uploadFormat === "CALENDAR") {
+          rawText = await extractFullPdfTextWithPdfJs(buffer);
+        } else {
+          rawText = await extractFullPdfTextWithPdfParse(buffer);
+        }
+      } catch {
+        return timer.end(
+          NextResponse.json(
+            { error: "Parse error", message: "Failed to extract text from PDF" },
+            { status: 422 }
+          )
+        );
       }
     } else {
       return timer.end(NextResponse.json(
@@ -90,32 +144,51 @@ export async function POST(request: Request) {
     ));
   }
 
-  try {
-    const fullParsed = parseScheduleFromText(rawText, month, year);
-    const parsed = {
-      lineNumber: fullParsed.lineNumber,
-      month: fullParsed.month,
-      year: fullParsed.year,
-      totalCredit: fullParsed.totalCredit,
-      totalBlock: fullParsed.totalBlock,
-      daysOff: fullParsed.daysOff,
-      dutyPeriods: fullParsed.dutyPeriods,
-      trips: fullParsed.trips,
-    };
+  let parsed: ParsedSchedule;
+  let detectedFormat: "LINE" | "CALENDAR";
+  let calendarMeta: CalendarParseMetadata = {
+    reserveDayCount: 0,
+    mandatoryOffCount: 0,
+    deadHeadLegCount: 0,
+  };
 
-    const schedule = await scheduleRepo.createScheduleFromParsed(
-      session.user.id,
-      parsed,
-      rawText
-    );
+  try {
+    if (uploadFormat === "CALENDAR") {
+      detectedFormat = "CALENDAR";
+      const cal = parseCalendarSchedule(rawText, month, year);
+      parsed = cal.schedule;
+      calendarMeta = cal.metadata;
+    } else {
+      detectedFormat = "LINE";
+      const fullParsed = parseScheduleFromText(rawText, month, year);
+      parsed = {
+        lineNumber: fullParsed.lineNumber,
+        month: fullParsed.month,
+        year: fullParsed.year,
+        totalCredit: fullParsed.totalCredit,
+        totalBlock: fullParsed.totalBlock,
+        daysOff: fullParsed.daysOff,
+        dutyPeriods: fullParsed.dutyPeriods,
+        trips: fullParsed.trips,
+      };
+    }
+
+    const schedule = await scheduleRepo.createScheduleFromParsed(session.user.id, parsed, rawText);
 
     const legCount = parsed.trips.reduce((sum, t) => sum + t.legs.length, 0);
+    const layoverTripCount = parsed.trips.filter((t) => (t.layovers?.length ?? 0) > 0).length;
 
     await trackEventServer({
       eventName: "schedule_uploaded",
       userId: session.user.id,
       path: "/dashboard/schedule",
-      properties: { month: parsed.month, year: parsed.year, tripCount: parsed.trips.length, legCount },
+      properties: {
+        month: parsed.month,
+        year: parsed.year,
+        tripCount: parsed.trips.length,
+        legCount,
+        detectedFormat,
+      },
     }).catch(() => {});
     await prisma.user.update({
       where: { id: session.user.id },
@@ -131,25 +204,31 @@ export async function POST(request: Request) {
       properties: { scheduleId: schedule.id },
     }).catch(() => {});
     await invalidateMatchCacheForViewer(session.user.id).catch(() => {});
-    return timer.end(NextResponse.json({
-      data: {
-        scheduleId: schedule.id,
-        month: parsed.month,
-        year: parsed.year,
-        lineNumber: parsed.lineNumber,
-        tripCount: parsed.trips.length,
-        legCount,
-      },
-      error: null,
-      message: "Schedule uploaded successfully",
-    }));
+    return timer.end(
+      NextResponse.json({
+        data: {
+          scheduleId: schedule.id,
+          month: parsed.month,
+          year: parsed.year,
+          lineNumber: parsed.lineNumber,
+          tripCount: parsed.trips.length,
+          legCount,
+          detectedFormat,
+          layoverTripCount,
+          reserveDayCount: calendarMeta.reserveDayCount,
+          mandatoryOffCount: calendarMeta.mandatoryOffCount,
+          deadHeadLegCount: calendarMeta.deadHeadLegCount,
+        },
+        error: null,
+        message: "Schedule uploaded successfully",
+      })
+    );
   } catch (e) {
     const err = e instanceof Error ? e : new Error("Failed to parse schedule");
     const message = err.message;
     const stack = process.env.NODE_ENV === "development" ? (err as Error).stack : undefined;
-    return timer.end(NextResponse.json(
-      { error: "Parse error", message, ...(stack && { stack }) },
-      { status: 422 }
-    ));
+    return timer.end(
+      NextResponse.json({ error: "Parse error", message, ...(stack && { stack }) }, { status: 422 })
+    );
   }
 }

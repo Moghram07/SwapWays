@@ -5,26 +5,14 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Upload } from "lucide-react";
-import type { getTranslator } from "@/i18n/getTranslator";
 
 const PRIMARY = "#1E6FB9";
 
-type T = ReturnType<typeof getTranslator>;
-
 interface ScheduleUploadCardProps {
-  t: T;
   onUploadSuccess?: () => void;
 }
 
-function interpolate(template: string, vars: Record<string, string | number>): string {
-  let out = template;
-  for (const [k, v] of Object.entries(vars)) {
-    out = out.split(`{${k}}`).join(String(v));
-  }
-  return out;
-}
-
-export function ScheduleUploadCard({ t, onUploadSuccess }: ScheduleUploadCardProps) {
+export function ScheduleUploadCard({ onUploadSuccess }: ScheduleUploadCardProps) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,7 +20,7 @@ export function ScheduleUploadCard({ t, onUploadSuccess }: ScheduleUploadCardPro
 
   async function handleUpload() {
     if (!file) {
-      setMessage({ type: "error", text: t("dashboard.scheduleUploadFileHint") });
+      setMessage({ type: "error", text: "Please select a file" });
       return;
     }
     setMessage(null);
@@ -46,42 +34,12 @@ export function ScheduleUploadCard({ t, onUploadSuccess }: ScheduleUploadCardPro
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const code = json.errorCode as string | undefined;
-        const base =
-          code === "UNSUPPORTED_PDF_FORMAT"
-            ? `${t("dashboard.scheduleErrUnsupportedTitle")}\n${t("dashboard.scheduleErrUnsupportedHelp")}`
-            : (json.message ?? json.error ?? "Upload failed");
-        setMessage({ type: "error", text: base });
+        setMessage({ type: "error", text: json.message ?? json.error ?? "Upload failed" });
         return;
-      }
-      const d = json.data ?? {};
-      const fmt =
-        d.detectedFormat === "CALENDAR"
-          ? t("dashboard.scheduleFormatCalendar")
-          : t("dashboard.scheduleFormatLine");
-      const parts: string[] = [
-        t("dashboard.scheduleUploadSuccess"),
-        `${t("dashboard.scheduleUploadFormatLabel")}: ${fmt}`,
-        [
-          interpolate(t("dashboard.scheduleUploadStatsTrips"), { n: d.tripCount ?? 0 }),
-          interpolate(t("dashboard.scheduleUploadStatsLegs"), { n: d.legCount ?? 0 }),
-        ].join(", "),
-      ];
-      if (d.layoverTripCount > 0) {
-        parts.push(interpolate(t("dashboard.scheduleUploadStatsLayoverTrips"), { n: d.layoverTripCount }));
-      }
-      if (d.reserveDayCount > 0) {
-        parts.push(interpolate(t("dashboard.scheduleUploadStatsReserve"), { n: d.reserveDayCount }));
-      }
-      if (d.mandatoryOffCount > 0) {
-        parts.push(interpolate(t("dashboard.scheduleUploadStatsMandatoryOff"), { n: d.mandatoryOffCount }));
-      }
-      if (d.deadHeadLegCount > 0) {
-        parts.push(interpolate(t("dashboard.scheduleUploadStatsDeadhead"), { n: d.deadHeadLegCount }));
       }
       setMessage({
         type: "success",
-        text: parts.join("\n"),
+        text: `Uploaded: ${json.data?.tripCount ?? 0} trips, ${json.data?.legCount ?? 0} flights.`,
       });
       setFile(null);
       router.refresh();
@@ -96,10 +54,12 @@ export function ScheduleUploadCard({ t, onUploadSuccess }: ScheduleUploadCardPro
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("dashboard.scheduleUploadCardTitle")}</CardTitle>
+        <CardTitle>Line Schedule</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-xs text-slate-500">{t("dashboard.scheduleUploadFileHint")}</p>
+        <p className="text-xs text-slate-500">
+          Upload your monthly Line schedule (.txt or .pdf). We&apos;ll parse trips and flights and show them on your calendar.
+        </p>
         <div className="flex flex-wrap items-end gap-4">
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-slate-600">File</span>
@@ -117,12 +77,12 @@ export function ScheduleUploadCard({ t, onUploadSuccess }: ScheduleUploadCardPro
             style={{ backgroundColor: PRIMARY }}
           >
             <Upload className="h-4 w-4" />
-            {loading ? t("dashboard.scheduleUploading") : t("dashboard.scheduleUploadButton")}
+            {loading ? "Uploading…" : "Upload Line Schedule"}
           </Button>
         </div>
         {message && (
           <p
-            className={`text-sm whitespace-pre-line ${message.type === "success" ? "text-green-600" : "text-red-600"}`}
+            className={`text-sm ${message.type === "success" ? "text-green-600" : "text-red-600"}`}
           >
             {message.text}
           </p>

@@ -39,7 +39,7 @@ export function isQualifiedForAircraft(
   user: { qualifications: { aircraftType: { code: string } }[] },
   aircraftCode: string | null
 ): boolean {
-  if (!aircraftCode?.trim()) return true;
+  if (!aircraftCode) return true;
   const normalize = (code: string) => {
     const c = code.toUpperCase();
     if (c.startsWith("77") || c.startsWith("B777")) return "B777";

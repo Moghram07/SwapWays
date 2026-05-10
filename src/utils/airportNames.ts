@@ -1144,17 +1144,29 @@ const AIRPORTS: Record<string, AirportInfo> = {
   ZYL: { city: "Sylhet", isDomestic: false },
 };
 
+/** Typo / legacy codes → canonical IATA used in AIRPORTS (e.g. Jazan is GIZ). */
+const AIRPORT_CODE_ALIASES: Record<string, string> = {
+  JIZ: "GIZ",
+};
+
+export function normalizeAirportCode(code: string): string {
+  const u = code.trim().toUpperCase();
+  return AIRPORT_CODE_ALIASES[u] ?? u;
+}
+
 export function getAirportCity(code: string): string {
-  return AIRPORTS[code]?.city ?? code;
+  const c = normalizeAirportCode(code);
+  return AIRPORTS[c]?.city ?? code.trim().toUpperCase();
 }
 
 export function getAirportDisplay(code: string): string {
-  const info = AIRPORTS[code];
-  return info ? `${info.city} (${code})` : code;
+  const c = normalizeAirportCode(code);
+  const info = AIRPORTS[c];
+  return info ? `${info.city} (${c})` : c;
 }
 
 export function isDomesticAirport(code: string): boolean {
-  return AIRPORTS[code]?.isDomestic ?? false;
+  return AIRPORTS[normalizeAirportCode(code)]?.isDomestic ?? false;
 }
 
 export function isDomesticTrip(

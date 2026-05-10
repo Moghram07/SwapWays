@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { TradeboardFilterBar, type SwapBoardFilters } from "@/components/swap-post/TradeboardFilterBar";
 import { SwapPostTradeBoardCard } from "@/components/swap-post/TradeBoardCard";
 import { parseWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
-import { getAirportCity } from "@/utils/airportNames";
+import { getAirportCity, normalizeAirportCode } from "@/utils/airportNames";
+import { collapseConsecutiveAirports } from "@/utils/multiStopRouteDisplay";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { useUserAccess } from "@/hooks/useUserAccess";
 import { useDashboardLocale } from "@/contexts/DashboardLocaleContext";
@@ -267,23 +268,27 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
         const secondLeg = legs.length >= 2 ? legs[1] : undefined;
 
         const baseAirportCode = p.user.base?.airportCode ?? firstLeg?.departureAirport ?? "";
-        const destinationCodes = legs
+        const destinationCodesOrdered = legs
           .map((l) => l.arrivalAirport)
           .filter((code) => code && code !== baseAirportCode);
-        const uniqueDestinations = Array.from(new Set(destinationCodes));
 
         const tripType = t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
         const stopsDisplay =
-          tripType === "MULTI_STOP" && destinationCodes.length > 0
-            ? destinationCodes.join(" → ")
+          tripType === "MULTI_STOP" && destinationCodesOrdered.length > 0
+            ? destinationCodesOrdered.join(" → ")
             : undefined;
 
+        const rawDestinations =
+          t.destinations && t.destinations.length > 0 ? t.destinations : destinationCodesOrdered;
+        const destinationsForCard = collapseConsecutiveAirports(
+          rawDestinations.map((code) => normalizeAirportCode(String(code)))
+        );
         return {
           flightNumber: t.flightNumber ?? "",
           // Row 1 "destinations" should never include base.
           // For non-multi-stop trips, this is the single off-base destination.
-          destination: destinationCodes[0] ?? t.destination,
-          destinations: (t.destinations && t.destinations.length > 0 ? t.destinations : uniqueDestinations),
+          destination: destinationsForCard[0] ?? normalizeAirportCode(String(t.destination)),
+          destinations: destinationsForCard,
           departureDate: new Date(t.departureDate),
           tripType,
           creditHours: t.creditHours,

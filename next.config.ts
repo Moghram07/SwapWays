@@ -4,6 +4,8 @@ import bundleAnalyzer from "@next/bundle-analyzer";
 const withBundleAnalyzer = bundleAnalyzer({ enabled: process.env.ANALYZE === "true" });
 
 const nextConfig: NextConfig = {
+  /** pdf-parse loads pdf.js via dynamic `require` under `lib/pdf.js/...`; bundling breaks that. */
+  serverExternalPackages: ["pdf-parse"],
   turbopack: {
     root: __dirname,
   },

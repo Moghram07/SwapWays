@@ -4,6 +4,7 @@ import { TripTypeBadge } from "./TripTypeBadge";
 import { SwapButton } from "./SwapButton";
 import { SwapStatusBadge } from "./SwapStatusBadge";
 import { getAirportDisplay } from "@/utils/airportNames";
+import { formatMultiStopAirportChain, formatMultiStopRouteFromLegs } from "@/utils/multiStopRouteDisplay";
 import { formatZuluTime } from "@/utils/timeUtils";
 import { zuluToLocal, getLocalDateFromZulu } from "@/utils/airportTimezones";
 import { formatLocalDate } from "@/utils/dateUtils";
@@ -148,10 +149,18 @@ export function TripCardHeader({
   onEdit,
 }: TripCardHeaderProps) {
   const firstLeg = trip.legs[0];
-  const destinationDesktopLabel = trip.destinations
-    .map((code) => getAirportDisplay(code))
-    .join(" + ");
-  const destinationMobileLabel = trip.destinations.length > 0 ? trip.destinations.join(" + ") : destinationDesktopLabel;
+  const fmt = (code: string) => getAirportDisplay(code.trim().toUpperCase());
+  const destinationDesktopLabel =
+    trip.tripType === "MULTI_STOP"
+      ? formatMultiStopRouteFromLegs(trip.legs, fmt) ??
+        formatMultiStopAirportChain(trip.destinations, fmt)
+      : trip.destinations.map((code) => getAirportDisplay(code)).join(" + ");
+  const destinationMobileLabel =
+    trip.tripType === "MULTI_STOP"
+      ? destinationDesktopLabel
+      : trip.destinations.length > 0
+        ? trip.destinations.join(" + ")
+        : destinationDesktopLabel;
   const prefix = trip.airlineCode ?? "SV";
   const primaryFlightNumber = firstLeg
     ? `${prefix}${firstLeg.flightNumber}`

@@ -54,7 +54,7 @@ export function BoardPageClient({ locale }: { locale: Locale }) {
               className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
                 mode === item.id ? "bg-white text-[#2668B0] shadow-sm" : "text-slate-600"
               }`}
-              aria-pressed={mode === item.id}
+              aria-selected={mode === item.id}
             >
               {item.label}
             </button>

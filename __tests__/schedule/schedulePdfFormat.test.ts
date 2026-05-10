@@ -2,15 +2,6 @@ import { describe, it, expect } from "vitest";
 import { detectScheduleFormat } from "../../src/services/schedule/detectScheduleFormat";
 
 describe("detectScheduleFormat", () => {
-  it("detects CALENDAR when weekday row, Report/Release, and Hotel present", () => {
-    const text = `
-      Sunday Monday Tuesday Wednesday Thursday Friday Saturday
-      Report 04:00 Release 22:00
-      Hotel CAI
-    `.trim();
-    expect(detectScheduleFormat(text)).toBe("CALENDAR");
-  });
-
   it("detects LINE with LINE header, credit/block, and trip headers", () => {
     const text = `
       LINE1300 CR. 82.10
@@ -20,7 +11,16 @@ describe("detectScheduleFormat", () => {
     expect(detectScheduleFormat(text)).toBe("LINE");
   });
 
-  it("returns UNKNOWN when signals are mixed or absent", () => {
+  it("returns UNKNOWN for CrewTool-style calendar text (not supported as LINE)", () => {
+    const text = `
+      Sunday Monday Tuesday Wednesday Thursday Friday Saturday
+      Report 04:00 Release 22:00
+      Hotel CAI
+    `.trim();
+    expect(detectScheduleFormat(text)).toBe("UNKNOWN");
+  });
+
+  it("returns UNKNOWN when signals are absent", () => {
     expect(detectScheduleFormat("random memo about flights")).toBe("UNKNOWN");
   });
 });

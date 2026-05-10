@@ -86,7 +86,7 @@ export function calculateMatchScore(
   breakdown.wtfDayOverlap = scoreWtfDays(post, viewerTrips, viewerSchedule, viewerDaysOffDateKeys, reasons);
   breakdown.destinationMatch = scoreDestination(post, viewerTrips, matchingTrips, reasons);
   breakdown.blockHoursBalance = scoreBlockHours(post, viewerTrips, viewerMonthlyBlock, matchingTrips, reasons);
-  breakdown.tripTypeMatch = scoreTripType(post, viewerTrips, matchingTrips, reasons);
+  breakdown.tripTypeMatch = scoreTripType(post, viewerTrips, matchingTrips);
   breakdown.sameDateBonus = scoreSameDate(post, viewerTrips, reasons);
   breakdown.layoverDuration = scoreLayoverDuration(post, viewerTrips, reasons);
 
@@ -275,12 +275,7 @@ function scoreBlockHours(
   return Math.max(0, Math.min(20, bestScore));
 }
 
-function scoreTripType(
-  post: PostLike,
-  viewerTrips: ViewerTripLike[],
-  matchingTrips: string[],
-  _reasons: string[]
-): number {
+function scoreTripType(post: PostLike, viewerTrips: ViewerTripLike[], matchingTrips: string[]): number {
   const offeredTripType = post.offeredTrips[0]?.tripType ?? post.quickTripType ?? null;
   switch (post.wantType) {
     case "LAYOVER":

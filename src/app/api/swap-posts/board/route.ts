@@ -78,18 +78,18 @@ export async function GET(request: Request) {
     const now = new Date();
     const posts = rawPosts
       .filter((post) => !isSwapPostExpired(post, now))
-      .filter((post: any) => {
+      .filter((post) => {
         if (effectiveTripType && post.postType !== "VACATION_SWAP") {
           const match =
-            post.offeredTrips?.some((t: any) => t.tripType === effectiveTripType) ||
+            post.offeredTrips.some((t) => t.tripType === effectiveTripType) ||
             post.quickTripType === effectiveTripType;
           if (!match) return false;
         }
         if (effectiveDestination) {
           const wanted = effectiveDestination.toUpperCase();
           const match =
-            post.offeredTrips?.some((t: any) => t.destination?.toUpperCase() === wanted) ||
-            (post.quickDestinations ?? []).some((d: string) => d.toUpperCase() === wanted);
+            post.offeredTrips.some((t) => t.destination?.toUpperCase() === wanted) ||
+            (post.quickDestinations ?? []).some((d) => d.toUpperCase() === wanted);
           if (!match) return false;
         }
         if (effectiveDateFrom) {
@@ -104,7 +104,7 @@ export async function GET(request: Request) {
               return false;
             }
             const match =
-              post.offeredTrips?.some((t: any) => new Date(t.departureDate) >= fromDate) ||
+              post.offeredTrips.some((t) => new Date(t.departureDate) >= fromDate) ||
               (post.quickDate ? new Date(post.quickDate) >= fromDate : false);
             if (!match) return false;
           }

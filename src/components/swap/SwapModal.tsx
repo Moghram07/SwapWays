@@ -4,6 +4,7 @@ import { useState } from "react";
 import { TripTypeBadge } from "@/components/trip/TripTypeBadge";
 import { getTripTypeInfo } from "@/utils/tripClassifier";
 import { getAirportCity, getAirportDisplay } from "@/utils/airportNames";
+import { formatMultiStopAirportChain, formatMultiStopRouteFromLegs } from "@/utils/multiStopRouteDisplay";
 import { decimalHoursToDisplayTime, formatZuluTime } from "@/utils/timeUtils";
 import type { TripCardData } from "@/types/tripCard";
 import { DesiredDestinations } from "./DesiredDestinations";
@@ -147,7 +148,11 @@ function TripSummaryReadOnly({
   typeInfo: ReturnType<typeof getTripTypeInfo>;
 }) {
   const firstLeg = trip.legs[0];
-  const destinations = trip.destinations.map((d) => getAirportDisplay(d)).join(" + ");
+  const fmt = (code: string) => getAirportDisplay(code.trim().toUpperCase());
+  const destinations =
+    trip.tripType === "MULTI_STOP"
+      ? formatMultiStopRouteFromLegs(trip.legs, fmt) ?? formatMultiStopAirportChain(trip.destinations, fmt)
+      : trip.destinations.map((d) => getAirportDisplay(d)).join(" + ");
   const layover = trip.layovers[0];
 
   const dateRange = formatTripDateRange(trip);

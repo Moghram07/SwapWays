@@ -1,32 +1,33 @@
 /**
- * Debug script: load Line 1300 PDF, extract text, run parser, log errors.
- * Run: node scripts/debug-pdf-upload.mjs
- * Or with PDF path: node scripts/debug-pdf-upload.mjs "path/to/Line 1300.pdf"
+ * Debug: extract PDF text and run schedule parser.
+ * Usage: node scripts/debug-pdf-upload.mjs [path/to/schedule.pdf]
+ * Default: __tests__/fixtures/schedules/line-1792.pdf if it exists.
  */
 
-import { readFileSync } from "fs";
-import { join } from "path";
+import { readFileSync, existsSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 
-const pdfPath =
-  process.argv[2] ||
-  join(
-    process.env.APPDATA || "",
-    "Cursor",
-    "User",
-    "workspaceStorage",
-    "0c1be5c5162679d8f90c61b3e03d5491",
-    "pdfs",
-    "60ec544e-5787-4e73-a243-45f3faa844ab",
-    "Line 1300.pdf"
-  );
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(__dirname, "..");
+const defaultPdf = join(repoRoot, "__tests__", "fixtures", "schedules", "line-1792.pdf");
+
+const pdfPath = process.argv[2] || (existsSync(defaultPdf) ? defaultPdf : null);
 
 async function main() {
+  if (!pdfPath) {
+    console.error("Usage: node scripts/debug-pdf-upload.mjs <path-to.pdf>");
+    console.error(`Or add a fixture at ${defaultPdf}`);
+    process.exit(1);
+  }
+
   console.log("PDF path:", pdfPath);
   let buffer;
   try {
     buffer = readFileSync(pdfPath);
   } catch (e) {
-    console.error("Could not read PDF:", e.message);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("Could not read PDF:", msg);
     console.log("Falling back to parsing RAW_TEXT from test...");
     const { parseScheduleFromText } = await import("../src/services/schedule/scheduleParser.ts");
     const { splitIntoSections } = await import("../src/services/schedule/sectionSplitter.ts");

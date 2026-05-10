@@ -1,5 +1,5 @@
 /**
- * Normalized trip comparison for LINE vs CrewTool calendar (tests only).
+ * Normalized trip comparison for schedule parse tests.
  */
 
 import type { ParsedLayover, ParsedTrip } from "@/types/schedule";

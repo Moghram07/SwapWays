@@ -5,7 +5,13 @@ import {
   createSwapPost,
   findActiveSwapPostsByUserId,
   findHistorySwapPostsByUserId,
+  getOpenOfferingDedupeInfoForUser,
 } from "@/repositories/swapPostRepository";
+import {
+  hasDuplicateAmongFingerprints,
+  looseManualMultiStopPostKeyFromTrips,
+  offeredTripFingerprintFromCandidate,
+} from "@/lib/swapPostOfferDedupe";
 import { prisma } from "@/lib/prisma";
 import { classifyTrip, getUniqueDestinations } from "@/utils/tripClassifier";
 import {
@@ -387,19 +393,6 @@ export async function POST(request: Request) {
 
   try {
     if (selectedTrips.length > 0) {
-      const duplicate = await prisma.swapPostTrip.findFirst({
-        where: {
-          scheduleTripId: { in: selectedTrips },
-          swapPost: { userId: session.user.id, status: "OPEN" },
-        },
-        select: { scheduleTripId: true },
-      });
-      if (duplicate) {
-        return error("One of these trips is already in another open post. Cancel that post first.", 400);
-      }
-    }
-
-    if (selectedTrips.length > 0) {
       const trips = await prisma.scheduleTrip.findMany({
         where: {
           id: { in: selectedTrips },
@@ -478,6 +471,39 @@ export async function POST(request: Request) {
           layoverHours: trip.layoverHours,
           isManualEntry: true,
         });
+      }
+    }
+
+    if (postType === "OFFERING_TRIPS" && swapPostTrips.length > 0) {
+      const { tripFingerprints, looseManualMultiStopKeys } = await getOpenOfferingDedupeInfoForUser(
+        session.user.id
+      );
+      const candidates = swapPostTrips.map((row) =>
+        offeredTripFingerprintFromCandidate({
+          scheduleTripId: row.scheduleTripId,
+          departureDate: row.departureDate,
+          tripType: row.tripType,
+          reportTime: row.reportTime,
+          destinations: row.destinations,
+          destination: row.destination,
+          flightNumber: row.flightNumber,
+          layoverHours: row.layoverHours,
+        })
+      );
+      if (hasDuplicateAmongFingerprints(candidates, tripFingerprints)) {
+        return error("One of these trips is already in another open post. Cancel that post first.", 400);
+      }
+      const looseNew = looseManualMultiStopPostKeyFromTrips(
+        swapPostTrips.map((row) => ({
+          scheduleTripId: row.scheduleTripId ?? null,
+          tripType: row.tripType,
+          departureDate: row.departureDate,
+          destinations: row.destinations ?? [],
+          destination: row.destination,
+        }))
+      );
+      if (looseNew && looseManualMultiStopKeys.has(looseNew)) {
+        return error("One of these trips is already in another open post. Cancel that post first.", 400);
       }
     }
 

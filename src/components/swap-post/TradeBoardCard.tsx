@@ -6,7 +6,13 @@ import { getTripTypeInfo } from "@/utils/tripClassifier";
 import { creditHoursToHumanReadable, formatZuluTime } from "@/utils/timeUtils";
 import { formatDisplayDate, formatLocalDate } from "@/utils/dateUtils";
 import { zuluToLocal, getLocalDateFromZulu } from "@/utils/airportTimezones";
-import { getAirportCity, getAirportDisplay } from "@/utils/airportNames";
+import { getAirportCity, getAirportDisplay, normalizeAirportCode } from "@/utils/airportNames";
+import {
+  collapseConsecutiveAirports,
+  formatMultiStopAirportChain,
+  multiStopRouteSegmentsFromCodes,
+  multiStopRouteSegmentsFromLegs,
+} from "@/utils/multiStopRouteDisplay";
 import { useTimeFormat } from "@/hooks/useTimeFormat";
 import { TripTypeBadge } from "@/components/trip/TripTypeBadge";
 import { MatchBadge } from "@/components/swap-post/MatchBadge";
@@ -150,27 +156,36 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
   const baseAirportCode = trip.baseAirportCode ?? firstLeg?.departureAirport ?? "";
   type Leg = NonNullable<TripRow["legs"]>[number];
 
-  const destinationCodes =
+  const rawDestinationCodes =
     trip.destinations && trip.destinations.length > 0
       ? trip.destinations
-      : (() => {
-          const seen = new Set<string>();
-          const out: string[] = [];
-          for (const l of legs) {
-            const code = l.arrivalAirport;
-            if (!code || code === baseAirportCode) continue;
-            if (seen.has(code)) continue;
-            seen.add(code);
-            out.push(code);
-          }
-          return out;
-        })();
+      : legs
+          .map((l) => l.arrivalAirport)
+          .filter((code): code is string => Boolean(code && code !== baseAirportCode));
+
+  const displayDestinationCodes = collapseConsecutiveAirports(
+    rawDestinationCodes.map((c) => normalizeAirportCode(String(c)))
+  );
+
+  const airportFmt = (code: string) => getAirportDisplay(code);
+
+  const multiStopLineSegments =
+    trip.tripType === "MULTI_STOP"
+      ? multiStopRouteSegmentsFromLegs(legs, airportFmt) ??
+        (displayDestinationCodes.length >= 2
+          ? multiStopRouteSegmentsFromCodes(displayDestinationCodes, airportFmt)
+          : [])
+      : [];
 
   const destinationDisplay =
     trip.tripType === "MULTI_STOP"
-      ? (destinationCodes.length ? destinationCodes.join(" + ") : trip.destination)
-      : destinationCodes.length
-        ? getAirportDisplay(destinationCodes[0])
+      ? multiStopLineSegments.length > 0
+        ? multiStopLineSegments.join(" + ")
+        : displayDestinationCodes.length
+          ? formatMultiStopAirportChain(displayDestinationCodes, airportFmt)
+          : getAirportDisplay(trip.destination)
+      : displayDestinationCodes.length
+        ? getAirportDisplay(displayDestinationCodes[0])
         : getAirportDisplay(trip.destination);
 
   const dateRange = (() => {
@@ -240,7 +255,22 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
         </div>
         <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
           <span className="min-w-0 text-sm font-bold leading-snug text-gray-900 sm:text-base">
-            SV{firstLeg?.flightNumber ?? trip.flightNumber} · {destinationDisplay}
+            {trip.tripType === "MULTI_STOP" && multiStopLineSegments.length > 0 ? (
+              <span className="block">
+                <span className="block">
+                  SV{firstLeg?.flightNumber ?? trip.flightNumber} · {multiStopLineSegments[0]}
+                </span>
+                {multiStopLineSegments.slice(1).map((seg, idx) => (
+                  <span key={idx} className="mt-0.5 block pl-0 font-semibold sm:mt-1">
+                    + {seg}
+                  </span>
+                ))}
+              </span>
+            ) : (
+              <>
+                SV{firstLeg?.flightNumber ?? trip.flightNumber} · {destinationDisplay}
+              </>
+            )}
           </span>
           {reportTime ? (
             <span className="shrink-0 text-sm text-gray-500">
@@ -528,20 +558,25 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
     post.quickDestinations &&
     post.quickDestinations.length > 0 &&
     post.quickDate
-      ? [
-          {
-            flightNumber: post.advancedFlightNumber ?? "",
-            destination: post.quickDestinations[0],
-            destinations: post.quickDestinations,
-            departureDate: new Date(post.quickDate),
-            tripType: post.quickTripType,
-            creditHours: post.advancedBlockHours ?? 0,
-            blockHours: post.advancedBlockHours ?? 0,
-            hasLayover: post.quickTripType === "LAYOVER",
-            layoverHours: post.quickLayoverHours ?? null,
-            reportTime: post.advancedReportTime ?? undefined,
-          },
-        ]
+      ? (() => {
+          const dests = collapseConsecutiveAirports(
+            post.quickDestinations.map((c) => normalizeAirportCode(String(c)))
+          );
+          return [
+            {
+              flightNumber: post.advancedFlightNumber ?? "",
+              destination: dests[0] ?? "",
+              destinations: dests,
+              departureDate: new Date(post.quickDate),
+              tripType: post.quickTripType,
+              creditHours: post.advancedBlockHours ?? 0,
+              blockHours: post.advancedBlockHours ?? 0,
+              hasLayover: post.quickTripType === "LAYOVER",
+              layoverHours: post.quickLayoverHours ?? null,
+              reportTime: post.advancedReportTime ?? undefined,
+            },
+          ];
+        })()
       : [];
   const offeringTrips = post.offeredTrips.length > 0 ? post.offeredTrips : syntheticQuickTrip;
   const totalHours = offeringTrips.reduce((s, t) => s + (t.blockHours ?? t.creditHours ?? 0), 0);

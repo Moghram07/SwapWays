@@ -5,6 +5,10 @@ import { Prisma, SwapPostType as PrismaSwapPostType } from "@/generated/prisma";
 import type { SwapPostType } from "@/types/swapPost";
 import type { WantCriteriaData } from "@/types/swapPost";
 import type { QuickPostAdvancedData, QuickPostTripData, SwapPostInputSource } from "@/types/swapPost";
+import {
+  looseManualMultiStopPostKeyFromTrips,
+  offeredTripFingerprintFromStored,
+} from "@/lib/swapPostOfferDedupe";
 
 export const swapPostSelect = {
   id: true,
@@ -123,6 +127,8 @@ const swapPostBoardSelect = {
     },
   },
 } as const;
+
+export type SwapPostBoardRow = Prisma.SwapPostGetPayload<{ select: typeof swapPostBoardSelect }>;
 
 export async function createSwapPost(
   userId: string,
@@ -246,7 +252,7 @@ export async function findSwapPostsForBoard(
     take?: number;
     skip?: number;
   }
-) {
+): Promise<SwapPostBoardRow[]> {
   const where: {
     status: "OPEN";
     userId: { not: string };
@@ -267,7 +273,7 @@ export async function findSwapPostsForBoard(
   const take = Math.min(200, Math.max(1, filters?.take ?? 20));
   const skip = Math.max(0, filters?.skip ?? 0);
 
-  let posts: any[] = [];
+  let posts: SwapPostBoardRow[] = [];
   try {
     posts = await prisma.swapPost.findMany({
       where,
@@ -291,28 +297,30 @@ export async function findSwapPostsForBoard(
         wantAcceptanceOptions: false,
       },
     });
-    posts = legacyPosts.map((post) => ({ ...post, wantAcceptanceOptions: null }));
+    posts = legacyPosts.map((post) => ({ ...post, wantAcceptanceOptions: null })) as SwapPostBoardRow[];
   }
 
   let filtered = posts;
   if (filters?.tripType) {
-    filtered = filtered.filter((p: any) =>
-      p.offeredTrips.some((t: any) => t.tripType === filters.tripType) ||
-      p.quickTripType === filters.tripType
+    filtered = filtered.filter(
+      (p) =>
+        p.offeredTrips.some((t) => t.tripType === filters.tripType) ||
+        p.quickTripType === filters.tripType
     );
   }
   if (filters?.destination) {
     const wanted = filters.destination.toUpperCase();
-    filtered = filtered.filter((p: any) =>
-      p.offeredTrips.some((t: any) => t.destination.toUpperCase() === wanted) ||
-      (p.quickDestinations ?? []).some((d: string) => d.toUpperCase() === wanted)
+    filtered = filtered.filter(
+      (p) =>
+        p.offeredTrips.some((t) => t.destination?.toUpperCase() === wanted) ||
+        (p.quickDestinations ?? []).some((d) => d.toUpperCase() === wanted)
     );
   }
 
   if (filters?.dateFrom) {
     const fromDate = new Date(`${filters.dateFrom}T00:00:00.000Z`);
     if (!Number.isNaN(fromDate.getTime())) {
-      filtered = filtered.filter((p: any) => {
+      filtered = filtered.filter((p) => {
         if (p.postType === "VACATION_SWAP") {
           if (p.vacationStartDate) return new Date(p.vacationStartDate) >= fromDate;
           if (p.vacationYear && p.vacationMonth && p.vacationStartDay) {
@@ -322,7 +330,7 @@ export async function findSwapPostsForBoard(
           return false;
         }
         return (
-          p.offeredTrips.some((t: any) => new Date(t.departureDate) >= fromDate) ||
+          p.offeredTrips.some((t) => new Date(t.departureDate) >= fromDate) ||
           (p.quickDate ? new Date(p.quickDate) >= fromDate : false)
         );
       });
@@ -431,6 +439,64 @@ export async function findSwapPostById(id: string) {
     where: { id },
     select: swapPostSelect,
   });
+}
+
+/** Fingerprints + loose keys for OPEN flight-swap posts (duplicate detection). */
+export async function getOpenOfferingDedupeInfoForUser(
+  userId: string,
+  options?: { excludeSwapPostId?: string }
+): Promise<{ tripFingerprints: Set<string>; looseManualMultiStopKeys: Set<string> }> {
+  const posts = await prisma.swapPost.findMany({
+    where: {
+      userId,
+      status: "OPEN",
+      postType: "OFFERING_TRIPS",
+      ...(options?.excludeSwapPostId ? { id: { not: options.excludeSwapPostId } } : {}),
+    },
+    select: {
+      offeredTrips: {
+        select: {
+          scheduleTripId: true,
+          departureDate: true,
+          tripType: true,
+          reportTime: true,
+          destinations: true,
+          destination: true,
+          flightNumber: true,
+          layoverHours: true,
+        },
+      },
+    },
+  });
+  const tripFingerprints = new Set<string>();
+  const looseManualMultiStopKeys = new Set<string>();
+  for (const p of posts) {
+    const lk = looseManualMultiStopPostKeyFromTrips(
+      p.offeredTrips.map((t) => ({
+        scheduleTripId: t.scheduleTripId,
+        tripType: t.tripType,
+        departureDate: t.departureDate,
+        destinations: t.destinations,
+        destination: t.destination,
+      }))
+    );
+    if (lk) looseManualMultiStopKeys.add(lk);
+    for (const t of p.offeredTrips) {
+      tripFingerprints.add(
+        offeredTripFingerprintFromStored({
+          scheduleTripId: t.scheduleTripId,
+          departureDate: t.departureDate,
+          tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP",
+          reportTime: t.reportTime,
+          destinations: t.destinations,
+          destination: t.destination,
+          flightNumber: t.flightNumber,
+          layoverHours: t.layoverHours,
+        })
+      );
+    }
+  }
+  return { tripFingerprints, looseManualMultiStopKeys };
 }
 
 export async function findSwapPostByIdWithMatchingDetails(id: string) {

@@ -14,6 +14,7 @@ type T = ReturnType<typeof getTranslator>;
 interface ScheduleUploadCardProps {
   t: T;
   onUploadSuccess?: () => void;
+  onShowScheduleGuide?: () => void;
 }
 
 function interpolate(template: string, vars: Record<string, string | number>): string {
@@ -24,7 +25,7 @@ function interpolate(template: string, vars: Record<string, string | number>): s
   return out;
 }
 
-export function ScheduleUploadCard({ t, onUploadSuccess }: ScheduleUploadCardProps) {
+export function ScheduleUploadCard({ t, onUploadSuccess, onShowScheduleGuide }: ScheduleUploadCardProps) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,10 +56,7 @@ export function ScheduleUploadCard({ t, onUploadSuccess }: ScheduleUploadCardPro
         return;
       }
       const d = json.data ?? {};
-      const fmt =
-        d.detectedFormat === "CALENDAR"
-          ? t("dashboard.scheduleFormatCalendar")
-          : t("dashboard.scheduleFormatLine");
+      const fmt = t("dashboard.scheduleFormatLine");
       const parts: string[] = [
         t("dashboard.scheduleUploadSuccess"),
         `${t("dashboard.scheduleUploadFormatLabel")}: ${fmt}`,
@@ -99,7 +97,18 @@ export function ScheduleUploadCard({ t, onUploadSuccess }: ScheduleUploadCardPro
         <CardTitle>{t("dashboard.scheduleUploadCardTitle")}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-xs text-slate-500">{t("dashboard.scheduleUploadFileHint")}</p>
+        <div className="space-y-1">
+          <p className="text-xs text-slate-500">{t("dashboard.scheduleUploadFileHint")}</p>
+          {onShowScheduleGuide && (
+            <button
+              type="button"
+              onClick={onShowScheduleGuide}
+              className="block text-start text-xs font-medium text-[#1E6FB9] underline decoration-[#1E6FB9]/40 underline-offset-2 hover:decoration-[#1E6FB9]"
+            >
+              {t("dashboard.scheduleUploadWherePdfLink")}
+            </button>
+          )}
+        </div>
         <div className="flex flex-wrap items-end gap-4">
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-slate-600">File</span>

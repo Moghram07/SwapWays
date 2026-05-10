@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, Inbox, Pencil } from "lucide-react";
 import { SwapPostTradeBoardCard } from "@/components/swap-post/TradeBoardCard";
 import { TradeBoardSection } from "@/components/swap-post/TradeBoardSection";
-import { getAirportCity } from "@/utils/airportNames";
+import { getAirportCity, normalizeAirportCode } from "@/utils/airportNames";
+import { collapseConsecutiveAirports } from "@/utils/multiStopRouteDisplay";
 import { isSwapPostExpired, isTradeExpired } from "@/lib/swapExpiry";
 import { swapPostHasDisplayableOffer } from "@/lib/swapPostDisplay";
 import { parseWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
@@ -142,10 +143,13 @@ function postToCard(p: SwapPostRecord) {
           stopsDisplay = codes.map((c) => getAirportCity(c)).join(" → ");
         }
       }
+      const destNorm = collapseConsecutiveAirports(
+        (t.destinations ?? []).map((c) => normalizeAirportCode(String(c)))
+      );
       return {
         flightNumber: t.flightNumber ?? "",
-        destination: t.destination,
-        destinations: t.destinations ?? [],
+        destination: destNorm[0] ?? normalizeAirportCode(String(t.destination)),
+        destinations: destNorm,
         departureDate: new Date(t.departureDate),
         tripType,
         creditHours: t.creditHours,

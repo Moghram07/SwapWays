@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ConversationList } from "@/components/chat/ConversationList";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { AnnouncementsWindow, type Announcement } from "./AnnouncementsWindow";
@@ -27,6 +27,7 @@ interface MessagesClientProps {
   initialConversations: ConversationSummary[];
   initialSelectedId: string | null;
   announcements: Announcement[];
+  onAnnouncementsOpened?: () => void;
   conversationMeta?: {
     tier?: "FREE" | "PREMIUM";
     canStartNewConversation?: boolean;
@@ -40,11 +41,13 @@ export function MessagesClient({
   initialConversations,
   initialSelectedId,
   announcements,
+  onAnnouncementsOpened,
   conversationMeta,
 }: MessagesClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
+  const hasCalledOpenRef = useRef(false);
 
   useEffect(() => {
     const id = searchParams.get("conversation");
@@ -64,6 +67,16 @@ export function MessagesClient({
   };
 
   const isAnnouncementsSelected = selectedId === ANNOUNCEMENTS_ID;
+
+  useEffect(() => {
+    if (isAnnouncementsSelected && !hasCalledOpenRef.current) {
+      hasCalledOpenRef.current = true;
+      onAnnouncementsOpened?.();
+    }
+    if (!isAnnouncementsSelected) {
+      hasCalledOpenRef.current = false;
+    }
+  }, [isAnnouncementsSelected, onAnnouncementsOpened]);
   const latestAnnouncement = announcements[0];
   const unreadAnnouncements = announcements.filter((a) => !a.isRead).length;
 

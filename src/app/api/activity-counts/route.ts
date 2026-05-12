@@ -17,7 +17,7 @@ export async function GET() {
   const userId = session.user.id;
 
   try {
-    const [messages, matches] = await withTimeout(
+    const [msgCount, sysCount, matches] = await withTimeout(
       Promise.all([
         prisma.message.count({
           where: {
@@ -32,6 +32,10 @@ export async function GET() {
             },
           },
         }),
+        // Announcements (SYSTEM) live in the Messages section, so count them there
+        prisma.notification.count({
+          where: { userId, type: "SYSTEM", isRead: false },
+        }),
         prisma.notification.count({
           where: { userId, type: "MATCH_FOUND", isRead: false },
         }),
@@ -40,6 +44,7 @@ export async function GET() {
       "activity counts"
     );
 
+    const messages = msgCount + sysCount;
     return NextResponse.json({ data: { messages, matches }, error: null, message: null });
   } catch {
     return NextResponse.json(

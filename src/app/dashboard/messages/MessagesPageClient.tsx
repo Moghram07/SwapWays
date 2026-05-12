@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 import useSWR from "swr";
 import { MessagesClient, type ConversationSummary } from "./MessagesClient";
 import type { Announcement } from "./AnnouncementsWindow";
@@ -36,16 +37,16 @@ type ProfileResponse = {
   data?: { id?: string };
 };
 
-type NotificationsResponse = {
+type AnnouncementsResponse = {
   data?: {
-    notifications?: Array<{
+    announcements?: Array<{
       id: string;
-      type: string;
       title: string;
       message: string;
       isRead: boolean;
       createdAt: string;
     }>;
+    unreadCount?: number;
   };
 };
 
@@ -61,23 +62,49 @@ export function MessagesPageClient() {
     revalidateOnFocus: true,
     dedupingInterval: 15_000,
   });
-  const { data: notifJson } = useSWR<NotificationsResponse>("/api/notifications/latest", fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 60_000,
-  });
+  const { data: announcementsJson, mutate: mutateAnnouncements } = useSWR<AnnouncementsResponse>(
+    "/api/notifications/announcements",
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60_000,
+    }
+  );
 
   const currentUserId = profileJson?.data?.id ?? "";
   const conversations = convJson?.data ?? [];
   const conversationMeta = convJson?.meta;
-  const announcements: Announcement[] = (notifJson?.data?.notifications ?? [])
-    .filter((n) => n.type === "SYSTEM")
-    .map((n) => ({
-      id: n.id,
-      title: n.title,
-      message: n.message,
-      isRead: n.isRead,
-      createdAt: n.createdAt,
-    }));
+  const announcements: Announcement[] = (announcementsJson?.data?.announcements ?? []).map((n) => ({
+    id: n.id,
+    title: n.title,
+    message: n.message,
+    isRead: n.isRead,
+    createdAt: n.createdAt,
+  }));
+
+  const onAnnouncementsOpened = useCallback(async () => {
+    const hasUnread = (announcementsJson?.data?.announcements ?? []).some((a) => !a.isRead);
+    if (!hasUnread) return;
+
+    // Optimistically mark all as read in local state
+    await mutateAnnouncements(
+      (current) =>
+        current?.data
+          ? {
+              ...current,
+              data: {
+                ...current.data,
+                unreadCount: 0,
+                announcements: (current.data.announcements ?? []).map((a) => ({ ...a, isRead: true })),
+              },
+            }
+          : current,
+      false
+    );
+
+    // Persist to DB
+    await fetch("/api/notifications/announcements", { method: "POST", credentials: "include" });
+  }, [announcementsJson, mutateAnnouncements]);
 
   if (isLoading && conversations.length === 0) {
     return (
@@ -94,6 +121,7 @@ export function MessagesPageClient() {
       initialConversations={conversations}
       initialSelectedId={selectedId}
       announcements={announcements}
+      onAnnouncementsOpened={onAnnouncementsOpened}
       conversationMeta={conversationMeta}
     />
   );

@@ -3,13 +3,14 @@
 import { useState } from "react";
 
 type ApiEnvelope<T> = { data?: T; message?: string | null };
-type BroadcastResult = { sent: number; audience: string; emailed: boolean };
+type BroadcastResult = { sent: number; audience: string; emailed: boolean; emailsSent?: number; emailsFailed?: number; emailOnly?: boolean };
 
 export function AdminBroadcastPageClient() {
   const [audience, setAudience] = useState("all");
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [emailUsers, setEmailUsers] = useState(false);
+  const [emailOnly, setEmailOnly] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -24,7 +25,7 @@ export function AdminBroadcastPageClient() {
     const res = await fetch("/api/admin/notifications/broadcast", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ audience, title, message, emailUsers }),
+      body: JSON.stringify({ audience, title, message, emailUsers, emailOnly }),
     });
     const text = await res.text();
     let body: ApiEnvelope<BroadcastResult> = {};
@@ -36,11 +37,22 @@ export function AdminBroadcastPageClient() {
     if (!res.ok) {
       setError(typeof body.message === "string" ? body.message : "Send failed");
     } else if (body.data) {
-      const emailNote = body.data.emailed ? " Emails are being sent." : "";
-      setResult(`Sent ${body.data.sent} notification(s) to audience: ${body.data.audience}.${emailNote}`);
+      let emailNote = "";
+      if (body.data.emailed) {
+        const s = body.data.emailsSent ?? 0;
+        const f = body.data.emailsFailed ?? 0;
+        emailNote = f > 0
+          ? ` Emailed ${s}/${s + f} users (${f} failed — check server logs).`
+          : ` Emailed ${s} user${s !== 1 ? "s" : ""}.`;
+      }
+      const notifNote = body.data.sent > 0
+        ? `Sent ${body.data.sent} in-app notification(s).`
+        : "No in-app notifications created (email only).";
+      setResult(`${notifNote}${emailNote}`);
       setTitle("");
       setMessage("");
       setEmailUsers(false);
+      setEmailOnly(false);
     }
     setSending(false);
   }
@@ -99,15 +111,28 @@ export function AdminBroadcastPageClient() {
             maxLength={2000}
           />
         </label>
-        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={emailUsers}
-            onChange={(e) => setEmailUsers(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 accent-[#1E6FB9]"
-          />
-          <span className="text-slate-700">Also send as email to users</span>
-        </label>
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={emailUsers}
+              onChange={(e) => { setEmailUsers(e.target.checked); if (e.target.checked) setEmailOnly(false); }}
+              className="h-4 w-4 rounded border-slate-300 accent-[#1E6FB9]"
+            />
+            <span className="text-slate-700">Also send as email to users</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={emailOnly}
+              onChange={(e) => { setEmailOnly(e.target.checked); if (e.target.checked) setEmailUsers(false); }}
+              className="h-4 w-4 rounded border-slate-300 accent-[#1E6FB9]"
+            />
+            <span className="text-slate-700">
+              Email only <span className="text-slate-400">(no in-app notification — use to re-send a missed email)</span>
+            </span>
+          </label>
+        </div>
         {error && (
           <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
             {error}

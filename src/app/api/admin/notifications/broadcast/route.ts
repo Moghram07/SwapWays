@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
 
-  let body: { audience?: string; title?: string; message?: string; emailUsers?: boolean };
+  let body: { audience?: string; title?: string; message?: string; emailUsers?: boolean; emailOnly?: boolean };
   try {
     body = await request.json();
   } catch {
@@ -48,6 +48,7 @@ export async function POST(request: Request) {
   const title = typeof body.title === "string" ? body.title.trim() : "";
   const message = typeof body.message === "string" ? body.message.trim() : "";
   const emailUsers = body.emailUsers === true;
+  const emailOnly = body.emailOnly === true;
   if (!title || !message) return error("title and message are required", 400);
 
   const where = audienceWhere(audience);
@@ -56,46 +57,53 @@ export async function POST(request: Request) {
     select: { id: true, email: true, firstName: true },
   });
 
-  // Create in-app notifications in chunks of 500
+  // Create in-app notifications (skipped when emailOnly is true)
   const chunkSize = 500;
   let created = 0;
-  for (let i = 0; i < users.length; i += chunkSize) {
-    const slice = users.slice(i, i + chunkSize);
-    const res = await prisma.notification.createMany({
-      data: slice.map((u) => ({
-        userId: u.id,
-        type: "SYSTEM" as const,
-        title,
-        message,
-        data: { audience, source: "admin_broadcast" },
-      })),
-    });
-    created += res.count;
+  if (!emailOnly) {
+    for (let i = 0; i < users.length; i += chunkSize) {
+      const slice = users.slice(i, i + chunkSize);
+      const res = await prisma.notification.createMany({
+        data: slice.map((u) => ({
+          userId: u.id,
+          type: "SYSTEM" as const,
+          title,
+          message,
+          data: { audience, source: "admin_broadcast" },
+        })),
+      });
+      created += res.count;
+    }
   }
 
-  // Optionally send emails in chunks of 100 (Resend batch limit), fire-and-forget
-  if (emailUsers && users.length > 0) {
+  // Optionally send emails synchronously — awaited so the function doesn't return before
+  // emails are dispatched (fire-and-forget is killed in serverless before it completes).
+  let emailsSent = 0;
+  let emailsFailed = 0;
+  if ((emailUsers || emailOnly) && users.length > 0) {
     const emailText = [title, "", message, "", "— The SwapWays Team"].join("\n");
-    const sendEmails = async () => {
-      for (let i = 0; i < users.length; i += 100) {
-        const slice = users.slice(i, i + 100);
-        await Promise.allSettled(
-          slice.map((u) =>
-            sendResendTransactionalEmail({
-              to: u.email,
-              subject: title,
-              text: u.firstName ? `Hi ${u.firstName},\n\n${emailText}` : emailText,
-            })
-          )
-        );
+    for (let i = 0; i < users.length; i += 50) {
+      const slice = users.slice(i, i + 50);
+      const results = await Promise.allSettled(
+        slice.map((u) =>
+          sendResendTransactionalEmail({
+            to: u.email,
+            subject: title,
+            text: u.firstName ? `Hi ${u.firstName},\n\n${emailText}` : emailText,
+          })
+        )
+      );
+      for (const r of results) {
+        if (r.status === "fulfilled" && r.value.ok) emailsSent++;
+        else emailsFailed++;
       }
-    };
-    sendEmails().catch((e) =>
-      console.error("[broadcast] email send error", e)
-    );
+    }
+    if (emailsFailed > 0) {
+      console.warn(`[broadcast] emails: ${emailsSent} sent, ${emailsFailed} failed`);
+    }
   }
 
-  return json({ sent: created, audience, emailed: emailUsers });
+  return json({ sent: created, audience, emailed: emailUsers || emailOnly, emailsSent, emailsFailed });
 }
 
 export async function DELETE() {

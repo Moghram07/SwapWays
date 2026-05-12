@@ -25,18 +25,12 @@ export default async function NotificationsPage() {
   let matches: Awaited<ReturnType<typeof findMatchesByUserId>> = [];
   let dbNotifications: Awaited<ReturnType<typeof findNotificationsByUserId>> = [];
   if (userId) {
-    try {
-      [matches, dbNotifications] = await withTimeout(
-        Promise.all([
-          findMatchesByUserId(userId, { take: 50, lightweight: true }),
-          findNotificationsByUserId(userId, 50),
-        ]),
-        1400,
-        "notifications page query"
-      );
-    } catch (error) {
-      console.error("[dashboard/notifications] degraded server render due to transient DB failure", error);
-    }
+    [matches, dbNotifications] = await Promise.all([
+      withTimeout(findMatchesByUserId(userId, { take: 50, lightweight: true }), 6000, "notifications/matches")
+        .catch((err) => { console.error("[dashboard/notifications] matches query failed", err); return []; }),
+      withTimeout(findNotificationsByUserId(userId, 50), 6000, "notifications/db")
+        .catch((err) => { console.error("[dashboard/notifications] notifications query failed", err); return []; }),
+    ]);
   }
 
   const matchItems: SortableItem[] = matches.map((m) => {

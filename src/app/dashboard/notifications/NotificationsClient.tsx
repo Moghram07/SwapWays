@@ -10,13 +10,22 @@ import {
   CheckCircle2,
   Bell,
   MessageCircle,
+  X,
 } from "lucide-react";
 
 const PRIMARY = "#1E6FB9";
 
 export type NotificationItem = {
   id: string;
-  type: "swap_accepted" | "new_match" | "schedule_change" | "swap_proposal" | "compliance" | "roster" | "new_message";
+  type:
+    | "swap_accepted"
+    | "new_match"
+    | "schedule_change"
+    | "swap_proposal"
+    | "compliance"
+    | "roster"
+    | "new_message"
+    | "system";
   title: string;
   detail: string;
   timeAgo: string;
@@ -34,20 +43,35 @@ export function NotificationsClient({
   initialNotifications: NotificationItem[];
 }) {
   const [notifications, setNotifications] = useState(initialNotifications);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
-  function markAllAsRead() {
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, unread: false }))
-    );
+  async function markAllAsRead() {
+    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    await fetch("/api/notifications/latest", {
+      method: "POST",
+      credentials: "include",
+    });
+  }
+
+  async function deleteNotification(id: string) {
+    setDeletingId(id);
+    await fetch(`/api/notifications/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    setDeletingId(null);
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Notifications</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            Notification History
+          </h1>
           <p className="mt-2 text-slate-600">
             {unreadCount === 0
               ? "No unread notifications"
@@ -63,7 +87,7 @@ export function NotificationsClient({
 
       <ul className="space-y-3">
         {notifications.map((n) => {
-          const content = (
+          const inner = (
             <div className="flex gap-4 p-4">
               <span
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
@@ -93,24 +117,39 @@ export function NotificationsClient({
               </div>
             </div>
           );
+
+          const linkContent = n.conversationId ? (
+            <Link
+              href={`/dashboard/messages?conversation=${n.conversationId}`}
+              className="block flex-1 min-w-0"
+            >
+              {inner}
+            </Link>
+          ) : n.linkHref ? (
+            <Link href={n.linkHref} className="block flex-1 min-w-0">
+              {inner}
+            </Link>
+          ) : (
+            <div className="flex-1 min-w-0">{inner}</div>
+          );
+
           return (
             <li
               key={n.id}
-              className={`rounded-xl border bg-white shadow-sm transition-shadow ${
+              className={`flex items-stretch rounded-xl border bg-white shadow-sm transition-shadow ${
                 n.unread ? "border-s-4 border-s-[#1E6FB9]" : "border-slate-200"
               }`}
             >
-              {n.conversationId ? (
-                <Link href={`/dashboard/messages?conversation=${n.conversationId}`} className="block">
-                  {content}
-                </Link>
-              ) : n.linkHref ? (
-                <Link href={n.linkHref} className="block">
-                  {content}
-                </Link>
-              ) : (
-                content
-              )}
+              {linkContent}
+              <button
+                onClick={() => deleteNotification(n.id)}
+                disabled={deletingId === n.id}
+                className="flex shrink-0 items-center justify-center px-3 text-slate-300 transition hover:text-rose-500 disabled:opacity-40"
+                aria-label="Remove notification"
+                type="button"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </li>
           );
         })}

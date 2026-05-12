@@ -8,6 +8,7 @@ import { isValidEmail } from "@/utils/validation";
 import { ensureSaudiaExists } from "@/lib/ensureSaudia";
 import { trackEventServer } from "@/lib/analytics/server";
 import { requireSameOrigin } from "@/lib/csrf";
+import { sendResendTransactionalEmail } from "@/lib/resendTransactionalEmail";
 
 function normalizeAircraftFamily(code: string): string {
   const c = code.toUpperCase();
@@ -198,6 +199,26 @@ export async function POST(request: Request) {
     userId: user.id,
     path: "/register",
     properties: { airlineCode },
+  }).catch(() => {});
+
+  sendResendTransactionalEmail({
+    to: normalizedEmail,
+    subject: "Welcome to SwapWays!",
+    text: [
+      `Hi ${firstName},`,
+      "",
+      "Welcome to SwapWays! Your account is ready.",
+      "",
+      "Here's what you can do right away:",
+      "  • Post your swap request and let the match engine find compatible crew members",
+      "  • Browse the board to find open swaps near your route",
+      "  • Message matched crew members directly in the app",
+      "",
+      "If you have any questions, reply to this email or reach out through the app.",
+      "",
+      "Happy swapping,",
+      "The SwapWays Team",
+    ].join("\n"),
   }).catch(() => {});
   const safe = { ...user };
   delete (safe as { passwordHash?: string }).passwordHash;

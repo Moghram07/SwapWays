@@ -28,8 +28,8 @@ export default async function NotificationsPage() {
     try {
       [matches, dbNotifications] = await withTimeout(
         Promise.all([
-          findMatchesByUserId(userId, { take: 25, lightweight: true }),
-          findNotificationsByUserId(userId, 25),
+          findMatchesByUserId(userId, { take: 50, lightweight: true }),
+          findNotificationsByUserId(userId, 50),
         ]),
         1400,
         "notifications page query"
@@ -90,61 +90,55 @@ export default async function NotificationsPage() {
     };
   });
 
-  const notificationItems: SortableItem[] = dbNotifications
-    .filter((n) =>
-      n.type === "NEW_MESSAGE" ||
-      n.type === "SWAP_PROPOSED" ||
-      n.type === "SWAP_ACCEPTED" ||
-      n.type === "MATCH_FOUND"
-    )
-    .map((n) => {
-      const data = n.data as { conversationId?: string } | null;
-      const conversationId = data?.conversationId;
-      if (n.type === "SWAP_PROPOSED") {
-        return {
-          id: n.id,
-          type: "swap_proposal" as const,
-          title: n.title || "Swap proposed",
-          detail: n.message || "A crew member has formally proposed a swap.",
-          timeAgo: formatTimeAgo(n.createdAt),
-          unread: !n.isRead,
-          icon: "swap" as const,
-          iconBg: "#1E6FB920",
-          iconColor: "#1E6FB9",
-          ...(conversationId && { conversationId }),
-          _createdAt: n.createdAt,
-        };
-      }
-      if (n.type === "SWAP_ACCEPTED") {
-        return {
-          id: n.id,
-          type: "swap_accepted" as const,
-          title: n.title || "Swap accepted",
-          detail: n.message || "A crew member accepted your swap.",
-          timeAgo: formatTimeAgo(n.createdAt),
-          unread: !n.isRead,
-          icon: "check" as const,
-          iconBg: "#2DAF6620",
-          iconColor: "#2DAF66",
-          ...(conversationId && { conversationId }),
-          _createdAt: n.createdAt,
-        };
-      }
-      if (n.type === "MATCH_FOUND") {
-        return {
-          id: n.id,
-          type: "new_match" as const,
-          title: n.title || "New match found",
-          detail: n.message || "A new swap post matched your preferences.",
-          timeAgo: formatTimeAgo(n.createdAt),
-          unread: !n.isRead,
-          icon: "plane" as const,
-          iconBg: "#1E6FB920",
-          iconColor: "#1E6FB9",
-          linkHref: "/dashboard/matches",
-          _createdAt: n.createdAt,
-        };
-      }
+  const notificationItems: SortableItem[] = dbNotifications.map((n) => {
+    const data = n.data as { conversationId?: string } | null;
+    const conversationId = data?.conversationId;
+    if (n.type === "SWAP_PROPOSED") {
+      return {
+        id: n.id,
+        type: "swap_proposal" as const,
+        title: n.title || "Swap proposed",
+        detail: n.message || "A crew member has formally proposed a swap.",
+        timeAgo: formatTimeAgo(n.createdAt),
+        unread: !n.isRead,
+        icon: "swap" as const,
+        iconBg: "#1E6FB920",
+        iconColor: "#1E6FB9",
+        ...(conversationId && { conversationId }),
+        _createdAt: n.createdAt,
+      };
+    }
+    if (n.type === "SWAP_ACCEPTED") {
+      return {
+        id: n.id,
+        type: "swap_accepted" as const,
+        title: n.title || "Swap accepted",
+        detail: n.message || "A crew member accepted your swap.",
+        timeAgo: formatTimeAgo(n.createdAt),
+        unread: !n.isRead,
+        icon: "check" as const,
+        iconBg: "#2DAF6620",
+        iconColor: "#2DAF66",
+        ...(conversationId && { conversationId }),
+        _createdAt: n.createdAt,
+      };
+    }
+    if (n.type === "MATCH_FOUND") {
+      return {
+        id: n.id,
+        type: "new_match" as const,
+        title: n.title || "New match found",
+        detail: n.message || "A new swap post matched your preferences.",
+        timeAgo: formatTimeAgo(n.createdAt),
+        unread: !n.isRead,
+        icon: "plane" as const,
+        iconBg: "#1E6FB920",
+        iconColor: "#1E6FB9",
+        linkHref: "/dashboard/matches",
+        _createdAt: n.createdAt,
+      };
+    }
+    if (n.type === "NEW_MESSAGE") {
       return {
         id: n.id,
         type: "new_message" as const,
@@ -158,7 +152,21 @@ export default async function NotificationsPage() {
         ...(conversationId && { conversationId }),
         _createdAt: n.createdAt,
       };
-    });
+    }
+    // SYSTEM, ACCOUNT_WARNING, FEEDBACK_REPLY, and any other types
+    return {
+      id: n.id,
+      type: "system" as const,
+      title: n.title,
+      detail: n.message || "",
+      timeAgo: formatTimeAgo(n.createdAt),
+      unread: !n.isRead,
+      icon: "bell" as const,
+      iconBg: "#64748b20",
+      iconColor: "#64748b",
+      _createdAt: n.createdAt,
+    };
+  });
 
   const notifications: NotificationItem[] = [...matchItems, ...notificationItems]
     .sort((a, b) => b._createdAt.getTime() - a._createdAt.getTime())

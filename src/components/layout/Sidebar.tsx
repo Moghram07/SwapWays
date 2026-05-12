@@ -44,11 +44,13 @@ type SidebarAccess = {
 
 export function Sidebar({
   unreadMessages,
+  newMatches,
   isAdmin,
   access,
   locale,
 }: {
   unreadMessages: number;
+  newMatches: number;
   isAdmin: boolean;
   access?: SidebarAccess;
   locale: Locale;
@@ -110,6 +112,7 @@ export function Sidebar({
         {links.map(({ href, label, icon: Icon, prefetchUrls }) => {
           const isActive = pathname === href || pathname.startsWith(`${href}/`);
           const showUnread = href === "/dashboard/messages" && unreadMessages > 0;
+          const showMatches = href === "/dashboard/matches" && newMatches > 0;
           const isNavigating = navigatingHref === href;
           return (
             <Link
@@ -149,6 +152,14 @@ export function Sidebar({
                     style={{ backgroundColor: PRIMARY }}
                   >
                     {unreadMessages > 99 ? "99+" : unreadMessages}
+                  </span>
+                )}
+                {showMatches && (
+                  <span
+                    className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
+                    style={{ backgroundColor: "#2DAF66" }}
+                  >
+                    {newMatches > 99 ? "99+" : newMatches}
                   </span>
                 )}
               </span>

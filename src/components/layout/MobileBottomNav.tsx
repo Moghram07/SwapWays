@@ -26,7 +26,27 @@ function isTabActive(pathname: string, href: string) {
   return pathname.startsWith(href);
 }
 
-export function MobileBottomNav({ locale }: { locale: Locale }) {
+function badge(count: number, color: string) {
+  if (count <= 0) return null;
+  return (
+    <span
+      className="absolute -end-1 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold text-white"
+      style={{ backgroundColor: color }}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+export function MobileBottomNav({
+  locale,
+  unreadMessages = 0,
+  newMatches = 0,
+}: {
+  locale: Locale;
+  unreadMessages?: number;
+  newMatches?: number;
+}) {
   const pathname = usePathname() ?? "";
   const t = getTranslator(locale);
 
@@ -40,6 +60,14 @@ export function MobileBottomNav({ locale }: { locale: Locale }) {
           const active = isTabActive(pathname, tab.href);
           const Icon = tab.icon;
           const color = active ? PRIMARY : "#64748b";
+
+          const badgeEl =
+            tab.href === "/dashboard/messages"
+              ? badge(unreadMessages, PRIMARY)
+              : tab.href === "/dashboard/matches"
+                ? badge(newMatches, "#2DAF66")
+                : null;
+
           return (
             <li key={tab.href} className="flex-1">
               <Link
@@ -50,7 +78,7 @@ export function MobileBottomNav({ locale }: { locale: Locale }) {
                 style={{ color }}
               >
                 <span
-                  className={`flex items-center justify-center rounded-full ${
+                  className={`relative flex items-center justify-center rounded-full ${
                     tab.isPrimary
                       ? "h-11 w-11 border border-[#1e5a96] bg-[#2668B0] text-white shadow-lg"
                       : active
@@ -59,6 +87,7 @@ export function MobileBottomNav({ locale }: { locale: Locale }) {
                   }`}
                 >
                   <Icon className={tab.isPrimary ? "h-5 w-5" : "h-4 w-4"} strokeWidth={2.2} />
+                  {badgeEl}
                 </span>
                 <span className={tab.isPrimary ? "mt-1" : "mt-0.5"}>{t(tab.labelKey as never)}</span>
               </Link>

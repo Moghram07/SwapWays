@@ -490,36 +490,37 @@ export async function findHighAffinityPostsForUser(
   const signals = await buildViewerSignals(userId);
   if (!viewerHasComparableSignals(signals)) return [];
 
-  let rows = await prisma.matchCache.findMany({
-    where: { viewerId: userId, matchPercent: { gte: minPercent } },
+  // Read the full cache for this viewer (not just ≥threshold) so we benefit from
+  // scores already computed by the board. The board caches every post it scores,
+  // including ones below 40%, so filtering after the fact is free.
+  let allCached = await prisma.matchCache.findMany({
+    where: { viewerId: userId },
     orderBy: { matchPercent: "desc" },
-    take,
-    select: {
-      postId: true,
-      matchPercent: true,
-      reasons: true,
-    },
+    take: take * 4,
+    select: { postId: true, matchPercent: true, reasons: true },
   });
 
-  const stale = rows.filter((r) => matchCacheNeedsRecompute(r.reasons));
+  // Re-score any stale entries.
+  const stale = allCached.filter((r) => matchCacheNeedsRecompute(r.reasons));
   if (stale.length > 0) {
     const refreshed = await Promise.all(
       stale.map((r) => calculateSwapPostMatch(userId, r.postId, { viewerSignals: signals }))
     );
     await cacheMatchResults(refreshed);
-    rows = await prisma.matchCache.findMany({
-      where: { viewerId: userId, matchPercent: { gte: minPercent } },
+    allCached = await prisma.matchCache.findMany({
+      where: { viewerId: userId },
       orderBy: { matchPercent: "desc" },
-      take,
-      select: {
-        postId: true,
-        matchPercent: true,
-        reasons: true,
-      },
+      take: take * 4,
+      select: { postId: true, matchPercent: true, reasons: true },
     });
   }
 
-  if (rows.length < 10) {
+  // Filter to qualifying matches from what the board already computed.
+  let rows = allCached.filter((r) => r.matchPercent >= minPercent);
+
+  // Cold-start: only when the cache is completely empty (brand-new user who has
+  // never visited the Swaps board). Keep the batch small so it stays fast.
+  if (allCached.length === 0) {
     const recent = await prisma.swapPost.findMany({
       where: {
         status: "OPEN",
@@ -527,16 +528,14 @@ export async function findHighAffinityPostsForUser(
         user: { baseId: viewer.baseId },
       },
       orderBy: { createdAt: "desc" },
-      take: 30,
+      take: 10,
       select: { id: true },
     });
-    const have = new Set(rows.map((r) => r.postId));
-    const toCompute = recent.map((p) => p.id).filter((id) => !have.has(id));
     try {
       const computed = await withTimeout(
-        Promise.all(toCompute.map((postId) => calculateSwapPostMatch(userId, postId, { viewerSignals: signals }))),
-        10_000,
-        "matches fallback batch"
+        Promise.all(recent.map((p) => calculateSwapPostMatch(userId, p.id, { viewerSignals: signals }))),
+        5_000,
+        "matches cold-start batch"
       );
       await cacheMatchResults(
         computed.filter((c) => c.failReason == null),
@@ -545,16 +544,11 @@ export async function findHighAffinityPostsForUser(
     } catch (e) {
       if (!(e instanceof TimeoutError)) throw e;
     }
-
     rows = await prisma.matchCache.findMany({
       where: { viewerId: userId, matchPercent: { gte: minPercent } },
       orderBy: { matchPercent: "desc" },
       take,
-      select: {
-        postId: true,
-        matchPercent: true,
-        reasons: true,
-      },
+      select: { postId: true, matchPercent: true, reasons: true },
     });
   }
 

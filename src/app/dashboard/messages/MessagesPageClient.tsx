@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { MessagesClient, type ConversationSummary } from "./MessagesClient";
+import type { Announcement } from "./AnnouncementsWindow";
 
 const REQUEST_TIMEOUT_MS = 5000;
 
@@ -12,9 +13,7 @@ const fetcher = async <T,>(url: string): Promise<T> => {
   try {
     const res = await fetch(url, { credentials: "include", signal: controller.signal });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return json as T;
-    }
+    if (!res.ok) return json as T;
     return json as T;
   } catch {
     return { data: [], error: "Timeout", message: "Request timed out" } as T;
@@ -37,6 +36,19 @@ type ProfileResponse = {
   data?: { id?: string };
 };
 
+type NotificationsResponse = {
+  data?: {
+    notifications?: Array<{
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      isRead: boolean;
+      createdAt: string;
+    }>;
+  };
+};
+
 export function MessagesPageClient() {
   const searchParams = useSearchParams();
   const selectedId = searchParams.get("conversation");
@@ -49,10 +61,23 @@ export function MessagesPageClient() {
     revalidateOnFocus: true,
     dedupingInterval: 15_000,
   });
+  const { data: notifJson } = useSWR<NotificationsResponse>("/api/notifications/latest", fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60_000,
+  });
 
   const currentUserId = profileJson?.data?.id ?? "";
   const conversations = convJson?.data ?? [];
   const conversationMeta = convJson?.meta;
+  const announcements: Announcement[] = (notifJson?.data?.notifications ?? [])
+    .filter((n) => n.type === "SYSTEM")
+    .map((n) => ({
+      id: n.id,
+      title: n.title,
+      message: n.message,
+      isRead: n.isRead,
+      createdAt: n.createdAt,
+    }));
 
   if (isLoading && conversations.length === 0) {
     return (
@@ -68,6 +93,7 @@ export function MessagesPageClient() {
       currentUserId={currentUserId}
       initialConversations={conversations}
       initialSelectedId={selectedId}
+      announcements={announcements}
       conversationMeta={conversationMeta}
     />
   );

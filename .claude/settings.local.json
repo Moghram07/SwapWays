@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
+      "Bash(xargs grep -l \"notification\")",
+      "Bash(npx tsc *)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(npx --no next build)",
+      "Bash(npm run *)",
+      "Bash(./node_modules/.bin/next build *)",
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\Omar Alshehri\\\\Desktop\\\\SwapWays\" -Recurse -Directory -ErrorAction SilentlyContinue | Select-Object -First 30 | ForEach-Object { $_.FullName })",
+      "Bash(xargs grep -l \"img\\\\|Image\")",
+      "Bash(xargs grep -l \"matchPercent\\\\|match_percent\\\\|matchScore\\\\|getTradeboardForViewer\\\\|findHighAffinity\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}

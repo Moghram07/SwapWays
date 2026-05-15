@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import { Moon, Clock } from "lucide-react";
+import { Moon, Clock, Plane } from "lucide-react";
 import { AirportNode, type AirportNodeVariant } from "@/components/swap-post/AirportNode";
 import { creditHoursToHumanReadable } from "@/utils/timeUtils";
 import { getAirportCity } from "@/utils/airportNames";
@@ -59,9 +59,9 @@ export function RouteChain({
                 />
               </div>
               {!isLast && (
-                <span className="shrink-0 px-0.5 text-xs text-gray-300" aria-hidden>
-                  →
-                </span>
+                <div className="shrink-0 flex items-center pt-4">
+                  <Plane className="h-3 w-3 text-gray-400" aria-hidden />
+                </div>
               )}
             </Fragment>
           );

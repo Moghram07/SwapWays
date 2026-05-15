@@ -76,34 +76,38 @@ export async function POST(request: Request) {
     }
   }
 
-  // Optionally send emails synchronously — awaited so the function doesn't return before
-  // emails are dispatched (fire-and-forget is killed in serverless before it completes).
+  // Send emails one at a time with a 300ms delay between each to avoid Resend rate limits.
+  // Fire-and-forget patterns are killed in serverless — this must be fully awaited.
   let emailsSent = 0;
   let emailsFailed = 0;
+  let firstFailureReason = "";
   if ((emailUsers || emailOnly) && users.length > 0) {
     const emailText = [title, "", message, "", "— The SwapWays Team"].join("\n");
-    for (let i = 0; i < users.length; i += 50) {
-      const slice = users.slice(i, i + 50);
-      const results = await Promise.allSettled(
-        slice.map((u) =>
-          sendResendTransactionalEmail({
-            to: u.email,
-            subject: title,
-            text: u.firstName ? `Hi ${u.firstName},\n\n${emailText}` : emailText,
-          })
-        )
-      );
-      for (const r of results) {
-        if (r.status === "fulfilled" && r.value.ok) emailsSent++;
-        else emailsFailed++;
+    for (const u of users) {
+      const result = await sendResendTransactionalEmail({
+        to: u.email,
+        subject: title,
+        text: u.firstName ? `Hi ${u.firstName},\n\n${emailText}` : emailText,
+      });
+      if (result.ok) {
+        emailsSent++;
+      } else {
+        emailsFailed++;
+        const reason = result.reason === "RESEND_REJECTED"
+          ? `HTTP ${result.status}: ${result.detail}`
+          : result.reason;
+        console.error(`[broadcast] Failed to email ${u.email}: ${reason}`);
+        if (!firstFailureReason) firstFailureReason = reason;
       }
+      // 300ms gap between sends to stay within Resend rate limits
+      await new Promise((r) => setTimeout(r, 300));
     }
     if (emailsFailed > 0) {
-      console.warn(`[broadcast] emails: ${emailsSent} sent, ${emailsFailed} failed`);
+      console.warn(`[broadcast] emails: ${emailsSent} sent, ${emailsFailed} failed. First failure: ${firstFailureReason}`);
     }
   }
 
-  return json({ sent: created, audience, emailed: emailUsers || emailOnly, emailsSent, emailsFailed });
+  return json({ sent: created, audience, emailed: emailUsers || emailOnly, emailsSent, emailsFailed, firstFailureReason: firstFailureReason || null });
 }
 
 export async function DELETE() {

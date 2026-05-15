@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 type ApiEnvelope<T> = { data?: T; message?: string | null };
-type BroadcastResult = { sent: number; audience: string; emailed: boolean; emailsSent?: number; emailsFailed?: number; emailOnly?: boolean };
+type BroadcastResult = { sent: number; audience: string; emailed: boolean; emailsSent?: number; emailsFailed?: number; emailOnly?: boolean; firstFailureReason?: string | null };
 
 export function AdminBroadcastPageClient() {
   const [audience, setAudience] = useState("all");
@@ -41,8 +41,9 @@ export function AdminBroadcastPageClient() {
       if (body.data.emailed) {
         const s = body.data.emailsSent ?? 0;
         const f = body.data.emailsFailed ?? 0;
+        const failureHint = body.data.firstFailureReason ? ` Reason: ${body.data.firstFailureReason}` : " Check server logs.";
         emailNote = f > 0
-          ? ` Emailed ${s}/${s + f} users (${f} failed — check server logs).`
+          ? ` Emailed ${s}/${s + f} users (${f} failed.${failureHint})`
           : ` Emailed ${s} user${s !== 1 ? "s" : ""}.`;
       }
       const notifNote = body.data.sent > 0

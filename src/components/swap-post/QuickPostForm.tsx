@@ -147,7 +147,10 @@ export function QuickPostForm({
       if (!isValidTimeValue(trip.reportTime ?? "")) return false;
       if (isPairingType(trip.tripType)) {
         const legs = trip.legs ?? [];
-        return legs.length >= MIN_LEG_STOPS && legs.every((l) => l.to);
+        return (
+          legs.length >= MIN_LEG_STOPS &&
+          legs.every((l) => l.to && (!l.hasLayover || (l.layoverHours ?? 0) > 0))
+        );
       }
       if (!trip.destination) return false;
       if (trip.tripType === "LAYOVER") {
@@ -342,10 +345,12 @@ export function QuickPostForm({
                               type="number"
                               min={1}
                               max={99}
-                              placeholder="hrs"
+                              placeholder="hrs *"
                               value={(trip.legs ?? defaultLegs())[0]?.layoverHours ?? ""}
                               onChange={(e) => updateLeg(trip, 0, { layoverHours: e.target.value ? Number(e.target.value) : null })}
-                              className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400"
+                              className={`w-16 rounded border px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400 bg-white ${
+                                !(trip.legs ?? defaultLegs())[0]?.layoverHours ? "border-rose-300" : "border-slate-200"
+                              }`}
                             />
                           )}
                         </div>
@@ -375,14 +380,16 @@ export function QuickPostForm({
                                   </option>
                                 ))}
                               </select>
-                              <button
-                                type="button"
-                                onClick={() => removeLeg(trip, idx)}
-                                className="shrink-0 rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600"
-                                aria-label="Remove stop"
-                              >
-                                ✕
-                              </button>
+                              {idx >= MIN_LEG_STOPS && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeLeg(trip, idx)}
+                                  className="shrink-0 rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600"
+                                  aria-label="Remove stop"
+                                >
+                                  ✕
+                                </button>
+                              )}
                             </div>
                             {/* Layover checkbox */}
                             <div className="mt-1.5 flex items-center gap-2">
@@ -401,10 +408,12 @@ export function QuickPostForm({
                                   type="number"
                                   min={1}
                                   max={99}
-                                  placeholder="hrs"
+                                  placeholder="hrs *"
                                   value={leg.layoverHours ?? ""}
                                   onChange={(e) => updateLeg(trip, idx, { layoverHours: e.target.value ? Number(e.target.value) : null })}
-                                  className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400"
+                                  className={`w-16 rounded border px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400 bg-white ${
+                                    !leg.layoverHours ? "border-rose-300" : "border-slate-200"
+                                  }`}
                                 />
                               )}
                             </div>
@@ -508,7 +517,13 @@ export function QuickPostForm({
                     value={normalizeTimeValue(trip.reportTime ?? "")}
                     onChange={(e) => updateTrip(trip.id, { reportTime: sanitizeTimeInput(e.target.value) })}
                     placeholder="20:15"
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                    className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 bg-white ${
+                      trip.reportTime && !isValidTimeValue(trip.reportTime)
+                        ? "border-rose-400 bg-rose-50"
+                        : !trip.reportTime
+                        ? "border-rose-300"
+                        : "border-slate-200"
+                    }`}
                   />
                   <p className="mt-1 text-xs text-slate-500">24-hour format HH:MM</p>
                 </div>
@@ -527,7 +542,9 @@ export function QuickPostForm({
                         updateTrip(trip.id, { layoverHours: raw ? Number(raw) : null });
                       }}
                       placeholder="e.g. 32"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                      className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 bg-white ${
+                        !trip.layoverHours ? "border-rose-300" : "border-slate-200"
+                      }`}
                     />
                   </div>
                 )}

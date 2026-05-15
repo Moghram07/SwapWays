@@ -44,11 +44,14 @@ const returnTripTypeOptions: Array<{ value: WantCriteriaData["wantType"]; label:
   { value: "DAYS_OFF",   label: "Days off" },
 ];
 
-const MIN_LEG_STOPS = 1;
-const MAX_LEG_STOPS = 4;
+const MIN_LEG_STOPS = 2;
+const MAX_LEG_STOPS = 5;
 
 function defaultLegs(): QuickPostLegEntry[] {
-  return [{ to: "", hasLayover: false, layoverHours: null }];
+  return [
+    { to: "", hasLayover: false, layoverHours: null },
+    { to: "", hasLayover: false, layoverHours: null },
+  ];
 }
 
 function legsToDestinations(legs: QuickPostLegEntry[]): string[] {
@@ -359,11 +362,11 @@ export function QuickPostForm({
                             {fromCode || "—"}
                           </span>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 min-w-0">
                               <select
                                 value={leg.to}
                                 onChange={(e) => updateLeg(trip, idx, { to: e.target.value })}
-                                className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+                                className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
                               >
                                 <option value="">Select stop {idx + 1}</option>
                                 {airports.map((a) => (
@@ -375,7 +378,8 @@ export function QuickPostForm({
                               <button
                                 type="button"
                                 onClick={() => removeLeg(trip, idx)}
-                                className="shrink-0 text-xs text-red-400 hover:text-red-600 px-1"
+                                className="shrink-0 rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600"
+                                aria-label="Remove stop"
                               >
                                 ✕
                               </button>

@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { createPortal } from "react-dom";
 import { classifyTrip, getTripTypeInfo } from "@/utils/tripClassifier";
 import { zuluToLocal } from "@/utils/airportTimezones";
+import { formatFlightNumber } from "@/utils/flightNumber";
+import { AirportCode } from "@/components/AirportCode";
 
 interface Leg {
   flightNumber: string;
@@ -21,15 +23,15 @@ interface TripLike {
   reportTime?: string | null;
 }
 
-/** Round Trip: only destination (e.g. RUH). Multi-stop: first destination → … → last; omit base at start and end. */
+/** Round Trip: only destination (e.g. RUH). Pairing/Pairing with Layover: first destination → … → last; omit base at start and end. */
 function formatDestination(
   legs: Leg[],
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP"
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER"
 ): string {
   if (!legs.length) return "—";
   const firstLeg = legs[0];
   const base = firstLeg.departureAirport;
-  if (tripType === "TURNAROUND" || legs.length === 1) return firstLeg.arrivalAirport;
+  if ((tripType === "TURNAROUND" || tripType === "LAYOVER") || legs.length === 1) return firstLeg.arrivalAirport;
   const codes: string[] = legs.map((leg) => leg.arrivalAirport);
   if (codes[codes.length - 1] === base) codes.pop();
   return codes.join(" → ");
@@ -56,7 +58,7 @@ interface MyTripOption {
 
 function tripOptionLabel(t: MyTripOption): string {
   const firstLeg = t.legs?.[0];
-  const fn = firstLeg?.flightNumber ? `SV${firstLeg.flightNumber}` : "—";
+  const fn = formatFlightNumber(firstLeg?.flightNumber) ?? "—";
   const dest = firstLeg?.arrivalAirport ?? "—";
   const d = new Date(t.startDate);
   const dateStr = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -351,8 +353,17 @@ function TripMiniSummary({ trip }: { trip: TripLike }) {
         >
           {typeInfo.label}
         </span>
-        <span className="font-semibold text-slate-900">SV{firstLeg.flightNumber}</span>
-        <span className="text-slate-600">{destStr}</span>
+        {formatFlightNumber(firstLeg.flightNumber) && (
+          <span className="font-semibold text-slate-900">{formatFlightNumber(firstLeg.flightNumber)}</span>
+        )}
+        <span className="flex items-center gap-1 text-slate-600">
+          {destStr.split(" → ").map((code, i, arr) => (
+            <span key={i} className="flex items-center gap-1">
+              <AirportCode code={code} />
+              {i < arr.length - 1 && <span className="text-slate-400">→</span>}
+            </span>
+          ))}
+        </span>
         <span className="text-slate-500">{dateStr}</span>
       </div>
       <div className="text-xs text-slate-700">

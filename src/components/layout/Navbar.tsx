@@ -48,6 +48,7 @@ export function Navbar() {
               width={36}
               height={36}
               className="object-contain"
+              priority
             />
             <span className="logo-wordmark text-lg font-bold">
               <span style={{ color: LOGO_BLUE }}>Swap</span>

@@ -109,7 +109,7 @@ interface EditPostData {
   vacationEndDay?: number | null;
   desiredVacationMonths?: number[];
   inputSource?: SwapPostInputSource | null;
-  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER" | null;
   quickDestinations?: string[];
   quickDate?: string | null;
   quickLayoverHours?: number | null;
@@ -163,7 +163,7 @@ export default function PostToTradeBoardPage() {
         tripNumber: t.tripNumber,
         startDate: new Date(t.startDate),
         creditHours: t.creditHours ?? 0,
-        tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP",
+        tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER",
         legs: t.legs ?? [],
         layovers: t.layovers ?? [],
       }));
@@ -218,12 +218,14 @@ export default function PostToTradeBoardPage() {
     );
   }
 
+  const baseAirportCode = myTrips[0]?.legs[0]?.departureAirport ?? "";
   const userDisplay = {
     firstName:
       (session.user as { name?: string }).name?.split(" ")[0] ??
       t("dashboard.crewFallback"),
     rank: t("dashboard.crewFallback"),
     base: t("dashboard.baseSuffix"),
+    baseAirportCode,
   };
   const quickPostEnabled = isQuickPostEnabledForUser(session.user.id);
 

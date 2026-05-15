@@ -3,8 +3,9 @@
 import { TripTypeBadge } from "./TripTypeBadge";
 import { SwapButton } from "./SwapButton";
 import { SwapStatusBadge } from "./SwapStatusBadge";
-import { getAirportDisplay } from "@/utils/airportNames";
-import { formatMultiStopAirportChain, formatMultiStopRouteFromLegs } from "@/utils/multiStopRouteDisplay";
+import { buildTripRouteChainNodes } from "@/utils/multiStopRouteDisplay";
+import { RouteChain } from "@/components/RouteChain";
+import { formatFlightNumber } from "@/utils/flightNumber";
 import { formatZuluTime } from "@/utils/timeUtils";
 import { zuluToLocal, getLocalDateFromZulu } from "@/utils/airportTimezones";
 import { formatLocalDate } from "@/utils/dateUtils";
@@ -149,22 +150,14 @@ export function TripCardHeader({
   onEdit,
 }: TripCardHeaderProps) {
   const firstLeg = trip.legs[0];
-  const fmt = (code: string) => getAirportDisplay(code.trim().toUpperCase());
-  const destinationDesktopLabel =
-    trip.tripType === "MULTI_STOP"
-      ? formatMultiStopRouteFromLegs(trip.legs, fmt) ??
-        formatMultiStopAirportChain(trip.destinations, fmt)
-      : trip.destinations.map((code) => getAirportDisplay(code)).join(" + ");
-  const destinationMobileLabel =
-    trip.tripType === "MULTI_STOP"
-      ? destinationDesktopLabel
-      : trip.destinations.length > 0
-        ? trip.destinations.join(" + ")
-        : destinationDesktopLabel;
-  const prefix = trip.airlineCode ?? "SV";
-  const primaryFlightNumber = firstLeg
-    ? `${prefix}${firstLeg.flightNumber}`
-    : "";
+  const primaryFlightNumber = firstLeg ? formatFlightNumber(firstLeg.flightNumber) : null;
+  const routeChain = buildTripRouteChainNodes({
+    destination: trip.destinations[trip.destinations.length - 1] ?? "",
+    destinations: trip.destinations,
+    legs: trip.legs,
+    layoverCity: trip.layovers?.[0]?.airport ?? null,
+    layoverHours: trip.layovers?.[0]?.durationDecimal ?? null,
+  });
   const dateLabel = formatTripDateRange(trip, timeMode);
   const reportAirport = baseAirportCode ?? firstLeg?.departureAirport ?? "";
   const reportLabel =
@@ -178,9 +171,9 @@ export function TripCardHeader({
       <div className="flex min-w-0 flex-1 items-start gap-2 sm:items-center sm:gap-3">
         <TripTypeBadge typeInfo={typeInfo} />
         <div className="min-w-0 flex-1">
-          <div className="truncate font-semibold text-gray-900">
-            {primaryFlightNumber} · <span className="sm:hidden">{destinationMobileLabel}</span>
-            <span className="hidden sm:inline">{destinationDesktopLabel}</span>
+          <div className="flex flex-wrap items-center gap-1 font-semibold text-gray-900">
+            {primaryFlightNumber && <span className="shrink-0">{primaryFlightNumber} ·</span>}
+            <RouteChain nodes={routeChain} />
           </div>
           <div className="truncate text-xs text-gray-500 sm:text-sm">
             {dateLabel}

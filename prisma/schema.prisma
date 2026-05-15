@@ -389,6 +389,7 @@ model SwapPostTrip {
   hasLayover     Boolean
   layoverCity    String?
   layoverHours   Float?
+  legLayovers    Json?
   isManualEntry  Boolean       @default(false)
 
   @@index([swapPostId])
@@ -717,6 +718,7 @@ enum TripType {
   LAYOVER
   TURNAROUND
   MULTI_STOP
+  PAIRING_WITH_LAYOVER
 }
 
 enum SwapPostType {

@@ -37,7 +37,7 @@ export interface CreatePostFlowProps {
   scheduledDays: number[];
   month: number;
   year: number;
-  userDisplay: { firstName: string; rank: string; base: string };
+  userDisplay: { firstName: string; rank: string; base: string; baseAirportCode?: string };
   onSubmit: (data: {
     postType: SwapPostType;
     selectedTrips: string[];

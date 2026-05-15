@@ -15,17 +15,19 @@ export function CalendarMonth({ refreshKey }: CalendarMonthProps) {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [days, setDays] = useState<CalendarDayData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [mobileView, setMobileView] = useState<"agenda" | "grid">("agenda");
 
   useEffect(() => {
     setLoading(true);
+    setFetchError(false);
     fetch(`/api/schedule/events?month=${month}&year=${year}`)
       .then((r) => r.json())
       .then((json) => {
         if (json.data?.days) setDays(json.data.days as CalendarDayData[]);
         else setDays([]);
       })
-      .catch(() => setDays([]))
+      .catch(() => { setDays([]); setFetchError(true); })
       .finally(() => setLoading(false));
   }, [month, year, refreshKey]);
 
@@ -103,6 +105,10 @@ export function CalendarMonth({ refreshKey }: CalendarMonthProps) {
       {loading ? (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">
           Loading…
+        </div>
+      ) : fetchError ? (
+        <div className="rounded-xl border border-rose-100 bg-rose-50 p-8 text-center text-rose-600 text-sm">
+          Could not load schedule. Please try refreshing the page.
         </div>
       ) : (
         <>

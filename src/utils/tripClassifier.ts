@@ -2,7 +2,7 @@
  * Classify trip type from legs and layovers for display and rules.
  */
 
-export type TripType = "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+export type TripType = "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
 
 export interface TripTypeInfo {
   type: TripType;
@@ -63,11 +63,20 @@ export function getTripTypeInfo(type: TripType): TripTypeInfo {
     case "MULTI_STOP":
       return {
         type: "MULTI_STOP",
-        label: "Multi-Stop",
+        label: "Pairing",
         bgColor: "bg-amber-50",
         textColor: "text-amber-700",
         borderColor: "border-s-amber-500",
         icon: "Route",
+      };
+    case "PAIRING_WITH_LAYOVER":
+      return {
+        type: "PAIRING_WITH_LAYOVER",
+        label: "Pairing with Layover",
+        bgColor: "bg-purple-50 border border-orange-400",
+        textColor: "text-purple-700",
+        borderColor: "border-s-purple-500",
+        icon: "Moon",
       };
   }
 }

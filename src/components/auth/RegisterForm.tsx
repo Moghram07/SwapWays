@@ -122,6 +122,8 @@ export function RegisterForm({
         <h2 className="text-lg font-semibold">{t("auth.selectAirline")}</h2>
         <p className="text-sm text-slate-600">{t("auth.phaseOne")}</p>
         <select
+          id="airline"
+          aria-label={t("auth.chooseAirline")}
           className="form-select w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
           value={airlineId}
           onChange={(e) => setAirlineId(e.target.value)}
@@ -179,8 +181,9 @@ export function RegisterForm({
         <Input id="crewId" value={crewId} onChange={(e) => setCrewId(e.target.value)} required />
       </div>
       <div className="space-y-2">
-        <Label>{t("auth.rank")}</Label>
+        <Label htmlFor="rank">{t("auth.rank")}</Label>
         <select
+          id="rank"
           className="form-select w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
           value={rankId}
           onChange={(e) => setRankId(e.target.value)}
@@ -195,8 +198,9 @@ export function RegisterForm({
         </select>
       </div>
       <div className="space-y-2">
-        <Label>{t("auth.base")}</Label>
+        <Label htmlFor="base">{t("auth.base")}</Label>
         <select
+          id="base"
           className="form-select w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
           value={baseId}
           onChange={(e) => setBaseId(e.target.value)}

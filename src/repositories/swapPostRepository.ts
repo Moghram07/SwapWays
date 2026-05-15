@@ -80,6 +80,7 @@ export const swapPostSelect = {
       hasLayover: true,
       layoverCity: true,
       layoverHours: true,
+      legLayovers: true,
       isManualEntry: true,
       scheduleTrip: {
         select: {
@@ -123,6 +124,7 @@ const swapPostBoardSelect = {
       hasLayover: true,
       layoverCity: true,
       layoverHours: true,
+      legLayovers: true,
       isManualEntry: true,
     },
   },
@@ -143,7 +145,7 @@ export async function createSwapPost(
       destination: string;
       destinations?: string[];
       departureDate: Date;
-      tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+      tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
       creditHours?: number | null;
       tafb?: number | null;
       reportTime?: string | null;
@@ -152,6 +154,7 @@ export async function createSwapPost(
       hasLayover: boolean;
       layoverCity: string | null;
       layoverHours: number | null;
+      legLayovers?: { legIndex: number; layoverHours: number }[];
       isManualEntry?: boolean;
     }[];
     vacationStartDate?: Date | null;
@@ -227,6 +230,7 @@ export async function createSwapPost(
               hasLayover: t.hasLayover,
               layoverCity: t.layoverCity,
               layoverHours: t.layoverHours,
+              legLayovers: t.legLayovers ? (t.legLayovers as unknown as Prisma.InputJsonValue) : undefined,
               isManualEntry: t.isManualEntry ?? false,
             })),
           }
@@ -242,7 +246,7 @@ export async function findSwapPostsForBoard(
   baseId: string,
   filters?: {
     postType?: SwapPostType;
-    tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+    tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
     destination?: string;
     dateFrom?: string;
     excludeVacation?: boolean;
@@ -486,7 +490,7 @@ export async function getOpenOfferingDedupeInfoForUser(
         offeredTripFingerprintFromStored({
           scheduleTripId: t.scheduleTripId,
           departureDate: t.departureDate,
-          tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP",
+          tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER",
           reportTime: t.reportTime,
           destinations: t.destinations,
           destination: t.destination,
@@ -537,7 +541,7 @@ export async function updateSwapPost(
       destination: string;
       destinations?: string[];
       departureDate: Date;
-      tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+      tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
       creditHours?: number | null;
       tafb?: number | null;
       reportTime?: string | null;
@@ -546,6 +550,7 @@ export async function updateSwapPost(
       hasLayover: boolean;
       layoverCity: string | null;
       layoverHours: number | null;
+      legLayovers?: { legIndex: number; layoverHours: number }[];
       isManualEntry?: boolean;
     }[];
     vacationYear?: number;
@@ -630,6 +635,7 @@ export async function updateSwapPost(
             hasLayover: t.hasLayover,
             layoverCity: t.layoverCity,
             layoverHours: t.layoverHours,
+            legLayovers: t.legLayovers ? (t.legLayovers as unknown as Prisma.InputJsonValue) : undefined,
             isManualEntry: t.isManualEntry ?? false,
           })),
         });

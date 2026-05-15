@@ -182,7 +182,7 @@ type TopMatchItem = {
   reasons: string[];
   flightNumber: string | null;
   destination: string | null;
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER" | null;
   posterRank: string;
   posterBase: string;
 };

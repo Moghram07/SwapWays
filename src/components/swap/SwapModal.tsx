@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { TripTypeBadge } from "@/components/trip/TripTypeBadge";
 import { getTripTypeInfo } from "@/utils/tripClassifier";
-import { getAirportCity, getAirportDisplay } from "@/utils/airportNames";
-import { formatMultiStopAirportChain, formatMultiStopRouteFromLegs } from "@/utils/multiStopRouteDisplay";
+import { getAirportCity } from "@/utils/airportNames";
+import { buildTripRouteChainNodes } from "@/utils/multiStopRouteDisplay";
+import { RouteChain } from "@/components/RouteChain";
+import { formatFlightNumber } from "@/utils/flightNumber";
 import { decimalHoursToDisplayTime, formatZuluTime } from "@/utils/timeUtils";
 import type { TripCardData } from "@/types/tripCard";
 import { DesiredDestinations } from "./DesiredDestinations";
@@ -148,11 +150,13 @@ function TripSummaryReadOnly({
   typeInfo: ReturnType<typeof getTripTypeInfo>;
 }) {
   const firstLeg = trip.legs[0];
-  const fmt = (code: string) => getAirportDisplay(code.trim().toUpperCase());
-  const destinations =
-    trip.tripType === "MULTI_STOP"
-      ? formatMultiStopRouteFromLegs(trip.legs, fmt) ?? formatMultiStopAirportChain(trip.destinations, fmt)
-      : trip.destinations.map((d) => getAirportDisplay(d)).join(" + ");
+  const routeChain = buildTripRouteChainNodes({
+    destination: trip.destinations[trip.destinations.length - 1] ?? "",
+    destinations: trip.destinations,
+    legs: trip.legs,
+    layoverCity: trip.layovers?.[0]?.airport ?? null,
+    layoverHours: trip.layovers?.[0]?.durationDecimal ?? null,
+  });
   const layover = trip.layovers[0];
 
   const dateRange = formatTripDateRange(trip);
@@ -161,13 +165,10 @@ function TripSummaryReadOnly({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <TripTypeBadge typeInfo={typeInfo} />
-        {firstLeg && (
-          <span className="font-semibold">
-            {(trip.airlineCode ?? "SV") + firstLeg.flightNumber}
-          </span>
+        {firstLeg && formatFlightNumber(firstLeg.flightNumber) && (
+          <span className="font-semibold">{formatFlightNumber(firstLeg.flightNumber)}</span>
         )}
-        <span className="text-gray-500">·</span>
-        <span className="text-sm text-gray-600">{destinations}</span>
+        <RouteChain nodes={routeChain} className="text-sm text-gray-700" />
       </div>
       <div className="text-sm text-gray-500">{dateRange}</div>
       {layover && (

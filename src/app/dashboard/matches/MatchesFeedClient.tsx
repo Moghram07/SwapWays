@@ -136,9 +136,9 @@ function postToCard(p: MatchPost) {
         .map((l) => l.arrivalAirport)
         .filter((code) => code && code !== baseAirportCode);
 
-      const tripType = t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+      const tripType = t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
       const stopsDisplay =
-        tripType === "MULTI_STOP" && destinationCodesOrdered.length > 0
+        (tripType === "MULTI_STOP" || tripType === "PAIRING_WITH_LAYOVER") && destinationCodesOrdered.length > 0
           ? destinationCodesOrdered.join(" → ")
           : undefined;
 

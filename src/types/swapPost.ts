@@ -48,6 +48,12 @@ export interface QuickPostAdvancedData {
   flightNumber?: string | null;
 }
 
+export interface QuickPostLegEntry {
+  to: string;
+  hasLayover: boolean;
+  layoverHours: number | null;
+}
+
 export interface QuickPostOfferedTripData {
   id?: number;
   tripType: TripType;
@@ -59,6 +65,8 @@ export interface QuickPostOfferedTripData {
   aircraftTypeCode?: string | null;
   blockHours?: number | null;
   flightNumber?: string | null;
+  /** Per-leg data for MULTI_STOP and PAIRING_WITH_LAYOVER trip types. */
+  legs?: QuickPostLegEntry[];
 }
 
 export interface SwapPostTripData {

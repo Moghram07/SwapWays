@@ -23,6 +23,7 @@ function BrandIcon({ className, size = 36 }: { className?: string; size?: number
       width={size}
       height={size}
       className={className}
+      priority
     />
   );
 }

@@ -170,6 +170,12 @@ export function WantCriteria({
             )}
           </div>
 
+          {(criteria.wantType === "LAYOVER" || criteria.wantType === "LONGER_LAYOVER") && (
+            <p className="mt-1 text-xs text-slate-500">
+              Leave cities blank to accept any layover destination, or add specific cities you prefer.
+            </p>
+          )}
+
           <ExcludeDestinationsField
             label="Exclude destinations (optional)"
             wantExclude={criteria.wantExclude}

@@ -1,18 +1,16 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { MessageCircle, Moon } from "lucide-react";
+import { MessageCircle, Clock, Timer } from "lucide-react";
 import { getTripTypeInfo } from "@/utils/tripClassifier";
 import { creditHoursToHumanReadable, formatZuluTime } from "@/utils/timeUtils";
 import { formatDisplayDate, formatLocalDate } from "@/utils/dateUtils";
 import { zuluToLocal, getLocalDateFromZulu } from "@/utils/airportTimezones";
-import { getAirportCity, getAirportDisplay, normalizeAirportCode } from "@/utils/airportNames";
-import {
-  collapseConsecutiveAirports,
-  formatMultiStopAirportChain,
-  multiStopRouteSegmentsFromCodes,
-  multiStopRouteSegmentsFromLegs,
-} from "@/utils/multiStopRouteDisplay";
+import { buildTripRouteChainNodes } from "@/utils/multiStopRouteDisplay";
+import { getAirportCity } from "@/utils/airportNames";
+import { AirportCode } from "@/components/AirportCode";
+import { RouteChain } from "@/components/RouteChain";
+import { formatFlightNumber } from "@/utils/flightNumber";
 import { useTimeFormat } from "@/hooks/useTimeFormat";
 import { TripTypeBadge } from "@/components/trip/TripTypeBadge";
 import { MatchBadge } from "@/components/swap-post/MatchBadge";
@@ -34,12 +32,14 @@ interface TripRow {
   destination: string;
   destinations?: string[];
   departureDate: Date;
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
   creditHours: number | null;
   blockHours?: number | null;
   tafb?: number;
   hasLayover?: boolean;
+  layoverCity?: string | null;
   layoverHours?: number | null;
+  legLayovers?: Array<{ legIndex: number; city?: string; hours?: number; layoverHours?: number }> | null;
   reportTime?: string;
   departureTime?: string;
   departureDateLeg?: Date;
@@ -76,7 +76,7 @@ interface TripRow {
 interface PostCardData {
   postType: string;
   source?: "MANUAL_QUICK" | "SCHEDULE_PREFILL" | null;
-  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER" | null;
   quickDestinations?: string[];
   quickDate?: Date | null;
   quickLayoverHours?: number | null;
@@ -156,37 +156,21 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
   const baseAirportCode = trip.baseAirportCode ?? firstLeg?.departureAirport ?? "";
   type Leg = NonNullable<TripRow["legs"]>[number];
 
-  const rawDestinationCodes =
-    trip.destinations && trip.destinations.length > 0
-      ? trip.destinations
-      : legs
-          .map((l) => l.arrivalAirport)
-          .filter((code): code is string => Boolean(code && code !== baseAirportCode));
-
-  const displayDestinationCodes = collapseConsecutiveAirports(
-    rawDestinationCodes.map((c) => normalizeAirportCode(String(c)))
-  );
-
-  const airportFmt = (code: string) => getAirportDisplay(code);
-
-  const multiStopLineSegments =
-    trip.tripType === "MULTI_STOP"
-      ? multiStopRouteSegmentsFromLegs(legs, airportFmt) ??
-        (displayDestinationCodes.length >= 2
-          ? multiStopRouteSegmentsFromCodes(displayDestinationCodes, airportFmt)
-          : [])
-      : [];
-
-  const destinationDisplay =
-    trip.tripType === "MULTI_STOP"
-      ? multiStopLineSegments.length > 0
-        ? multiStopLineSegments.join(" + ")
-        : displayDestinationCodes.length
-          ? formatMultiStopAirportChain(displayDestinationCodes, airportFmt)
-          : getAirportDisplay(trip.destination)
-      : displayDestinationCodes.length
-        ? getAirportDisplay(displayDestinationCodes[0])
-        : getAirportDisplay(trip.destination);
+  const routeChain = buildTripRouteChainNodes({
+    destination: trip.destination,
+    destinations: trip.destinations,
+    baseCode: baseAirportCode || undefined,
+    layoverCity:
+      trip.tripType === "LAYOVER"
+        ? (trip.layoverCity ?? trip.destinations?.[0] ?? null)
+        : trip.tripType === "PAIRING_WITH_LAYOVER"
+          ? (trip.layoverCity ?? null)
+          : null,
+    layoverHours: trip.layoverHours,
+    legLayovers: trip.legLayovers as Array<{ legIndex: number; city?: string; hours?: number; layoverHours?: number }> | null,
+    legs: trip.legs,
+  });
+  const flightNum = formatFlightNumber(firstLeg?.flightNumber ?? trip.flightNumber);
 
   const dateRange = (() => {
     const departureDate = asDate(trip.departureDate);
@@ -242,9 +226,20 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
     return depIso !== arrIso ? " +1d" : "";
   };
 
-  const layoverCity = trip.tripType === "LAYOVER" ? (legs[0]?.arrivalAirport ?? legs[1]?.departureAirport) : undefined;
-  const layoverDurationLabel =
-    trip.tripType === "LAYOVER" && trip.layoverHours != null ? creditHoursToHumanReadable(trip.layoverHours) : null;
+  const isSchedulePost = legs.length > 0;
+  const nodeTimes: (string | null)[] = routeChain.map((_node, i) => {
+    if (!isSchedulePost) return null;
+    if (i === 0) {
+      const t = formatZuluOrLocalTime(legs[0]?.departureTime, legs[0]?.departureAirport);
+      return t !== "—" ? t : null;
+    }
+    if (i === routeChain.length - 1) {
+      const t = formatZuluOrLocalTime(lastLeg?.arrivalTime, lastLeg?.arrivalAirport);
+      const suffix = lastLeg ? formatArrivalNextDaySuffix(lastLeg).trim() : "";
+      return t !== "—" ? (suffix ? `${t} ${suffix}` : t) : null;
+    }
+    return null;
+  });
 
   return (
     <div className={`w-full rounded-md bg-slate-50/80 p-2.5 sm:p-3 border-s-4 ${typeInfo.borderColor}`}>
@@ -253,30 +248,11 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
           <TripTypeBadge typeInfo={typeInfo} />
           <span className="text-sm font-medium text-gray-500">{dateRange}</span>
         </div>
-        <div className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
-          <span className="min-w-0 text-sm font-bold leading-snug text-gray-900 sm:text-base">
-            {trip.tripType === "MULTI_STOP" && multiStopLineSegments.length > 0 ? (
-              <span className="block">
-                <span className="block">
-                  SV{firstLeg?.flightNumber ?? trip.flightNumber} · {multiStopLineSegments[0]}
-                </span>
-                {multiStopLineSegments.slice(1).map((seg, idx) => (
-                  <span key={idx} className="mt-0.5 block pl-0 font-semibold sm:mt-1">
-                    + {seg}
-                  </span>
-                ))}
-              </span>
-            ) : (
-              <>
-                SV{firstLeg?.flightNumber ?? trip.flightNumber} · {destinationDisplay}
-              </>
-            )}
-          </span>
-          {reportTime ? (
-            <span className="shrink-0 text-sm text-gray-500">
-              Report: <span className="font-medium text-gray-700">{reportTime}</span>
-            </span>
-          ) : null}
+        <div className="min-w-0 leading-snug">
+          {flightNum && (
+            <span className="mb-0.5 block text-xs font-medium text-gray-500">{flightNum}</span>
+          )}
+          <RouteChain nodes={routeChain} nodeTimes={nodeTimes} tripType={trip.tripType} />
         </div>
       </div>
 
@@ -307,18 +283,15 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
           const isDeadHead =
             (leg.flightNumber ?? "").toUpperCase().startsWith("DH");
 
-          const showLayoverBarAfterThisLeg =
-            trip.tripType === "LAYOVER" &&
-            idx === 0 &&
-            trip.layoverHours != null &&
-            layoverCity &&
-            layoverDurationLabel;
-
           return (
             <Fragment key={`leg-${idx}`}>
               <div className="grid grid-cols-1 gap-x-2 gap-y-0.5 py-1.5 text-sm max-sm:grid-cols-[1fr_auto] sm:grid-cols-[minmax(100px,1fr)_minmax(120px,1fr)_minmax(140px,1fr)_minmax(60px,auto)] sm:gap-x-3 sm:py-2.5 sm:items-center">
                 <span className="col-span-full inline-flex min-w-0 flex-wrap items-center gap-1.5 font-semibold text-gray-900 sm:col-span-1 sm:gap-2">
-                  <span className="min-w-0 break-words">{leg.departureAirport} → {leg.arrivalAirport}</span>
+                  <span className="min-w-0 flex items-center gap-1">
+                    <AirportCode code={leg.departureAirport ?? ""} />
+                    <span className="text-gray-400">→</span>
+                    <AirportCode code={leg.arrivalAirport ?? ""} />
+                  </span>
                   {isDeadHead && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] font-semibold text-purple-700 sm:px-2.5 sm:text-[10px]">
                       DH (No Duty)
@@ -326,17 +299,21 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
                   )}
                 </span>
 
-                <span className="text-gray-600 max-sm:col-start-1">
-                  Dep: {depTime}
-                </span>
+                {depTime !== "—" && (
+                  <span className="text-gray-600 max-sm:col-start-1">
+                    Dep: {depTime}
+                  </span>
+                )}
 
-                <span className="text-gray-600 max-sm:col-start-2 max-sm:text-end max-sm:row-start-2 sm:col-auto sm:text-start">
-                  Arr: {arrTime}
-                  {crossesMidnight && <span className="ms-0.5 text-xs text-amber-500 sm:ms-1">+1d</span>}
-                  {isLastLeg && arrDateStr && (
-                    <span className="ms-0.5 text-xs text-gray-400 sm:ms-1">{arrDateStr}</span>
-                  )}
-                </span>
+                {arrTime !== "—" && (
+                  <span className="text-gray-600 max-sm:col-start-2 max-sm:text-end max-sm:row-start-2 sm:col-auto sm:text-start">
+                    Arr: {arrTime}
+                    {crossesMidnight && <span className="ms-0.5 text-xs text-amber-500 sm:ms-1">+1d</span>}
+                    {isLastLeg && arrDateStr && (
+                      <span className="ms-0.5 text-xs text-gray-400 sm:ms-1">{arrDateStr}</span>
+                    )}
+                  </span>
+                )}
 
                 {duration ? (
                   <span className="col-span-full text-xs text-gray-400 max-sm:pt-0.5 sm:col-span-1 sm:text-end sm:text-sm">
@@ -344,41 +321,52 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
                   </span>
                 ) : null}
               </div>
-              {showLayoverBarAfterThisLeg && (
-                <div className="mx-0 my-1.5 rounded-lg border border-[#3BA34A]/20 bg-[#E8F5EA] px-2.5 py-2 sm:my-2 sm:px-3 sm:py-2.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Moon size={18} className="shrink-0 text-[#3BA34A]" />
-                    <span className="font-semibold text-[#3BA34A]">
-                      Layover in {getAirportCity(layoverCity)}
-                    </span>
-                    <span className="font-medium text-[#3BA34A]/80">— {layoverDurationLabel}</span>
-                  </div>
-                </div>
-              )}
             </Fragment>
           );
         })}
       </div>
 
-      {/* Fallback layover bar for quick posts / trips without leg data */}
-      {legs.length === 0 && trip.tripType === "LAYOVER" && trip.layoverHours != null && layoverDurationLabel && (
-        <div className="mx-0 mt-1.5 rounded-lg border border-[#3BA34A]/20 bg-[#E8F5EA] px-2.5 py-2 sm:mt-2 sm:px-3 sm:py-2.5">
-          <div className="flex flex-wrap items-center gap-2">
-            <Moon size={18} className="shrink-0 text-[#3BA34A]" />
-            <span className="font-semibold text-[#3BA34A]">
-              Layover{layoverCity ? ` in ${getAirportCity(layoverCity)}` : ""}
-            </span>
-            <span className="font-medium text-[#3BA34A]/80">— {layoverDurationLabel}</span>
-          </div>
+
+      {(reportTime || blockLabel) && (
+        <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2 text-sm text-gray-500">
+          <span className="flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5 shrink-0" />
+            <span>Report: <span className="font-medium text-gray-700">{reportTime ?? "—"}</span></span>
+          </span>
+          <span className="flex items-center gap-1">
+            <Timer className="h-3.5 w-3.5 shrink-0" />
+            <span>Block: <span className="font-medium text-gray-700">{blockLabel ?? "—"}</span></span>
+          </span>
         </div>
       )}
-
-      {blockLabel ? (
-        <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-gray-700 sm:mt-3">
-          <span>Block: {blockLabel}</span>
-        </div>
-      ) : null}
     </div>
+  );
+}
+
+type CityPillVariant = "green" | "blue" | "orange" | "red" | "default";
+
+const cityPillColors: Record<CityPillVariant, { border: string; bg: string; text: string; sub: string }> = {
+  green:   { border: "border-[#3BA34A]", bg: "bg-green-50",  text: "text-[#3BA34A]",  sub: "text-[#3BA34A]/70" },
+  blue:    { border: "border-[#2668B0]", bg: "bg-blue-50",   text: "text-[#2668B0]",  sub: "text-[#2668B0]/70" },
+  orange:  { border: "border-amber-500", bg: "bg-amber-50",  text: "text-amber-700",  sub: "text-amber-600/70" },
+  red:     { border: "border-rose-400",  bg: "bg-rose-50",   text: "text-rose-700",   sub: "text-rose-500/70"  },
+  default: { border: "border-gray-200",  bg: "bg-white",     text: "text-gray-900",   sub: "text-gray-400"     },
+};
+
+function wantTypeToVariant(wantType: WantType): CityPillVariant {
+  if (wantType === "LAYOVER" || wantType === "LONGER_LAYOVER") return "green";
+  if (wantType === "ROUND_TRIP") return "blue";
+  if (wantType === "ANY_FLIGHT") return "orange";
+  return "default";
+}
+
+function CityPill({ code, variant = "default" }: { code: string; variant?: CityPillVariant }) {
+  const c = cityPillColors[variant];
+  return (
+    <span className={`inline-flex flex-col items-center rounded-lg border ${c.border} ${c.bg} px-2 py-0.5 text-center leading-tight`}>
+      <span className={`text-xs font-bold ${c.text}`}>{code}</span>
+      <span className={`text-[9px] ${c.sub}`}>{getAirportCity(code)}</span>
+    </span>
   );
 }
 
@@ -403,15 +391,41 @@ function ForDisplay({
   offeredDaysOff?: number[];
   wtfDays?: number[];
 }) {
-  const hasPreferredDestinations = !!wantDestinations && wantDestinations.length > 0;
-  const typeLabel = getWantTypeLabel(wantType);
-  const showLayoverMin =
-    (wantType === "LAYOVER" || wantType === "LONGER_LAYOVER") && wantMinLayover != null;
-  const showAnyDestinationChip =
-    !hasPreferredDestinations &&
-    wantType !== "DAYS_OFF" &&
-    wantType !== "ANYTHING" &&
-    wantType !== "SPECIFIC";
+  const cities = wantDestinations ?? [];
+  const hasCities = cities.length > 0;
+  const isLayoverType = wantType === "LAYOVER" || wantType === "LONGER_LAYOVER";
+
+  const layoverMin = isLayoverType && wantMinLayover != null ? wantMinLayover : null;
+
+  function buildForSentence(): { prefix: string; showCities: boolean } {
+    if (wantType === "ANYTHING") return { prefix: "Anything — open to offers", showCities: false };
+    if (wantType === "DAYS_OFF") return { prefix: "Days off", showCities: false };
+    if (isLayoverType) {
+      if (hasCities) {
+        return {
+          prefix: layoverMin != null ? `Layover ≥${layoverMin}h in` : "Layover in",
+          showCities: true,
+        };
+      }
+      return {
+        prefix: layoverMin != null ? `Any layover ≥${layoverMin}h` : "Any layover",
+        showCities: false,
+      };
+    }
+    if (wantType === "ROUND_TRIP") {
+      return hasCities
+        ? { prefix: "Round trip to", showCities: true }
+        : { prefix: "Any destination", showCities: false };
+    }
+    if (wantType === "ANY_FLIGHT") {
+      return hasCities
+        ? { prefix: "Flight to", showCities: true }
+        : { prefix: "Any destination", showCities: false };
+    }
+    return hasCities
+      ? { prefix: getWantTypeLabel(wantType) + " to", showCities: true }
+      : { prefix: getWantTypeLabel(wantType), showCities: false };
+  }
 
   function formatAcceptance(opt: WantAcceptanceOption): string {
     const codes = opt.airportCodes.join("+");
@@ -421,61 +435,46 @@ function ForDisplay({
     return parts.filter(Boolean).join(" ");
   }
 
+  const { prefix, showCities } = buildForSentence();
+  const pillVariant = wantTypeToVariant(wantType);
+
   return (
     <div className="space-y-2.5 text-sm text-slate-700">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-        <span className="inline-flex max-w-full items-center rounded-full bg-slate-200/90 px-2.5 py-1 text-sm font-semibold text-slate-800">
-          <span className="truncate">{typeLabel}</span>
-          {showLayoverMin ? (
-            <span className="ms-1 shrink-0 font-medium text-slate-600">· {wantMinLayover}h</span>
-          ) : null}
-        </span>
-
-        {hasPreferredDestinations && (
-          <>
-            <span className="text-sm font-medium text-slate-500">Want</span>
-            {wantDestinations!.map((d) => (
-              <span
-                key={d}
-                className="rounded-full bg-emerald-100 px-2.5 py-1 text-sm font-semibold text-emerald-800"
-              >
-                {d}
-              </span>
-            ))}
-          </>
-        )}
-
-        {showAnyDestinationChip && (
-          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-200/80">
-            Any destination
-          </span>
-        )}
-
-        {wantExclude && wantExclude.length > 0 && (
-          <>
-            <span className="text-sm font-medium text-slate-500">No</span>
-            {wantExclude.map((d) => (
-              <span
-                key={d}
-                className="rounded-full bg-rose-100 px-2.5 py-1 text-sm font-semibold text-rose-800"
-              >
-                {d}
-              </span>
-            ))}
-          </>
-        )}
-
-        {wantEqualHours && (
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-sm font-medium text-slate-700">
-            Equal hours
-          </span>
-        )}
-        {wantSameDate && (
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-sm font-medium text-slate-700">
-            Same date
-          </span>
-        )}
+      {/* Main sentence — no "For:" prefix, the section header already says "For" */}
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
+        <span className="font-medium text-slate-800">{prefix}</span>
+        {showCities &&
+          cities.map((code, i) => (
+            <Fragment key={code}>
+              {i > 0 && <span className="text-xs text-slate-400">or</span>}
+              <CityPill code={code} variant={pillVariant} />
+            </Fragment>
+          ))}
       </div>
+
+      {/* Secondary chips row */}
+      {((wantExclude && wantExclude.length > 0) || wantEqualHours || wantSameDate) && (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          {wantExclude && wantExclude.length > 0 && (
+            <>
+              <span className="text-xs font-medium text-slate-500">No</span>
+              {wantExclude.map((d) => (
+                <CityPill key={d} code={d} variant="red" />
+              ))}
+            </>
+          )}
+          {wantEqualHours && (
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+              Equal hours
+            </span>
+          )}
+          {wantSameDate && (
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+              Same date
+            </span>
+          )}
+        </div>
+      )}
 
       {wantAcceptanceOptions && wantAcceptanceOptions.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-sm text-slate-700">
@@ -559,9 +558,10 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
     post.quickDestinations.length > 0 &&
     post.quickDate
       ? (() => {
-          const dests = collapseConsecutiveAirports(
-            post.quickDestinations.map((c) => normalizeAirportCode(String(c)))
-          );
+          const raw = post.quickDestinations
+            .map((c) => String(c).trim().toUpperCase())
+            .filter(Boolean);
+          const dests = raw.filter((c, i) => i === 0 || c !== raw[i - 1]);
           return [
             {
               flightNumber: post.advancedFlightNumber ?? "",
@@ -571,14 +571,18 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
               tripType: post.quickTripType,
               creditHours: post.advancedBlockHours ?? 0,
               blockHours: post.advancedBlockHours ?? 0,
-              hasLayover: post.quickTripType === "LAYOVER",
+              hasLayover: post.quickTripType === "LAYOVER" || post.quickTripType === "PAIRING_WITH_LAYOVER",
+              layoverCity: post.quickTripType === "LAYOVER" ? (dests[0] ?? null) : null,
               layoverHours: post.quickLayoverHours ?? null,
               reportTime: post.advancedReportTime ?? undefined,
+              baseAirportCode: post.user.base.airportCode ?? undefined,
             },
           ];
         })()
       : [];
-  const offeringTrips = post.offeredTrips.length > 0 ? post.offeredTrips : syntheticQuickTrip;
+  const offeringTrips = (post.offeredTrips.length > 0 ? post.offeredTrips : syntheticQuickTrip).map(
+    (t) => ({ ...t, baseAirportCode: t.baseAirportCode ?? post.user.base.airportCode ?? undefined })
+  );
   const totalHours = offeringTrips.reduce((s, t) => s + (t.blockHours ?? t.creditHours ?? 0), 0);
 
   return (
@@ -610,7 +614,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:flex-nowrap">
           {post.source === "MANUAL_QUICK" ? (
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-sm font-semibold text-slate-600">
+            <span className="rounded-full bg-slate-50 px-2.5 py-1 text-sm font-semibold text-slate-700 ring-1 ring-slate-200/80">
               Quick post
             </span>
           ) : null}
@@ -703,17 +707,17 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
         </div>
       ) : (
         <div className="grid grid-cols-1 border-b border-slate-100 lg:grid-cols-2 lg:items-stretch lg:divide-x lg:divide-slate-100">
-          <div className="flex min-h-0 min-w-0 flex-col px-2.5 py-2 sm:px-3 sm:py-2.5">
-            <p className={CARD_SECTION_LABEL}>
+          <div className="flex min-h-0 min-w-0 flex-col">
+            <p className={`${CARD_SECTION_LABEL} px-2.5 pt-2 sm:px-3 sm:pt-2.5`}>
               {offeringTrips.length > 1
                 ? `Offering (${offeringTrips.length} trips · ${creditHoursToHumanReadable(totalHours)})`
                 : "Offering"}
             </p>
             {offeringTrips.length > 0 ||
             (post.offeringDaysOff && post.offeredDaysOff && post.offeredDaysOff.length > 0) ? (
-              <div className="rounded-lg border border-slate-200 bg-white p-2.5 sm:p-3">
+              <div className="min-w-0">
                 {offeringTrips.length > 0 ? (
-                  <div className="min-w-0 space-y-2">
+                  <div className="space-y-0">
                     {offeringTrips.map((trip, i) => (
                       <div
                         key={i}
@@ -723,7 +727,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
                           post.bestTripIndex === i &&
                           typeof post.matchPercent === "number" &&
                           post.matchPercent > 0
-                            ? "rounded-lg ring-2 ring-[#3BA34A]/25 sm:rounded-md"
+                            ? "ring-2 ring-inset ring-[#3BA34A]/25"
                             : ""
                         }
                       >
@@ -733,12 +737,12 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
                   </div>
                 ) : null}
                 {offeringTrips.length > 1 && (
-                  <div className="mt-3 text-center text-sm text-slate-500">
+                  <div className="px-2.5 pb-2 text-center text-sm text-slate-500 sm:px-3">
                     📦 Package deal — swap all {offeringTrips.length} trips together
                   </div>
                 )}
                 {post.offeringDaysOff && post.offeredDaysOff && post.offeredDaysOff.length > 0 && (
-                  <div className="mt-2 flex flex-wrap items-center gap-1 text-sm text-slate-700">
+                  <div className="px-2.5 pb-2 flex flex-wrap items-center gap-1 text-sm text-slate-700 sm:px-3">
                     <span>Days off: {post.offeredDaysOff.join(", ")}</span>
                   </div>
                 )}

@@ -3,6 +3,8 @@
  * (no redundant "GIZ → GIZ" or "JED → JED" from repeated airport codes).
  */
 
+import { normalizeAirportCode } from "@/utils/airportNames";
+
 /** Drop consecutive duplicate IATA codes (after trim + uppercase). */
 export function collapseConsecutiveAirports(codes: string[]): string[] {
   const normalized = codes.map((c) => c.trim().toUpperCase()).filter(Boolean);
@@ -72,4 +74,59 @@ export function formatMultiStopRouteFromLegs(
   const segments = multiStopRouteSegmentsFromLegs(legs, formatAirport);
   if (!segments) return null;
   return segments.join(" + ");
+}
+
+// ── Route chain (code nodes with inline layover hours) ──────────────────────
+
+export type RouteChainNode = { code: string; layoverHours?: number };
+
+type LegLayoverEntry = { legIndex: number; city?: string; hours?: number; layoverHours?: number };
+
+/**
+ * Build an ordered array of airport codes for a trip, with layover hours
+ * embedded on the appropriate node.  Works for both quick posts (no legs)
+ * and schedule trips (with legs).
+ */
+export function buildTripRouteChainNodes(params: {
+  destination: string;
+  destinations?: string[] | null;
+  baseCode?: string | null;
+  layoverCity?: string | null;
+  layoverHours?: number | null;
+  legLayovers?: LegLayoverEntry[] | null;
+  legs?: Array<{ departureAirport?: string | null; arrivalAirport?: string | null }> | null;
+}): RouteChainNode[] {
+  const { destination, destinations, baseCode, layoverCity, layoverHours, legLayovers, legs } = params;
+
+  let chain: string[];
+  if (legs && legs.length > 0) {
+    chain = multiStopTouchpointsFromLegs(legs) ?? [];
+    if (chain.length === 0)
+      chain = baseCode ? [baseCode, destination, baseCode] : [destination];
+  } else {
+    const base = baseCode ? normalizeAirportCode(baseCode) : "";
+    const stops = (destinations?.length ? destinations : [destination])
+      .map((c) => normalizeAirportCode(String(c)))
+      .filter(Boolean);
+    chain = base
+      ? collapseConsecutiveAirports([base, ...stops, base])
+      : collapseConsecutiveAirports(stops);
+  }
+
+  return chain.map((code, i) => {
+    // legLayovers: legIndex i-1 arrives at chain position i
+    const ll = legLayovers?.find((l) => l.legIndex === i - 1);
+    if (ll) {
+      const hrs = ll.hours ?? ll.layoverHours;
+      if (hrs != null) return { code, layoverHours: hrs };
+    }
+    if (
+      layoverCity &&
+      layoverHours != null &&
+      normalizeAirportCode(code) === normalizeAirportCode(layoverCity)
+    ) {
+      return { code, layoverHours };
+    }
+    return { code };
+  });
 }

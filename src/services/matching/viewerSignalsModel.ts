@@ -5,7 +5,7 @@ export type SignalScheduleTrip = {
   instanceId: string;
   startDate: Date;
   blockHours: number;
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
   legs: { departureAirport: string; arrivalAirport: string; departureDate: Date; arrivalDate: Date }[];
   layovers?: { durationDecimal: number }[];
 };

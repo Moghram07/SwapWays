@@ -119,9 +119,12 @@ export function isTradeExpired(trade: TradeLike, now = new Date()): boolean {
 }
 
 export function isSwapPostExpired(post: SwapPostLike, now = new Date()): boolean {
-  if (post.expiresAt) {
-    return now.getTime() >= toDate(post.expiresAt).getTime();
+  // Tier-based hard deadline: if expiresAt is past, always expired.
+  if (post.expiresAt && now.getTime() >= toDate(post.expiresAt).getTime()) {
+    return true;
   }
+  // expiresAt in the future does NOT prevent trip-date expiry —
+  // a post whose trip already flew should leave active even within the tier window.
 
   if (post.postType === "VACATION_SWAP") {
     if (post.vacationEndDate) {

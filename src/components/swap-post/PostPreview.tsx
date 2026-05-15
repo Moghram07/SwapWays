@@ -13,7 +13,7 @@ interface PostPreviewProps {
   selectedDaysOff: number[];
   wantCriteria: WantCriteriaData;
   offeredTrips?: QuickPostOfferedTripData[];
-  userDisplay: { firstName: string; rank: string; base: string };
+  userDisplay: { firstName: string; rank: string; base: string; baseAirportCode?: string };
   vacationYear?: number | "";
   vacationMonth?: number | "";
   vacationStartDay?: number | "";
@@ -79,27 +79,49 @@ export function PostPreview({
     creditHours: t.creditHours,
     hasLayover: t.layovers.length > 0,
     layoverHours: t.layovers[0]?.durationDecimal ?? null,
+    layoverCity: t.layovers[0]?.airport ?? null,
   }));
   const offeredTrips =
     offeredTripsFromSchedule.length > 0
       ? offeredTripsFromSchedule
       : manualOfferedTrips.length > 0
-        ? manualOfferedTrips.map((trip) => ({
-            flightNumber: trip.flightNumber ?? "",
-            destination: trip.tripType === "MULTI_STOP" ? (trip.destinations.find(Boolean) ?? "") : (trip.destination ?? ""),
-            destinations:
-              trip.tripType === "MULTI_STOP"
-                ? trip.destinations.filter(Boolean)
-                : trip.destination
-                  ? [trip.destination]
-                  : [],
-            departureDate: new Date(`${trip.date}T00:00:00.000Z`),
-            tripType: trip.tripType,
-            creditHours: trip.blockHours ?? 0,
-            hasLayover: trip.tripType === "LAYOVER",
-            layoverHours: trip.layoverHours ?? null,
-            reportTime: trip.reportTime ?? undefined,
-          }))
+        ? manualOfferedTrips.map((trip) => {
+            const legs = trip.legs ?? [];
+            const legLayoversData = legs.flatMap((l, i) =>
+              l.hasLayover && l.layoverHours != null && l.layoverHours > 0
+                ? [{ legIndex: i, layoverHours: l.layoverHours }]
+                : []
+            );
+            const layoverCity =
+              trip.tripType === "LAYOVER"
+                ? (trip.destination ?? null)
+                : trip.tripType === "PAIRING_WITH_LAYOVER"
+                  ? (legLayoversData[0] != null
+                      ? (trip.destinations[legLayoversData[0].legIndex] ?? null)
+                      : null)
+                  : null;
+            return {
+              flightNumber: trip.flightNumber ?? "",
+              destination:
+                (trip.tripType === "MULTI_STOP" || trip.tripType === "PAIRING_WITH_LAYOVER")
+                  ? (trip.destinations.find(Boolean) ?? "")
+                  : (trip.destination ?? ""),
+              destinations:
+                (trip.tripType === "MULTI_STOP" || trip.tripType === "PAIRING_WITH_LAYOVER")
+                  ? trip.destinations.filter(Boolean)
+                  : trip.destination
+                    ? [trip.destination]
+                    : [],
+              departureDate: new Date(`${trip.date}T00:00:00.000Z`),
+              tripType: trip.tripType,
+              creditHours: trip.blockHours ?? 0,
+              hasLayover: trip.tripType === "LAYOVER" || trip.tripType === "PAIRING_WITH_LAYOVER",
+              layoverHours: trip.layoverHours ?? (legLayoversData[0]?.layoverHours ?? null),
+              layoverCity: layoverCity ?? null,
+              legLayovers: legLayoversData.length > 0 ? legLayoversData : null,
+              reportTime: trip.reportTime ?? undefined,
+            };
+          })
         : [];
 
   const firstManualTrip = manualOfferedTrips[0];
@@ -123,7 +145,7 @@ export function PostPreview({
       | "SCHEDULE_PREFILL",
     quickTripType: firstManualTrip?.tripType ?? null,
     quickDestinations:
-      firstManualTrip?.tripType === "MULTI_STOP"
+      (firstManualTrip?.tripType === "MULTI_STOP" || firstManualTrip?.tripType === "PAIRING_WITH_LAYOVER")
         ? firstManualTrip.destinations.filter(Boolean)
         : firstManualTrip?.destination
           ? [firstManualTrip.destination]
@@ -137,7 +159,7 @@ export function PostPreview({
     user: {
       firstName: userDisplay.firstName,
       rank: { name: userDisplay.rank, code: "" },
-      base: { name: userDisplay.base, airportCode: "" },
+      base: { name: userDisplay.base, airportCode: userDisplay.baseAirportCode ?? "" },
     },
     ...(postType === "VACATION_SWAP" &&
       vacationYear !== "" &&

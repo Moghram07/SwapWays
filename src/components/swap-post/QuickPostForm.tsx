@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
+import { Moon } from "lucide-react";
 import { getAllAirports } from "@/utils/airportNames";
-import type { QuickPostOfferedTripData, WantCriteriaData } from "@/types/swapPost";
+import { normalizeFlightNumberInput } from "@/utils/flightNumber";
+import type { QuickPostOfferedTripData, QuickPostLegEntry, WantCriteriaData } from "@/types/swapPost";
 import { WtfDayPicker } from "@/components/swap/WtfDayPicker";
 import { WantDestinationsField, ExcludeDestinationsField } from "@/components/swap/WantDestinationsField";
 import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
@@ -21,18 +23,45 @@ interface QuickPostFormProps {
   onNext: () => void;
 }
 
-const tripTypeOptions: Array<{ value: QuickPostOfferedTripData["tripType"]; label: string }> = [
-  { value: "LAYOVER", label: "Layover" },
-  { value: "TURNAROUND", label: "Round trip" },
-  { value: "MULTI_STOP", label: "Multi-stop" },
+type TripTypeKey = QuickPostOfferedTripData["tripType"];
+
+const tripTypeOptions: Array<{ value: TripTypeKey; label: string; color: string; activeClass: string }> = [
+  { value: "TURNAROUND", label: "Round Trip", color: "border-[#2668B0]", activeClass: "border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]" },
+  { value: "LAYOVER",    label: "Layover",    color: "border-[#3BA34A]", activeClass: "border-[#3BA34A] bg-[#E8F5EA] text-[#3BA34A]" },
+  { value: "MULTI_STOP", label: "Pairing",    color: "border-amber-500", activeClass: "border-amber-500 bg-amber-50 text-amber-700" },
+  {
+    value: "PAIRING_WITH_LAYOVER",
+    label: "Pairing with Layover",
+    color: "border-purple-500",
+    activeClass: "border-purple-500 bg-purple-50 text-purple-700",
+  },
 ];
 
 const returnTripTypeOptions: Array<{ value: WantCriteriaData["wantType"]; label: string }> = [
-  { value: "LAYOVER", label: "Layover" },
+  { value: "LAYOVER",    label: "Layover" },
   { value: "ROUND_TRIP", label: "Round trip" },
   { value: "ANY_FLIGHT", label: "Any flight" },
-  { value: "DAYS_OFF", label: "Days off" },
+  { value: "DAYS_OFF",   label: "Days off" },
 ];
+
+const MIN_LEG_STOPS = 1;
+const MAX_LEG_STOPS = 4;
+
+function defaultLegs(): QuickPostLegEntry[] {
+  return [{ to: "", hasLayover: false, layoverHours: null }];
+}
+
+function legsToDestinations(legs: QuickPostLegEntry[]): string[] {
+  return legs.map((l) => l.to).filter(Boolean);
+}
+
+function legsToPrimaryLayover(legs: QuickPostLegEntry[]): number | null {
+  return legs.find((l) => l.hasLayover)?.layoverHours ?? null;
+}
+
+function legsHaveAnyLayover(legs: QuickPostLegEntry[]): boolean {
+  return legs.some((l) => l.hasLayover);
+}
 
 function createEmptyTrip(): QuickPostOfferedTripData {
   return {
@@ -78,6 +107,10 @@ function isValidTimeValue(raw: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(normalizeTimeValue(raw));
 }
 
+function isPairingType(t: TripTypeKey): t is "MULTI_STOP" | "PAIRING_WITH_LAYOVER" {
+  return t === "MULTI_STOP" || t === "PAIRING_WITH_LAYOVER";
+}
+
 export function QuickPostForm({
   offeredTrips,
   wantCriteria,
@@ -109,8 +142,9 @@ export function QuickPostForm({
     offeredTrips.every((trip) => {
       if (!trip.date) return false;
       if (!isValidTimeValue(trip.reportTime ?? "")) return false;
-      if (trip.tripType === "MULTI_STOP") {
-        return trip.destinations.filter(Boolean).length >= 2;
+      if (isPairingType(trip.tripType)) {
+        const legs = trip.legs ?? [];
+        return legs.length >= MIN_LEG_STOPS && legs.every((l) => l.to);
       }
       if (!trip.destination) return false;
       if (trip.tripType === "LAYOVER") {
@@ -136,6 +170,68 @@ export function QuickPostForm({
     if (!canAddMore) return;
     onOfferedTripsChange([...offeredTrips, createEmptyTrip()]);
   };
+
+  function handleTripTypeChange(trip: QuickPostOfferedTripData, newType: TripTypeKey) {
+    const currentLegs = trip.legs ?? defaultLegs();
+    if (isPairingType(newType)) {
+      const legs = isPairingType(trip.tripType) ? currentLegs : defaultLegs();
+      updateTrip(trip.id, {
+        tripType: newType,
+        legs,
+        destinations: legsToDestinations(legs),
+        destination: legsToDestinations(legs)[0] ?? "",
+        layoverHours: legsToPrimaryLayover(legs),
+      });
+    } else {
+      updateTrip(trip.id, {
+        tripType: newType,
+        legs: undefined,
+        destinations: [],
+        destination: newType === "LAYOVER" ? trip.destination : trip.destination,
+        layoverHours: newType === "LAYOVER" ? trip.layoverHours : null,
+      });
+    }
+  }
+
+  function updateLeg(trip: QuickPostOfferedTripData, legIdx: number, patch: Partial<QuickPostLegEntry>) {
+    const legs = [...(trip.legs ?? defaultLegs())];
+    legs[legIdx] = { ...legs[legIdx]!, ...patch };
+    const hasLayover = legsHaveAnyLayover(legs);
+    const autoType: TripTypeKey = hasLayover ? "PAIRING_WITH_LAYOVER" : "MULTI_STOP";
+    updateTrip(trip.id, {
+      legs,
+      tripType: autoType,
+      destinations: legsToDestinations(legs),
+      destination: legsToDestinations(legs)[0] ?? "",
+      layoverHours: legsToPrimaryLayover(legs),
+    });
+  }
+
+  function addLeg(trip: QuickPostOfferedTripData) {
+    const legs = [...(trip.legs ?? defaultLegs())];
+    if (legs.length >= MAX_LEG_STOPS) return;
+    legs.push({ to: "", hasLayover: false, layoverHours: null });
+    updateTrip(trip.id, {
+      legs,
+      destinations: legsToDestinations(legs),
+      destination: legsToDestinations(legs)[0] ?? "",
+    });
+  }
+
+  function removeLeg(trip: QuickPostOfferedTripData, legIdx: number) {
+    const legs = [...(trip.legs ?? defaultLegs())];
+    if (legs.length <= MIN_LEG_STOPS) return;
+    legs.splice(legIdx, 1);
+    const hasLayover = legsHaveAnyLayover(legs);
+    const autoType: TripTypeKey = hasLayover ? "PAIRING_WITH_LAYOVER" : "MULTI_STOP";
+    updateTrip(trip.id, {
+      legs,
+      tripType: autoType,
+      destinations: legsToDestinations(legs),
+      destination: legsToDestinations(legs)[0] ?? "",
+      layoverHours: legsToPrimaryLayover(legs),
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -173,6 +269,7 @@ export function QuickPostForm({
                 )}
               </div>
 
+              {/* Trip type buttons */}
               <div className="mb-4">
                 <label className="mb-2 block text-sm font-medium text-slate-700">Trip type</label>
                 <div className="flex flex-wrap gap-2">
@@ -180,75 +277,190 @@ export function QuickPostForm({
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() =>
-                        updateTrip(trip.id, {
-                          tripType: opt.value,
-                          destinations: opt.value === "MULTI_STOP" ? (trip.destinations.length > 0 ? trip.destinations : [""]) : [],
-                          destination: opt.value === "MULTI_STOP" ? "" : trip.destination,
-                          layoverHours: opt.value === "LAYOVER" ? trip.layoverHours : null,
-                        })
-                      }
-                      className={`rounded-lg border-2 px-4 py-2 text-sm font-medium ${
+                      onClick={() => handleTripTypeChange(trip, opt.value)}
+                      className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition-colors ${
                         trip.tripType === opt.value
-                          ? "border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
+                          ? opt.activeClass
                           : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                       }`}
                     >
+                      {opt.value === "PAIRING_WITH_LAYOVER" && (
+                        <Moon className="inline h-3 w-3 mr-1" />
+                      )}
                       {opt.label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {trip.tripType === "MULTI_STOP" ? (
+              {/* Dynamic leg builder for Pairing types */}
+              {isPairingType(trip.tripType) ? (
                 <div className="mb-4">
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Destinations (in order)</label>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">Route</label>
                   <div className="space-y-2">
-                    {trip.destinations.map((dest, idx) => (
-                      <div key={`${trip.id ?? index}-stop-${idx}`} className="flex items-center gap-2">
-                        <span className="w-8 text-center text-xs text-gray-500">#{idx + 1}</span>
+                    {/* First leg header */}
+                    <div className="flex items-center gap-2 text-xs text-slate-400 px-1">
+                      <span className="w-16 shrink-0">From</span>
+                      <span className="flex-1">To</span>
+                    </div>
+
+                    {/* First leg: from=Your Base (read-only) */}
+                    <div className="flex items-start gap-2">
+                      <span className="mt-2 w-16 shrink-0 rounded bg-slate-200 px-2 py-1 text-center text-xs font-medium text-slate-500">
+                        Your Base
+                      </span>
+                      <div className="flex-1 min-w-0">
                         <select
-                          value={dest}
-                          onChange={(e) => {
-                            const next = [...trip.destinations];
-                            next[idx] = e.target.value;
-                            updateTrip(trip.id, { destinations: next });
-                          }}
-                          className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+                          value={(trip.legs ?? defaultLegs())[0]?.to ?? ""}
+                          onChange={(e) => updateLeg(trip, 0, { to: e.target.value })}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
                         >
-                          <option value="">Select airport</option>
-                          {airports.map((airport) => (
-                            <option key={airport.code} value={airport.code}>
-                              {airport.code} - {airport.city}
+                          <option value="">Select stop 1</option>
+                          {airports.map((a) => (
+                            <option key={a.code} value={a.code}>
+                              {a.code} – {a.city}
                             </option>
                           ))}
                         </select>
-                        {trip.destinations.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              updateTrip(trip.id, {
-                                destinations: trip.destinations.filter((_, i) => i !== idx),
-                              });
-                            }}
-                            className="px-2 text-sm text-red-400 hover:text-red-600"
-                          >
-                            ✕
-                          </button>
-                        )}
+                        {/* Layover checkbox for first leg */}
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id={`leg-${trip.id}-0-layover`}
+                            checked={(trip.legs ?? defaultLegs())[0]?.hasLayover ?? false}
+                            onChange={(e) => updateLeg(trip, 0, { hasLayover: e.target.checked, layoverHours: e.target.checked ? ((trip.legs ?? defaultLegs())[0]?.layoverHours ?? null) : null })}
+                            className="h-3.5 w-3.5 accent-purple-600"
+                          />
+                          <label htmlFor={`leg-${trip.id}-0-layover`} className="text-xs text-slate-600 flex items-center gap-1">
+                            <Moon className="h-3 w-3" /> Layover here
+                          </label>
+                          {(trip.legs ?? defaultLegs())[0]?.hasLayover && (
+                            <input
+                              type="number"
+                              min={1}
+                              max={99}
+                              placeholder="hrs"
+                              value={(trip.legs ?? defaultLegs())[0]?.layoverHours ?? ""}
+                              onChange={(e) => updateLeg(trip, 0, { layoverHours: e.target.value ? Number(e.target.value) : null })}
+                              className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400"
+                            />
+                          )}
+                        </div>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Middle legs (index 1+) */}
+                    {(trip.legs ?? defaultLegs()).slice(1).map((leg, relIdx) => {
+                      const idx = relIdx + 1;
+                      const fromCode = (trip.legs ?? defaultLegs())[idx - 1]?.to || "prev stop";
+                      return (
+                        <div key={idx} className="flex items-start gap-2">
+                          <span className="mt-2 w-16 shrink-0 rounded bg-slate-100 px-2 py-1 text-center text-xs font-medium text-slate-500 truncate">
+                            {fromCode || "—"}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={leg.to}
+                                onChange={(e) => updateLeg(trip, idx, { to: e.target.value })}
+                                className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+                              >
+                                <option value="">Select stop {idx + 1}</option>
+                                {airports.map((a) => (
+                                  <option key={a.code} value={a.code}>
+                                    {a.code} – {a.city}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => removeLeg(trip, idx)}
+                                className="shrink-0 text-xs text-red-400 hover:text-red-600 px-1"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            {/* Layover checkbox */}
+                            <div className="mt-1.5 flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id={`leg-${trip.id}-${idx}-layover`}
+                                checked={leg.hasLayover}
+                                onChange={(e) => updateLeg(trip, idx, { hasLayover: e.target.checked, layoverHours: e.target.checked ? leg.layoverHours : null })}
+                                className="h-3.5 w-3.5 accent-purple-600"
+                              />
+                              <label htmlFor={`leg-${trip.id}-${idx}-layover`} className="text-xs text-slate-600 flex items-center gap-1">
+                                <Moon className="h-3 w-3" /> Layover here
+                              </label>
+                              {leg.hasLayover && (
+                                <input
+                                  type="number"
+                                  min={1}
+                                  max={99}
+                                  placeholder="hrs"
+                                  value={leg.layoverHours ?? ""}
+                                  onChange={(e) => updateLeg(trip, idx, { layoverHours: e.target.value ? Number(e.target.value) : null })}
+                                  className="w-16 rounded border border-slate-200 bg-white px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Last leg: to=Your Base (read-only) */}
+                    <div className="flex items-center gap-2 text-xs text-slate-400 px-1 pt-1">
+                      <span className="w-16 shrink-0 rounded bg-slate-100 px-2 py-1 text-center font-medium text-slate-500 truncate">
+                        {(trip.legs ?? defaultLegs())[(trip.legs ?? defaultLegs()).length - 1]?.to || "last stop"}
+                      </span>
+                      <span className="flex-1 rounded bg-slate-200 px-2 py-1 text-center text-xs font-medium text-slate-500">
+                        Your Base (return)
+                      </span>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => updateTrip(trip.id, { destinations: [...trip.destinations, ""] })}
-                    className="mt-2 text-sm text-[#2668B0] hover:underline"
-                  >
-                    + Add stop
-                  </button>
-                  <p className="mt-1 text-xs text-gray-500">e.g. JED → MED → JED → EAM → JED</p>
+
+                  {/* Add stop button */}
+                  {(trip.legs ?? defaultLegs()).length < MAX_LEG_STOPS && (
+                    <button
+                      type="button"
+                      onClick={() => addLeg(trip)}
+                      className="mt-2 text-sm text-[#2668B0] hover:underline"
+                    >
+                      + Add stop
+                    </button>
+                  )}
+
+                  {/* Auto-type indicator */}
+                  {trip.tripType === "PAIRING_WITH_LAYOVER" && (
+                    <p className="mt-2 flex items-center gap-1 text-xs text-purple-600">
+                      <Moon className="h-3 w-3" />
+                      Pairing with Layover — overnight stay included
+                    </p>
+                  )}
+                </div>
+              ) : trip.tripType === "LAYOVER" ? (
+                /* Layover: single destination + hours */
+                <div className="mb-4 space-y-3">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">Layover city</label>
+                    <select
+                      value={trip.destination ?? ""}
+                      onChange={(e) => updateTrip(trip.id, { destination: e.target.value })}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+                    >
+                      <option value="">Select layover city</option>
+                      {internationalAirports.map((airport) => (
+                        <option key={airport.code} value={airport.code}>
+                          {airport.code} - {airport.city}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-slate-500">Select the city where you spend the night.</p>
+                  </div>
                 </div>
               ) : (
+                /* Round Trip: single destination */
                 <div className="mb-4">
                   <label className="mb-2 block text-sm font-medium text-slate-700">Destination</label>
                   <select
@@ -266,9 +478,10 @@ export function QuickPostForm({
                 </div>
               )}
 
+              {/* Date + report time + layover hours */}
               <div
                 className={`mb-4 grid gap-3 ${
-                  trip.tripType === "LAYOVER" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+                  trip.tripType === "LAYOVER" ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"
                 }`}
               >
                 <div>
@@ -293,11 +506,13 @@ export function QuickPostForm({
                     placeholder="20:15"
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
                   />
-                  <p className="mt-1 text-xs text-slate-500">Use local 24-hour format HH:MM</p>
+                  <p className="mt-1 text-xs text-slate-500">24-hour format HH:MM</p>
                 </div>
                 {trip.tripType === "LAYOVER" && (
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Layover hours <span className="text-rose-600">*</span></label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Layover hours <span className="text-rose-600">*</span>
+                    </label>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -343,13 +558,20 @@ export function QuickPostForm({
                   </div>
                   <div>
                     <label className="mb-1 block text-xs text-slate-500">Flight number</label>
-                    <input
-                      type="text"
-                      value={trip.flightNumber ?? ""}
-                      onChange={(e) => updateTrip(trip.id, { flightNumber: e.target.value })}
-                      placeholder="SV0227"
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
-                    />
+                    <div className="flex items-center gap-1.5">
+                      <span className="shrink-0 text-sm font-medium text-slate-500">SV</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={4}
+                        value={trip.flightNumber ?? ""}
+                        onChange={(e) => updateTrip(trip.id, { flightNumber: normalizeFlightNumberInput(e.target.value) })}
+                        placeholder="738"
+                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400">Optional — digits only</p>
                   </div>
                 </div>
               </details>
@@ -425,6 +647,11 @@ export function QuickPostForm({
               />
               {!openAny && wantCriteria.wantDestinations.length === 0 && (
                 <p className="mt-1 text-xs text-rose-600">Choose at least one destination or Anything.</p>
+              )}
+              {(wantCriteria.wantType === "LAYOVER" || wantCriteria.wantType === "LONGER_LAYOVER") && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Leave cities blank to accept any layover destination, or add specific cities you prefer.
+                </p>
               )}
             </div>
 

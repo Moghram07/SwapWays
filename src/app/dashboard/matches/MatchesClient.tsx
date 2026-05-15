@@ -60,7 +60,9 @@ interface SwapPostRecord {
     blockHours?: number | null;
     tafb?: number | null;
     hasLayover: boolean;
+    layoverCity?: string | null;
     layoverHours?: number | null;
+    legLayovers?: unknown;
     reportTime?: string | null;
     scheduleTrip?: {
       reportTime?: string;
@@ -101,7 +103,7 @@ interface SwapPostRecord {
   desiredVacationStart?: string | null;
   desiredVacationEnd?: string | null;
   inputSource?: "MANUAL_QUICK" | "SCHEDULE_PREFILL" | null;
-  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER" | null;
   quickDestinations?: string[];
   quickDate?: string | null;
   quickLayoverHours?: number | null;
@@ -131,10 +133,10 @@ function postToCard(p: SwapPostRecord) {
   return {
     postType: p.postType,
     offeredTrips: p.offeredTrips.map((t) => {
-      const tripType = t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+      const tripType = t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
       const legs = (t as { scheduleTrip?: { legs: { arrivalAirport: string; departureAirport: string }[] } }).scheduleTrip?.legs ?? [];
       let stopsDisplay: string | undefined;
-      if (tripType === "MULTI_STOP" && legs.length > 0) {
+      if ((tripType === "MULTI_STOP" || tripType === "PAIRING_WITH_LAYOVER") && legs.length > 0) {
         const firstLeg = legs[0];
         const base = firstLeg?.departureAirport;
         const codes = legs.map((l) => l.arrivalAirport);
@@ -156,7 +158,9 @@ function postToCard(p: SwapPostRecord) {
         blockHours: t.blockHours ?? t.creditHours,
         tafb: t.tafb,
         hasLayover: t.hasLayover,
+        layoverCity: t.layoverCity ?? undefined,
         layoverHours: t.layoverHours,
+        legLayovers: (t.legLayovers as Array<{ legIndex: number; layoverHours?: number; hours?: number }> | null) ?? undefined,
         reportTime: t.reportTime ?? t.scheduleTrip?.reportTime,
         legs: (t.scheduleTrip?.legs ?? [])
           .slice()
@@ -373,6 +377,7 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
     for (const p of mySwapPostsActive) {
       const status = (p as SwapPostRecord).status ?? "OPEN";
       if (status !== "OPEN") continue;
+      if (!swapPostHasDisplayableOffer(p as SwapPostRecord)) continue;
       if (isSwapPostExpired(swapPostRecordToExpiryLike(p as SwapPostRecord), now)) continue;
       const post = postToCard(p as SwapPostRecord);
       items.push({

@@ -48,7 +48,7 @@ export function looseManualMultiStopPostKeyFromTrips(
   if (trips.length !== 1) return null;
   const t = trips[0]!;
   if (t.scheduleTripId) return null;
-  if (t.tripType !== "MULTI_STOP") return null;
+  if (t.tripType !== "MULTI_STOP" && t.tripType !== "PAIRING_WITH_LAYOVER") return null;
   const raw =
     t.destinations && t.destinations.length > 0
       ? t.destinations.map((d) => normalizeAirportCode(String(d)))
@@ -61,7 +61,7 @@ export function looseManualMultiStopPostKeyFromTrips(
 export type SwapPostTripFingerprintInput = {
   scheduleTripId?: string | null;
   departureDate: Date;
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
   reportTime?: string | null;
   destinations?: string[];
   destination: string;
@@ -85,7 +85,7 @@ export function offeredTripFingerprintFromCandidate(t: SwapPostTripFingerprintIn
 export type StoredOfferedTripForDedupe = {
   scheduleTripId: string | null;
   departureDate: Date;
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
   reportTime: string | null;
   destinations: string[];
   destination: string;

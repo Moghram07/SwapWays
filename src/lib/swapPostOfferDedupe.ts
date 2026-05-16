@@ -58,6 +58,20 @@ export function looseManualMultiStopPostKeyFromTrips(
   return `loose:${t.departureDate.toISOString().slice(0, 10)}|MULTI_STOP|${dests}`;
 }
 
+export function looseSimpleTripKey(t: {
+  scheduleTripId?: string | null;
+  tripType: string;
+  departureDate: Date;
+  destinations?: string[];
+  destination: string;
+}): string | null {
+  if (t.scheduleTripId?.trim()) return null;
+  if (t.tripType === "MULTI_STOP" || t.tripType === "PAIRING_WITH_LAYOVER") return null;
+  const dateStr = t.departureDate.toISOString().slice(0, 10);
+  const dests = orderedDestinations(t.destinations, t.destination).join(",");
+  return `loose-simple:${dateStr}|${t.tripType}|${dests}`;
+}
+
 export type SwapPostTripFingerprintInput = {
   scheduleTripId?: string | null;
   departureDate: Date;

@@ -7,6 +7,7 @@ import type { WantCriteriaData } from "@/types/swapPost";
 import type { QuickPostAdvancedData, QuickPostTripData, SwapPostInputSource } from "@/types/swapPost";
 import {
   looseManualMultiStopPostKeyFromTrips,
+  looseSimpleTripKey,
   offeredTripFingerprintFromStored,
 } from "@/lib/swapPostOfferDedupe";
 
@@ -126,6 +127,24 @@ const swapPostBoardSelect = {
       layoverHours: true,
       legLayovers: true,
       isManualEntry: true,
+      scheduleTrip: {
+        select: {
+          reportTime: true,
+          legs: {
+            select: {
+              legOrder: true,
+              flightNumber: true,
+              departureTime: true,
+              departureDate: true,
+              departureAirport: true,
+              arrivalTime: true,
+              arrivalDate: true,
+              arrivalAirport: true,
+              flyingTime: true,
+            },
+          },
+        },
+      },
     },
   },
 } as const;
@@ -259,13 +278,11 @@ export async function findSwapPostsForBoard(
 ): Promise<SwapPostBoardRow[]> {
   const where: {
     status: "OPEN";
-    userId: { not: string };
     user: { baseId: string; rankId?: string };
     postType?: SwapPostType;
     NOT?: { postType: SwapPostType };
   } = {
     status: "OPEN",
-    userId: { not: currentUserId },
     user: { baseId },
   };
   if (filters?.postType) where.postType = filters.postType;
@@ -449,7 +466,7 @@ export async function findSwapPostById(id: string) {
 export async function getOpenOfferingDedupeInfoForUser(
   userId: string,
   options?: { excludeSwapPostId?: string }
-): Promise<{ tripFingerprints: Set<string>; looseManualMultiStopKeys: Set<string> }> {
+): Promise<{ tripFingerprints: Set<string>; looseManualMultiStopKeys: Set<string>; looseSimpleTripKeys: Set<string> }> {
   const posts = await prisma.swapPost.findMany({
     where: {
       userId,
@@ -474,6 +491,7 @@ export async function getOpenOfferingDedupeInfoForUser(
   });
   const tripFingerprints = new Set<string>();
   const looseManualMultiStopKeys = new Set<string>();
+  const looseSimpleTripKeys = new Set<string>();
   for (const p of posts) {
     const lk = looseManualMultiStopPostKeyFromTrips(
       p.offeredTrips.map((t) => ({
@@ -498,9 +516,17 @@ export async function getOpenOfferingDedupeInfoForUser(
           layoverHours: t.layoverHours,
         })
       );
+      const sk = looseSimpleTripKey({
+        scheduleTripId: t.scheduleTripId,
+        tripType: t.tripType,
+        departureDate: t.departureDate,
+        destinations: t.destinations,
+        destination: t.destination,
+      });
+      if (sk) looseSimpleTripKeys.add(sk);
     }
   }
-  return { tripFingerprints, looseManualMultiStopKeys };
+  return { tripFingerprints, looseManualMultiStopKeys, looseSimpleTripKeys };
 }
 
 export async function findSwapPostByIdWithMatchingDetails(id: string) {

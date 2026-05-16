@@ -7,6 +7,7 @@ import { normalizeFlightNumberInput } from "@/utils/flightNumber";
 import type { QuickPostOfferedTripData, QuickPostLegEntry, WantCriteriaData } from "@/types/swapPost";
 import { WtfDayPicker } from "@/components/swap/WtfDayPicker";
 import { WantDestinationsField, ExcludeDestinationsField } from "@/components/swap/WantDestinationsField";
+import { AirportSearchInput } from "@/components/swap/AirportSearchInput";
 import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
 
 interface QuickPostFormProps {
@@ -128,7 +129,6 @@ export function QuickPostForm({
   onNext,
 }: QuickPostFormProps) {
   const airports = useMemo(() => getAllAirports(), []);
-  const internationalAirports = useMemo(() => airports.filter((a) => !a.isDomestic), [airports]);
   const totalBlockHours = offeredTrips.reduce((sum, trip) => sum + (trip.blockHours ?? 0), 0);
   const canAddMore = offeredTrips.length < MAX_TRIPS_PER_POST;
 
@@ -316,18 +316,12 @@ export function QuickPostForm({
                         Your Base
                       </span>
                       <div className="flex-1 min-w-0">
-                        <select
+                        <AirportSearchInput
+                          airports={airports}
                           value={(trip.legs ?? defaultLegs())[0]?.to ?? ""}
-                          onChange={(e) => updateLeg(trip, 0, { to: e.target.value })}
-                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
-                        >
-                          <option value="">Select stop 1</option>
-                          {airports.map((a) => (
-                            <option key={a.code} value={a.code}>
-                              {a.code} – {a.city}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(code) => updateLeg(trip, 0, { to: code })}
+                          placeholder="Stop 1 (city or code)"
+                        />
                         {/* Layover checkbox for first leg */}
                         <div className="mt-1.5 flex items-center gap-2">
                           <input
@@ -368,18 +362,13 @@ export function QuickPostForm({
                           </span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1 min-w-0">
-                              <select
+                              <AirportSearchInput
+                                airports={airports}
                                 value={leg.to}
-                                onChange={(e) => updateLeg(trip, idx, { to: e.target.value })}
-                                className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
-                              >
-                                <option value="">Select stop {idx + 1}</option>
-                                {airports.map((a) => (
-                                  <option key={a.code} value={a.code}>
-                                    {a.code} – {a.city}
-                                  </option>
-                                ))}
-                              </select>
+                                onChange={(code) => updateLeg(trip, idx, { to: code })}
+                                placeholder={`Stop ${idx + 1} (city or code)`}
+                                className="min-w-0 flex-1"
+                              />
                               {idx >= MIN_LEG_STOPS && (
                                 <button
                                   type="button"
@@ -457,18 +446,12 @@ export function QuickPostForm({
                 <div className="mb-4 space-y-3">
                   <div>
                     <label className="mb-2 block text-sm font-medium text-slate-700">Layover city</label>
-                    <select
+                    <AirportSearchInput
+                      airports={airports}
                       value={trip.destination ?? ""}
-                      onChange={(e) => updateTrip(trip.id, { destination: e.target.value })}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
-                    >
-                      <option value="">Select layover city</option>
-                      {internationalAirports.map((airport) => (
-                        <option key={airport.code} value={airport.code}>
-                          {airport.code} - {airport.city}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(code) => updateTrip(trip.id, { destination: code })}
+                      placeholder="Search city or code (e.g. Arar or RAE)"
+                    />
                     <p className="mt-1 text-xs text-slate-500">Select the city where you spend the night.</p>
                   </div>
                 </div>
@@ -476,18 +459,12 @@ export function QuickPostForm({
                 /* Round Trip: single destination */
                 <div className="mb-4">
                   <label className="mb-2 block text-sm font-medium text-slate-700">Destination</label>
-                  <select
+                  <AirportSearchInput
+                    airports={airports}
                     value={trip.destination ?? ""}
-                    onChange={(e) => updateTrip(trip.id, { destination: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
-                  >
-                    <option value="">Select destination</option>
-                    {internationalAirports.map((airport) => (
-                      <option key={airport.code} value={airport.code}>
-                        {airport.code} - {airport.city}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(code) => updateTrip(trip.id, { destination: code })}
+                    placeholder="Search city or code (e.g. London or LHR)"
+                  />
                 </div>
               )}
 

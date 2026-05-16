@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { TradeboardFilterBar, type SwapBoardFilters } from "@/components/swap-post/TradeboardFilterBar";
 import { SwapPostTradeBoardCard } from "@/components/swap-post/TradeBoardCard";
 import { parseWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
@@ -22,6 +23,7 @@ const defaultFilters: SwapBoardFilters = {
 
 interface BoardPost {
   id: string;
+  userId: string;
   postType: string;
   status: string;
   offeringDaysOff: boolean;
@@ -145,6 +147,8 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
     reason?: string;
   }>({ open: false });
   const { access } = useUserAccess();
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id ?? null;
 
   const fetchBoard = useCallback(() => {
     const params = new URLSearchParams();
@@ -417,14 +421,19 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
       ) : (
         <div className="space-y-4 max-w-2xl lg:max-w-4xl mx-auto">
           <ul className="space-y-4">
-            {filtered.map((post) => (
-              <li key={post.id} className="w-full">
-                <SwapPostTradeBoardCard
-                  post={postToCard(post) as Parameters<typeof SwapPostTradeBoardCard>[0]["post"]}
-                  onMessage={() => handleMessageClick(post.id)}
-                />
-              </li>
-            ))}
+            {filtered.map((post) => {
+              const isOwn = currentUserId !== null && post.userId === currentUserId;
+              return (
+                <li key={post.id} className="w-full">
+                  <SwapPostTradeBoardCard
+                    post={postToCard(post) as Parameters<typeof SwapPostTradeBoardCard>[0]["post"]}
+                    onMessage={isOwn ? undefined : () => handleMessageClick(post.id)}
+                    isOwn={isOwn}
+                    editHref={isOwn ? `/dashboard/add-trade?edit=${post.id}` : undefined}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

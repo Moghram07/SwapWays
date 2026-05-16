@@ -508,6 +508,11 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
 
       {activeTab === "mySwaps" && (
         <div className="space-y-4">
+          {searchParams.get("posted") === "1" && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              Your swap is posted! It&apos;s now visible to other crew on the Trade Board.
+            </div>
+          )}
           <div className="flex flex-wrap gap-2" role="tablist" aria-label="My swaps list">
             <button
               type="button"

@@ -17,9 +17,10 @@ interface AirportNodeProps {
   isLayover?: boolean;
   variant?: AirportNodeVariant;
   time?: string;
+  timeColor?: string;
 }
 
-export function AirportNode({ code, isLayover, variant = "green", time }: AirportNodeProps) {
+export function AirportNode({ code, isLayover, variant = "green", time, timeColor }: AirportNodeProps) {
   const city = getAirportCity(code);
   const colors = variantColors[variant];
 
@@ -54,7 +55,7 @@ export function AirportNode({ code, isLayover, variant = "green", time }: Airpor
         {time && (
           <div
             className={`mt-0.5 text-[9px] font-medium leading-tight ${
-              isLayover ? colors.text : "text-gray-500"
+              timeColor ?? (isLayover ? colors.text : "text-gray-500")
             }`}
           >
             {time}

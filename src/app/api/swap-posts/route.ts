@@ -10,6 +10,7 @@ import {
 import {
   hasDuplicateAmongFingerprints,
   looseManualMultiStopPostKeyFromTrips,
+  looseSimpleTripKey,
   offeredTripFingerprintFromCandidate,
 } from "@/lib/swapPostOfferDedupe";
 import { prisma } from "@/lib/prisma";
@@ -505,7 +506,7 @@ export async function POST(request: Request) {
     }
 
     if (postType === "OFFERING_TRIPS" && swapPostTrips.length > 0) {
-      const { tripFingerprints, looseManualMultiStopKeys } = await getOpenOfferingDedupeInfoForUser(
+      const { tripFingerprints, looseManualMultiStopKeys, looseSimpleTripKeys } = await getOpenOfferingDedupeInfoForUser(
         session.user.id
       );
       const candidates = swapPostTrips.map((row) =>
@@ -534,6 +535,18 @@ export async function POST(request: Request) {
       );
       if (looseNew && looseManualMultiStopKeys.has(looseNew)) {
         return error("One of these trips is already in another open post. Cancel that post first.", 400);
+      }
+      const looseSimpleNew = swapPostTrips
+        .map((row) => looseSimpleTripKey({
+          scheduleTripId: row.scheduleTripId ?? null,
+          tripType: row.tripType,
+          departureDate: row.departureDate,
+          destinations: row.destinations ?? [],
+          destination: row.destination,
+        }))
+        .filter((k): k is string => k !== null);
+      if (looseSimpleNew.some((k) => looseSimpleTripKeys.has(k))) {
+        return error("Trip was already posted. You can edit your swaps from My Swaps.", 400);
       }
     }
 

@@ -1,14 +1,14 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { MessageCircle, Clock, Timer } from "lucide-react";
+import Link from "next/link";
+import { MessageCircle, Clock, Timer, Pencil } from "lucide-react";
 import { getTripTypeInfo } from "@/utils/tripClassifier";
 import { creditHoursToHumanReadable, formatZuluTime } from "@/utils/timeUtils";
 import { formatDisplayDate, formatLocalDate } from "@/utils/dateUtils";
 import { zuluToLocal, getLocalDateFromZulu } from "@/utils/airportTimezones";
 import { buildTripRouteChainNodes } from "@/utils/multiStopRouteDisplay";
 import { getAirportCity } from "@/utils/airportNames";
-import { AirportCode } from "@/components/AirportCode";
 import { RouteChain } from "@/components/RouteChain";
 import { formatFlightNumber } from "@/utils/flightNumber";
 import { useTimeFormat } from "@/hooks/useTimeFormat";
@@ -227,6 +227,9 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
   };
 
   const isSchedulePost = legs.length > 0;
+  const timeColor = isSchedulePost
+    ? timeMode === "zulu" ? "text-[#2668B0]" : "text-[#3BA34A]"
+    : undefined;
   const nodeTimes: (string | null)[] = routeChain.map((_node, i) => {
     if (!isSchedulePost) return null;
     if (i === 0) {
@@ -252,79 +255,10 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
           {flightNum && (
             <span className="mb-0.5 block text-xs font-medium text-gray-500">{flightNum}</span>
           )}
-          <RouteChain nodes={routeChain} nodeTimes={nodeTimes} tripType={trip.tripType} />
+          <RouteChain nodes={routeChain} nodeTimes={nodeTimes} tripType={trip.tripType} timeColor={timeColor} />
         </div>
       </div>
 
-      {/* Legs; layover bar between leg 1 and 2 (same styling as TripLayoverBar) */}
-      <div className="divide-y divide-gray-100">
-        {legs.map((leg, idx) => {
-          const isLastLeg = idx === legs.length - 1;
-          const depTime = formatZuluOrLocalTime(leg.departureTime, leg.departureAirport);
-          const arrTime = formatZuluOrLocalTime(leg.arrivalTime, leg.arrivalAirport);
-          const crossesMidnight = formatArrivalNextDaySuffix(leg).trim() === "+1d";
-          const arrDateBase = (leg.arrivalDate ?? leg.departureDate) ?? undefined;
-          const arrDateStr = (() => {
-            if (!isLastLeg) return "";
-            if (timeMode === "local" && leg.arrivalTime && leg.arrivalAirport && arrDateBase) {
-              return formatLocalDate(
-                getLocalDateFromZulu(arrDateBase, leg.arrivalTime, leg.arrivalAirport),
-                { weekday: false, year: false }
-              );
-            }
-            return arrDateBase
-              ? arrDateBase.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
-              : "";
-          })();
-          const duration =
-            typeof leg.flyingTime === "number"
-              ? creditHoursToHumanReadable(leg.flyingTime)
-              : null;
-          const isDeadHead =
-            (leg.flightNumber ?? "").toUpperCase().startsWith("DH");
-
-          return (
-            <Fragment key={`leg-${idx}`}>
-              <div className="grid grid-cols-1 gap-x-2 gap-y-0.5 py-1.5 text-sm max-sm:grid-cols-[1fr_auto] sm:grid-cols-[minmax(100px,1fr)_minmax(120px,1fr)_minmax(140px,1fr)_minmax(60px,auto)] sm:gap-x-3 sm:py-2.5 sm:items-center">
-                <span className="col-span-full inline-flex min-w-0 flex-wrap items-center gap-1.5 font-semibold text-gray-900 sm:col-span-1 sm:gap-2">
-                  <span className="min-w-0 flex items-center gap-1">
-                    <AirportCode code={leg.departureAirport ?? ""} />
-                    <span className="text-gray-400">→</span>
-                    <AirportCode code={leg.arrivalAirport ?? ""} />
-                  </span>
-                  {isDeadHead && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-1.5 py-0.5 text-[9px] font-semibold text-purple-700 sm:px-2.5 sm:text-[10px]">
-                      DH (No Duty)
-                    </span>
-                  )}
-                </span>
-
-                {depTime !== "—" && (
-                  <span className="text-gray-600 max-sm:col-start-1">
-                    Dep: {depTime}
-                  </span>
-                )}
-
-                {arrTime !== "—" && (
-                  <span className="text-gray-600 max-sm:col-start-2 max-sm:text-end max-sm:row-start-2 sm:col-auto sm:text-start">
-                    Arr: {arrTime}
-                    {crossesMidnight && <span className="ms-0.5 text-xs text-amber-500 sm:ms-1">+1d</span>}
-                    {isLastLeg && arrDateStr && (
-                      <span className="ms-0.5 text-xs text-gray-400 sm:ms-1">{arrDateStr}</span>
-                    )}
-                  </span>
-                )}
-
-                {duration ? (
-                  <span className="col-span-full text-xs text-gray-400 max-sm:pt-0.5 sm:col-span-1 sm:text-end sm:text-sm">
-                    {duration}
-                  </span>
-                ) : null}
-              </div>
-            </Fragment>
-          );
-        })}
-      </div>
 
 
       {(reportTime || blockLabel) && (
@@ -527,6 +461,10 @@ interface SwapPostTradeBoardCardProps {
   onMessage?: () => void;
   /** When set, shows a pill above the card (e.g. in My Swaps). */
   statusPill?: "active" | "pending" | "completed" | "expired" | "cancelled";
+  /** When true, this is the current user's own post — show Edit instead of Message. */
+  isOwn?: boolean;
+  /** Edit link href shown when isOwn is true. */
+  editHref?: string;
 }
 
 function getPillStyle(pill: NonNullable<SwapPostTradeBoardCardProps["statusPill"]>) {
@@ -545,7 +483,7 @@ function getPillLabel(pill: NonNullable<SwapPostTradeBoardCardProps["statusPill"
   return "Completed";
 }
 
-export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill }: SwapPostTradeBoardCardProps) {
+export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill, isOwn, editHref }: SwapPostTradeBoardCardProps) {
   const [upgradeModal, setUpgradeModal] = useState<{
     open: boolean;
     feature?: string;
@@ -587,6 +525,13 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+      {isOwn && !statusPill && (
+        <div className="border-b border-[#2668B0]/20 bg-blue-50/60 px-2.5 py-1.5 sm:px-3 sm:py-2">
+          <span className="inline-block rounded-full bg-[#2668B0] px-3 py-1 text-xs font-semibold text-white">
+            Your post
+          </span>
+        </div>
+      )}
       {statusPill && (
         <div className="border-b border-slate-100 bg-slate-50/50 px-2.5 py-1.5 sm:px-3 sm:py-2">
           <span
@@ -648,7 +593,16 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill 
             const valid = d && !Number.isNaN(d.getTime());
             return valid ? <span className="text-xs text-slate-500">{formatTimeAgo(d)}</span> : null;
           })()}
-          {!isPreview && onMessage && (
+          {!isPreview && isOwn && editHref && (
+            <Link
+              href={editHref}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary)] transition-colors hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1"
+            >
+              <Pencil size={15} />
+              Edit your post
+            </Link>
+          )}
+          {!isPreview && !isOwn && onMessage && (
             <button
               type="button"
               onClick={onMessage}

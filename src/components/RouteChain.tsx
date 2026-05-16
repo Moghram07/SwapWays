@@ -28,11 +28,13 @@ export function RouteChain({
   nodes,
   nodeTimes,
   tripType,
+  timeColor,
   className,
 }: {
   nodes: RouteChainNode[];
   nodeTimes?: (string | null | undefined)[];
   tripType?: TripTypeKey | string | null;
+  timeColor?: string;
   className?: string;
 }) {
   if (!nodes.length) return null;
@@ -56,6 +58,7 @@ export function RouteChain({
                   isLayover={node.layoverHours != null}
                   variant={variant}
                   time={nodeTimes?.[i] ?? undefined}
+                  timeColor={timeColor}
                 />
               </div>
               {!isLast && (

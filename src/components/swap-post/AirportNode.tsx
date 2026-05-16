@@ -15,14 +15,17 @@ const variantColors: Record<AirportNodeVariant, { border: string; bg: string; te
 interface AirportNodeProps {
   code: string;
   isLayover?: boolean;
+  /** Non-layover destination node — gets variant colors without moon/thick border */
+  isHighlighted?: boolean;
   variant?: AirportNodeVariant;
   time?: string;
   timeColor?: string;
 }
 
-export function AirportNode({ code, isLayover, variant = "green", time, timeColor }: AirportNodeProps) {
+export function AirportNode({ code, isLayover, isHighlighted, variant = "green", time, timeColor }: AirportNodeProps) {
   const city = getAirportCity(code);
   const colors = variantColors[variant];
+  const isColored = isLayover || isHighlighted;
 
   return (
     <div className="relative flex flex-col items-center pt-4">
@@ -35,19 +38,21 @@ export function AirportNode({ code, isLayover, variant = "green", time, timeColo
         className={`w-full rounded-lg border px-2 py-1 text-center ${
           isLayover
             ? `border-2 ${colors.border} ${colors.bg}`
-            : "border-gray-200 bg-white"
+            : isHighlighted
+              ? `${colors.border} ${colors.bg}`
+              : "border-gray-200 bg-white"
         }`}
       >
         <div
           className={`text-xs font-bold leading-tight ${
-            isLayover ? colors.text : "text-gray-900"
+            isColored ? colors.text : "text-gray-900"
           }`}
         >
           {code}
         </div>
         <div
           className={`text-[9px] leading-tight ${
-            isLayover ? colors.text : "text-gray-400"
+            isColored ? colors.text : "text-gray-400"
           }`}
         >
           {city}
@@ -55,7 +60,7 @@ export function AirportNode({ code, isLayover, variant = "green", time, timeColo
         {time && (
           <div
             className={`mt-0.5 text-[9px] font-medium leading-tight ${
-              timeColor ?? (isLayover ? colors.text : "text-gray-500")
+              timeColor ?? (isColored ? colors.text : "text-gray-500")
             }`}
           >
             {time}

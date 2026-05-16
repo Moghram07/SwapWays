@@ -14,7 +14,7 @@ const tripTypeVariant: Record<TripTypeKey, AirportNodeVariant> = {
   ROUND_TRIP:           "blue",
   MULTI_STOP:           "orange",
   PAIRING_WITH_LAYOVER: "purple",
-  TURNAROUND:           "green",
+  TURNAROUND:           "blue",
 };
 
 const variantBarColor: Record<AirportNodeVariant, string> = {
@@ -45,18 +45,28 @@ export function RouteChain({
 
   const layoverNodes = nodes.filter((n) => n.layoverHours != null);
 
+  // Highlight non-base destination nodes for these trip types
+  // "Round Trip" in the UI stores as TURNAROUND in the DB
+  const highlightNonBase = tripType === "TURNAROUND" || tripType === "ROUND_TRIP" || tripType === "MULTI_STOP" || tripType === "PAIRING_WITH_LAYOVER";
+  const baseCode = nodes[0]?.code;
+  // PAIRING_WITH_LAYOVER: layover city stays purple; non-layover stops use orange (same as Pairing)
+  const highlightVariant: AirportNodeVariant = tripType === "PAIRING_WITH_LAYOVER" ? "orange" : variant;
+
   return (
     <div className={`w-full ${className ?? ""}`}>
       <div className="flex w-full items-center">
         {nodes.map((node, i) => {
           const isLast = i === nodes.length - 1;
+          const isHighlighted =
+            highlightNonBase && node.layoverHours == null && node.code !== baseCode;
           return (
             <Fragment key={i}>
               <div className="flex flex-1 justify-center">
                 <AirportNode
                   code={node.code}
                   isLayover={node.layoverHours != null}
-                  variant={variant}
+                  isHighlighted={isHighlighted}
+                  variant={isHighlighted ? highlightVariant : variant}
                   time={nodeTimes?.[i] ?? undefined}
                   timeColor={timeColor}
                 />

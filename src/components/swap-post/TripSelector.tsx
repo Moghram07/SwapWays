@@ -18,8 +18,6 @@ function tripBadgeLabel(type: TripType, t: (key: string) => string): string {
       return t("dashboard.tripBadgeTurnaround");
     case "MULTI_STOP":
       return t("dashboard.tripBadgeMultiStop");
-    case "PAIRING_WITH_LAYOVER":
-      return t("dashboard.tripBadgePairingWithLayover");
     default:
       return type;
   }
@@ -30,7 +28,7 @@ export interface TripOption {
   tripNumber: string;
   startDate: Date;
   creditHours: number;
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
   legs: { flightNumber: string; departureAirport: string; arrivalAirport: string; arrivalDate?: string | Date }[];
   layovers: { airport: string; durationDecimal: number }[];
 }

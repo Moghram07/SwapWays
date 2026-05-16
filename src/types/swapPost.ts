@@ -65,8 +65,8 @@ export interface QuickPostOfferedTripData {
   aircraftTypeCode?: string | null;
   blockHours?: number | null;
   flightNumber?: string | null;
-  /** Per-leg data for MULTI_STOP and PAIRING_WITH_LAYOVER trip types. */
-  legs?: QuickPostLegEntry[];
+  /** Full leg array (always present; includes final return leg). */
+  legs: QuickPostLegEntry[];
 }
 
 export interface SwapPostTripData {

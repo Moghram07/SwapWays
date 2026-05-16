@@ -32,7 +32,7 @@ interface TripRow {
   destination: string;
   destinations?: string[];
   departureDate: Date;
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
   creditHours: number | null;
   blockHours?: number | null;
   tafb?: number;
@@ -76,7 +76,7 @@ interface TripRow {
 interface PostCardData {
   postType: string;
   source?: "MANUAL_QUICK" | "SCHEDULE_PREFILL" | null;
-  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER" | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
   quickDestinations?: string[];
   quickDate?: Date | null;
   quickLayoverHours?: number | null;
@@ -147,7 +147,6 @@ function asDate(value: Date | string | null | undefined): Date | null {
 const CARD_SECTION_LABEL = "mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500";
 
 function OfferingTripRow({ trip }: { trip: TripRow }) {
-  const typeInfo = getTripTypeInfo(trip.tripType);
   const { format: timeMode } = useTimeFormat();
 
   const legs = trip.legs ?? [];
@@ -162,13 +161,15 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
     baseCode: baseAirportCode || undefined,
     layoverCity:
       trip.tripType === "LAYOVER"
-        ? (trip.layoverCity ?? trip.destinations?.[0] ?? null)
-        : trip.tripType === "PAIRING_WITH_LAYOVER"
-          ? (trip.layoverCity ?? null)
-          : null,
+        ? (trip.layoverCity ?? trip.destination ?? null)
+        : null,
     layoverHours: trip.layoverHours,
     legLayovers: trip.legLayovers as Array<{ legIndex: number; city?: string; hours?: number; layoverHours?: number }> | null,
     legs: trip.legs,
+  });
+
+  const typeInfo = getTripTypeInfo(trip.tripType, {
+    legCount: trip.tripType === "MULTI_STOP" ? routeChain.length - 1 : undefined,
   });
   const flightNum = formatFlightNumber(firstLeg?.flightNumber ?? trip.flightNumber);
 
@@ -380,7 +381,7 @@ function ForDisplay({
         {showCities &&
           cities.map((code, i) => (
             <Fragment key={code}>
-              {i > 0 && <span className="text-xs text-slate-400">or</span>}
+              {i > 0 && <span className="text-xs text-slate-300">·</span>}
               <CityPill code={code} variant={pillVariant} />
             </Fragment>
           ))}
@@ -509,7 +510,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill,
               tripType: post.quickTripType,
               creditHours: post.advancedBlockHours ?? 0,
               blockHours: post.advancedBlockHours ?? 0,
-              hasLayover: post.quickTripType === "LAYOVER" || post.quickTripType === "PAIRING_WITH_LAYOVER",
+              hasLayover: post.quickTripType === "LAYOVER",
               layoverCity: post.quickTripType === "LAYOVER" ? (dests[0] ?? null) : null,
               layoverHours: post.quickLayoverHours ?? null,
               reportTime: post.advancedReportTime ?? undefined,

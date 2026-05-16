@@ -78,7 +78,7 @@ function getVacationMonthStart(year: number | undefined, month: number | undefin
 }
 
 type ManualOfferedTrip = {
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
   destination: string;
   destinations: string[];
   departureDate: Date;
@@ -105,7 +105,7 @@ function normalizeManualOfferedTrips(
   for (const raw of offeredTrips) {
     if (!raw || typeof raw !== "object") return { trips: [], errorMessage: "Invalid offered trip payload" };
     const trip = raw as {
-      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
       destination?: string;
       destinations?: string[];
       date?: string;
@@ -120,11 +120,23 @@ function normalizeManualOfferedTrips(
       return { trips: [], errorMessage: "Each offered trip requires tripType and date" };
     }
 
-    // Derive destinations from legs array for pairing types
-    const isPairing = trip.tripType === "MULTI_STOP" || trip.tripType === "PAIRING_WITH_LAYOVER";
+    // Derive destinations and legLayovers from legs array
+    const isPairing = trip.tripType === "MULTI_STOP";
+    // New form always sends legs (all types); old pairing format may also send legs
+    const hasLegs = Array.isArray(trip.legs) && trip.legs.length >= 2;
     let destinations: string[];
     let legLayovers: { legIndex: number; layoverHours: number }[] | undefined;
-    if (isPairing && Array.isArray(trip.legs) && trip.legs.length > 0) {
+
+    if (hasLegs) {
+      // New form: legs include the final return leg — exclude it for stored destinations
+      const interimLegs = trip.legs!.slice(0, -1);
+      destinations = interimLegs.map((l) => String(l.to ?? "").trim().toUpperCase()).filter(Boolean);
+      legLayovers = trip.legs!
+        .map((l, i) => ({ legIndex: i, hasLayover: l.hasLayover, layoverHours: l.layoverHours }))
+        .filter((l) => l.hasLayover && l.layoverHours != null && l.layoverHours > 0)
+        .map((l) => ({ legIndex: l.legIndex, layoverHours: l.layoverHours! }));
+    } else if (isPairing && Array.isArray(trip.legs) && trip.legs.length > 0) {
+      // Legacy pairing format (no final return leg)
       destinations = trip.legs.map((l) => String(l.to ?? "").trim().toUpperCase()).filter(Boolean);
       legLayovers = trip.legs
         .map((l, i) => ({ legIndex: i, hasLayover: l.hasLayover, layoverHours: l.layoverHours }))
@@ -135,11 +147,11 @@ function normalizeManualOfferedTrips(
     }
 
     const singleDestination = String(trip.destination ?? "").trim().toUpperCase();
-    if (isPairing) {
+    if (isPairing && !hasLegs) {
       if (destinations.length < 1) {
         return { trips: [], errorMessage: "Pairing trips need at least one intermediate stop" };
       }
-    } else if (!singleDestination) {
+    } else if (!isPairing && !hasLegs && !singleDestination) {
       return { trips: [], errorMessage: "Each non-pairing trip needs a destination" };
     }
     if (trip.tripType === "LAYOVER" && !(Number(trip.layoverHours) > 0)) {
@@ -153,14 +165,18 @@ function normalizeManualOfferedTrips(
     const primaryLayoverHours =
       trip.tripType === "LAYOVER"
         ? Number(trip.layoverHours)
-        : trip.tripType === "PAIRING_WITH_LAYOVER"
-          ? (legLayovers?.[0]?.layoverHours ?? null)
-          : null;
+        : null;
+
+    // For new-form submissions with legs, derive destination from the leg data
+    const resolvedDestination = hasLegs
+      ? (singleDestination || (destinations[0] ?? ""))
+      : (isPairing ? (destinations[0] ?? "") : singleDestination);
+    const resolvedDestinations = hasLegs ? destinations : (isPairing ? destinations : [singleDestination]);
 
     out.push({
       tripType: trip.tripType,
-      destination: isPairing ? destinations[0] ?? "" : singleDestination,
-      destinations: isPairing ? destinations : [singleDestination],
+      destination: resolvedDestination,
+      destinations: resolvedDestinations,
       departureDate: new Date(`${trip.date}T00:00:00.000Z`),
       layoverHours: primaryLayoverHours,
       reportTime,
@@ -248,7 +264,7 @@ export async function POST(request: Request) {
     desiredVacationMonths?: number[];
     source?: "MANUAL_QUICK" | "SCHEDULE_PREFILL";
     offeredTrips?: {
-      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
       destination?: string;
       destinations?: string[];
       date?: string;
@@ -260,7 +276,7 @@ export async function POST(request: Request) {
       legs?: { to: string; hasLayover: boolean; layoverHours: number | null }[];
     }[];
     quickTrip?: {
-      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
       destinations?: string[];
       date?: string;
       layoverHours?: number | null;
@@ -408,7 +424,7 @@ export async function POST(request: Request) {
     destination: string;
     destinations?: string[];
     departureDate: Date;
-    tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+    tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
     creditHours?: number | null;
     tafb?: number | null;
     reportTime?: string | null;
@@ -496,7 +512,7 @@ export async function POST(request: Request) {
           reportTime: trip.reportTime,
           aircraftType: trip.aircraftType,
           blockHours: trip.blockHours,
-          hasLayover: trip.tripType === "LAYOVER" || trip.tripType === "PAIRING_WITH_LAYOVER",
+          hasLayover: trip.tripType === "LAYOVER",
           layoverCity: trip.tripType === "LAYOVER" ? trip.destination : (trip.legLayovers?.[0] != null ? trip.destinations[trip.legLayovers[0].legIndex] ?? null : null),
           layoverHours: trip.layoverHours,
           legLayovers: trip.legLayovers,

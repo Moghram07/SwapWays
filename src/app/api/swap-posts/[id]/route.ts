@@ -61,7 +61,7 @@ function normalizeReportTime(raw: string | null | undefined): string | null {
 }
 
 type ManualOfferedTrip = {
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
   destination: string;
   destinations: string[];
   departureDate: Date;
@@ -88,7 +88,7 @@ function normalizeManualOfferedTrips(
   for (const raw of offeredTrips) {
     if (!raw || typeof raw !== "object") return { trips: [], errorMessage: "Invalid offered trip payload" };
     const trip = raw as {
-      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
       destination?: string;
       destinations?: string[];
       date?: string;
@@ -102,7 +102,7 @@ function normalizeManualOfferedTrips(
     if (!trip.tripType || !trip.date) {
       return { trips: [], errorMessage: "Each offered trip requires tripType and date" };
     }
-    const isPairing = trip.tripType === "MULTI_STOP" || trip.tripType === "PAIRING_WITH_LAYOVER";
+    const isPairing = trip.tripType === "MULTI_STOP";
     let destinations: string[];
     let legLayovers: { legIndex: number; layoverHours: number }[] | undefined;
     if (isPairing && Array.isArray(trip.legs) && trip.legs.length > 0) {
@@ -130,9 +130,7 @@ function normalizeManualOfferedTrips(
     const primaryLayoverHours =
       trip.tripType === "LAYOVER"
         ? Number(trip.layoverHours)
-        : trip.tripType === "PAIRING_WITH_LAYOVER"
-          ? (legLayovers?.[0]?.layoverHours ?? null)
-          : null;
+        : null;
     out.push({
       tripType: trip.tripType,
       destination: isPairing ? destinations[0] ?? "" : singleDestination,
@@ -215,7 +213,7 @@ export async function PATCH(
     desiredVacationMonths?: number[];
     source?: "MANUAL_QUICK" | "SCHEDULE_PREFILL";
     offeredTrips?: {
-      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
       destination?: string;
       destinations?: string[];
       date?: string;
@@ -227,7 +225,7 @@ export async function PATCH(
       legs?: { to: string; hasLayover: boolean; layoverHours: number | null }[];
     }[];
     quickTrip?: {
-      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+      tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
       destinations?: string[];
       date?: string;
       layoverHours?: number | null;
@@ -377,7 +375,7 @@ export async function PATCH(
       destination: string;
       destinations?: string[];
       departureDate: Date;
-      tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+      tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
       creditHours?: number | null;
       tafb?: number | null;
       reportTime?: string | null;
@@ -445,7 +443,7 @@ export async function PATCH(
           reportTime: trip.reportTime,
           aircraftType: trip.aircraftType,
           blockHours: trip.blockHours,
-          hasLayover: trip.tripType === "LAYOVER" || trip.tripType === "PAIRING_WITH_LAYOVER",
+          hasLayover: trip.tripType === "LAYOVER",
           layoverCity: trip.tripType === "LAYOVER" ? trip.destination : (trip.legLayovers?.[0] != null ? trip.destinations[trip.legLayovers[0].legIndex] ?? null : null),
           layoverHours: trip.layoverHours,
           legLayovers: trip.legLayovers,

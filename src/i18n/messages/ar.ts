@@ -348,7 +348,6 @@ const ar = {
     tripBadgeLayover: "مبيت",
     tripBadgeTurnaround: "ذهاب وعودة",
     tripBadgeMultiStop: " وقفات",
-    tripBadgePairingWithLayover: "وقفات مع مبيت",
     tripDeadHeadBadge: "رحلة بدون عمل (DH)",
     matchesLoading: "جاري تحميل التطابقات…",
     matchesErrorFallback: "تعذر تحميل التطابقات حالياً. حاول مرة أخرى بعد قليل.",

@@ -103,7 +103,7 @@ interface SwapPostRecord {
   desiredVacationStart?: string | null;
   desiredVacationEnd?: string | null;
   inputSource?: "MANUAL_QUICK" | "SCHEDULE_PREFILL" | null;
-  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER" | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
   quickDestinations?: string[];
   quickDate?: string | null;
   quickLayoverHours?: number | null;
@@ -133,10 +133,10 @@ function postToCard(p: SwapPostRecord) {
   return {
     postType: p.postType,
     offeredTrips: p.offeredTrips.map((t) => {
-      const tripType = t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+      const tripType = t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
       const legs = (t as { scheduleTrip?: { legs: { arrivalAirport: string; departureAirport: string }[] } }).scheduleTrip?.legs ?? [];
       let stopsDisplay: string | undefined;
-      if ((tripType === "MULTI_STOP" || tripType === "PAIRING_WITH_LAYOVER") && legs.length > 0) {
+      if ((tripType === "MULTI_STOP") && legs.length > 0) {
         const firstLeg = legs[0];
         const base = firstLeg?.departureAirport;
         const codes = legs.map((l) => l.arrivalAirport);

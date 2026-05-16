@@ -5,7 +5,7 @@ import { ChevronDown, SlidersHorizontal } from "lucide-react";
 import { TimeFormatToggle } from "@/components/trip/TimeFormatToggle";
 
 export interface SwapBoardFilters {
-  tripType: "" | "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+  tripType: "" | "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
   destination: string;
   sortBy: "match" | "recent" | "date_soon";
   routeType: "" | "domestic" | "international";
@@ -109,7 +109,6 @@ export function TradeboardFilterBar({
                 <option value="LAYOVER">Layovers</option>
                 <option value="TURNAROUND">Round trips</option>
                 <option value="MULTI_STOP">Pairing</option>
-                <option value="PAIRING_WITH_LAYOVER">Pairing with Layover</option>
               </select>
             </div>
 

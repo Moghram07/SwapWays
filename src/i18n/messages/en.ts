@@ -353,7 +353,6 @@ const en = {
     tripBadgeLayover: "Layover",
     tripBadgeTurnaround: "Round Trip",
     tripBadgeMultiStop: "Pairing",
-    tripBadgePairingWithLayover: "Pairing with Layover",
     tripDeadHeadBadge: "Dead Head (No Duty)",
     matchesLoading: "Loading matches…",
     matchesErrorFallback: "Unable to load matches right now. Please try again in a moment.",

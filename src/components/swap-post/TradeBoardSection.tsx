@@ -69,7 +69,7 @@ interface BoardPost {
   vacationEndDay?: number | null;
   desiredVacationMonths?: number[];
   inputSource?: "MANUAL_QUICK" | "SCHEDULE_PREFILL" | null;
-  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER" | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
   quickDestinations?: string[];
   quickDate?: string | null;
   quickLayoverHours?: number | null;
@@ -276,9 +276,9 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
           .map((l) => l.arrivalAirport)
           .filter((code) => code && code !== baseAirportCode);
 
-        const tripType = t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+        const tripType = t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
         const stopsDisplay =
-          (tripType === "MULTI_STOP" || tripType === "PAIRING_WITH_LAYOVER") && destinationCodesOrdered.length > 0
+          (tripType === "MULTI_STOP") && destinationCodesOrdered.length > 0
             ? destinationCodesOrdered.join(" → ")
             : undefined;
 

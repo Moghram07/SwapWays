@@ -13,7 +13,7 @@ export function TripTypeBadge({ typeInfo }: TripTypeBadgeProps) {
   const Icon = ICONS[typeInfo.icon as keyof typeof ICONS];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${typeInfo.bgColor} ${typeInfo.textColor}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${typeInfo.bgColor} ${typeInfo.textColor}${typeInfo.borderColor2 ? ` border ${typeInfo.borderColor2}` : ""}`}
     >
       {Icon != null && <Icon size={14} />}
       {typeInfo.label}

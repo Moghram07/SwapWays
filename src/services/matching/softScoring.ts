@@ -6,7 +6,7 @@ export type ViewerTripLike = {
   instanceId: string;
   startDate: Date;
   blockHours: number;
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
   legs: { departureAirport: string; arrivalAirport: string; departureDate: Date; arrivalDate: Date }[];
   layovers?: { durationDecimal: number }[];
 };
@@ -29,11 +29,11 @@ export type PostLike = {
     blockHours?: number | null;
     hasLayover: boolean;
     layoverHours: number | null;
-    tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+    tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
     scheduleTrip: { legs: { departureAirport: string; arrivalAirport: string }[] } | null;
   }[];
   wtfDays: number[];
-  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER" | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
   quickDestinations?: string[];
   quickDate?: Date | null;
   quickLayoverHours?: number | null;
@@ -292,10 +292,6 @@ function scoreTripType(post: PostLike, viewerTrips: ViewerTripLike[], matchingTr
     }
     case "ANY_FLIGHT":
       if (!offeredTripType) return viewerTrips.length > 0 ? 8 : 0;
-      if (offeredTripType === "PAIRING_WITH_LAYOVER") {
-        const hasLayoverOrMulti = viewerTrips.some((t) => t.tripType === "LAYOVER" || t.tripType === "MULTI_STOP" || classifyTrip(t) === "LAYOVER");
-        return hasLayoverOrMulti ? 10 : 5;
-      }
       return viewerTrips.some((t) => t.tripType === offeredTripType) ? 10 : 5;
     case "DAYS_OFF":
       return 8;

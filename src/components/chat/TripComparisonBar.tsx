@@ -26,7 +26,7 @@ interface TripLike {
 /** Round Trip: only destination (e.g. RUH). Pairing/Pairing with Layover: first destination → … → last; omit base at start and end. */
 function formatDestination(
   legs: Leg[],
-  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER"
+  tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP"
 ): string {
   if (!legs.length) return "—";
   const firstLeg = legs[0];

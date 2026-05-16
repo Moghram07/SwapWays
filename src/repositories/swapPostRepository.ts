@@ -164,7 +164,7 @@ export async function createSwapPost(
       destination: string;
       destinations?: string[];
       departureDate: Date;
-      tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+      tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
       creditHours?: number | null;
       tafb?: number | null;
       reportTime?: string | null;
@@ -265,7 +265,7 @@ export async function findSwapPostsForBoard(
   baseId: string,
   filters?: {
     postType?: SwapPostType;
-    tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+    tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
     destination?: string;
     dateFrom?: string;
     excludeVacation?: boolean;
@@ -508,7 +508,7 @@ export async function getOpenOfferingDedupeInfoForUser(
         offeredTripFingerprintFromStored({
           scheduleTripId: t.scheduleTripId,
           departureDate: t.departureDate,
-          tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER",
+          tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP",
           reportTime: t.reportTime,
           destinations: t.destinations,
           destination: t.destination,
@@ -567,7 +567,7 @@ export async function updateSwapPost(
       destination: string;
       destinations?: string[];
       departureDate: Date;
-      tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+      tripType: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
       creditHours?: number | null;
       tafb?: number | null;
       reportTime?: string | null;

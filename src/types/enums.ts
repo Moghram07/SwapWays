@@ -45,7 +45,7 @@ export type SwapRuleType =
   | "REST_VIOLATION"
   | "SCHEDULE_CONFLICT";
 
-export type TripType = "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+export type TripType = "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
 
 export type SwapPostType =
   | "OFFERING_TRIPS"

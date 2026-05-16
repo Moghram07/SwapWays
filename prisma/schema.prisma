@@ -718,7 +718,6 @@ enum TripType {
   LAYOVER
   TURNAROUND
   MULTI_STOP
-  PAIRING_WITH_LAYOVER
 }
 
 enum SwapPostType {

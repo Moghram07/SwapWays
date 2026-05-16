@@ -95,27 +95,20 @@ export function PostPreview({
             const layoverCity =
               trip.tripType === "LAYOVER"
                 ? (trip.destination ?? null)
-                : trip.tripType === "PAIRING_WITH_LAYOVER"
-                  ? (legLayoversData[0] != null
-                      ? (trip.destinations[legLayoversData[0].legIndex] ?? null)
-                      : null)
-                  : null;
+                : null;
             return {
               flightNumber: trip.flightNumber ?? "",
               destination:
-                (trip.tripType === "MULTI_STOP" || trip.tripType === "PAIRING_WITH_LAYOVER")
+                trip.tripType === "MULTI_STOP"
                   ? (trip.destinations.find(Boolean) ?? "")
                   : (trip.destination ?? ""),
-              destinations:
-                (trip.tripType === "MULTI_STOP" || trip.tripType === "PAIRING_WITH_LAYOVER")
-                  ? trip.destinations.filter(Boolean)
-                  : trip.destination
-                    ? [trip.destination]
-                    : [],
+              destinations: trip.destinations?.length > 0
+                ? trip.destinations.filter(Boolean)
+                : trip.destination ? [trip.destination] : [],
               departureDate: new Date(`${trip.date}T00:00:00.000Z`),
               tripType: trip.tripType,
               creditHours: trip.blockHours ?? 0,
-              hasLayover: trip.tripType === "LAYOVER" || trip.tripType === "PAIRING_WITH_LAYOVER",
+              hasLayover: trip.tripType === "LAYOVER",
               layoverHours: trip.layoverHours ?? (legLayoversData[0]?.layoverHours ?? null),
               layoverCity: layoverCity ?? null,
               legLayovers: legLayoversData.length > 0 ? legLayoversData : null,
@@ -145,7 +138,7 @@ export function PostPreview({
       | "SCHEDULE_PREFILL",
     quickTripType: firstManualTrip?.tripType ?? null,
     quickDestinations:
-      (firstManualTrip?.tripType === "MULTI_STOP" || firstManualTrip?.tripType === "PAIRING_WITH_LAYOVER")
+      firstManualTrip?.tripType === "MULTI_STOP"
         ? firstManualTrip.destinations.filter(Boolean)
         : firstManualTrip?.destination
           ? [firstManualTrip.destination]

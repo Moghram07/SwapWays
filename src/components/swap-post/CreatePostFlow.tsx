@@ -133,15 +133,19 @@ export function CreatePostFlow({
   const [offeredTrips, setOfferedTrips] = useState<QuickPostOfferedTripData[]>([
     {
       id: 1,
-      tripType: "LAYOVER",
+      tripType: "TURNAROUND",
       destination: "",
-      destinations: [""],
+      destinations: [],
       date: "",
       layoverHours: null,
       reportTime: "",
       aircraftTypeCode: "",
       blockHours: null,
       flightNumber: "",
+      legs: [
+        { to: "", hasLayover: false, layoverHours: null },
+        { to: "", hasLayover: false, layoverHours: null },
+      ],
     },
   ]);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -257,6 +261,7 @@ export function CreatePostFlow({
                   month={month}
                   year={year}
                   scheduledDays={scheduledDays}
+                  userBaseCode={userDisplay.baseAirportCode ?? ""}
                   onOfferedTripsChange={setOfferedTrips}
                   onWantCriteriaChange={setWantCriteria}
                   onSelectedDaysOffChange={setSelectedDaysOff}

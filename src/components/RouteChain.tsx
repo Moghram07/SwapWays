@@ -7,14 +7,13 @@ import { creditHoursToHumanReadable } from "@/utils/timeUtils";
 import { getAirportCity } from "@/utils/airportNames";
 import type { RouteChainNode } from "@/utils/multiStopRouteDisplay";
 
-type TripTypeKey = "LAYOVER" | "ROUND_TRIP" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER" | "TURNAROUND";
+type TripTypeKey = "LAYOVER" | "ROUND_TRIP" | "MULTI_STOP" | "TURNAROUND";
 
 const tripTypeVariant: Record<TripTypeKey, AirportNodeVariant> = {
-  LAYOVER:              "green",
-  ROUND_TRIP:           "blue",
-  MULTI_STOP:           "orange",
-  PAIRING_WITH_LAYOVER: "purple",
-  TURNAROUND:           "blue",
+  LAYOVER:    "green",
+  ROUND_TRIP: "blue",
+  MULTI_STOP: "orange",
+  TURNAROUND: "blue",
 };
 
 const variantBarColor: Record<AirportNodeVariant, string> = {
@@ -47,10 +46,9 @@ export function RouteChain({
 
   // Highlight non-base destination nodes for these trip types
   // "Round Trip" in the UI stores as TURNAROUND in the DB
-  const highlightNonBase = tripType === "TURNAROUND" || tripType === "ROUND_TRIP" || tripType === "MULTI_STOP" || tripType === "PAIRING_WITH_LAYOVER";
+  const highlightNonBase = tripType === "TURNAROUND" || tripType === "ROUND_TRIP" || tripType === "MULTI_STOP";
   const baseCode = nodes[0]?.code;
-  // PAIRING_WITH_LAYOVER: layover city stays purple; non-layover stops use orange (same as Pairing)
-  const highlightVariant: AirportNodeVariant = tripType === "PAIRING_WITH_LAYOVER" ? "orange" : variant;
+  const highlightVariant: AirportNodeVariant = variant;
 
   return (
     <div className={`w-full ${className ?? ""}`}>

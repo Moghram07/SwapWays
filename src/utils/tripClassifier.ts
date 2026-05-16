@@ -2,7 +2,9 @@
  * Classify trip type from legs and layovers for display and rules.
  */
 
-export type TripType = "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+import type { QuickPostLegEntry } from "@/types/swapPost";
+
+export type TripType = "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
 
 export interface TripTypeInfo {
   type: TripType;
@@ -10,6 +12,8 @@ export interface TripTypeInfo {
   bgColor: string;
   textColor: string;
   borderColor: string;
+  /** Optional extra border class for international layovers (purple border on green badge). */
+  borderColor2?: string;
   icon: string;
 }
 
@@ -40,7 +44,18 @@ export function classifyTrip(trip: {
   return "TURNAROUND";
 }
 
-export function getTripTypeInfo(type: TripType): TripTypeInfo {
+/** Classify a quick-post trip from its explicit leg array (all legs including final return). */
+export function classifyQuickLegs(legs: QuickPostLegEntry[]): { type: TripType; label: string } {
+  const hasLayover = legs.some((l) => l.hasLayover && (l.layoverHours ?? 0) > 0);
+  if (hasLayover) return { type: "LAYOVER", label: "Layover" };
+  if (legs.length === 2) return { type: "TURNAROUND", label: "Round Trip" };
+  return { type: "MULTI_STOP", label: `Multi-stop · ${legs.length} legs` };
+}
+
+export function getTripTypeInfo(
+  type: TripType,
+  opts?: { legCount?: number }
+): TripTypeInfo {
   switch (type) {
     case "LAYOVER":
       return {
@@ -60,23 +75,16 @@ export function getTripTypeInfo(type: TripType): TripTypeInfo {
         borderColor: "border-s-[#2668B0]",
         icon: "RotateCcw",
       };
-    case "MULTI_STOP":
+    case "MULTI_STOP": {
+      const label = opts?.legCount ? `Multi-stop · ${opts.legCount} legs` : "Multi-stop";
       return {
         type: "MULTI_STOP",
-        label: "Pairing",
+        label,
         bgColor: "bg-amber-50",
         textColor: "text-amber-700",
         borderColor: "border-s-amber-500",
         icon: "Route",
       };
-    case "PAIRING_WITH_LAYOVER":
-      return {
-        type: "PAIRING_WITH_LAYOVER",
-        label: "Pairing with Layover",
-        bgColor: "bg-purple-50 border border-orange-400",
-        textColor: "text-purple-700",
-        borderColor: "border-s-purple-500",
-        icon: "Moon",
-      };
+    }
   }
 }

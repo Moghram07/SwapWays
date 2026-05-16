@@ -109,7 +109,7 @@ interface EditPostData {
   vacationEndDay?: number | null;
   desiredVacationMonths?: number[];
   inputSource?: SwapPostInputSource | null;
-  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER" | null;
+  quickTripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | null;
   quickDestinations?: string[];
   quickDate?: string | null;
   quickLayoverHours?: number | null;
@@ -163,7 +163,7 @@ export default function PostToTradeBoardPage() {
         tripNumber: t.tripNumber,
         startDate: new Date(t.startDate),
         creditHours: t.creditHours ?? 0,
-        tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER",
+        tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP",
         legs: t.legs ?? [],
         layovers: t.layovers ?? [],
       }));

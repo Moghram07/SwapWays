@@ -7,7 +7,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 
 export interface SwapBoardFilters {
   postType: SwapPostType | "";
-  tripType: "" | "LAYOVER" | "TURNAROUND" | "MULTI_STOP" | "PAIRING_WITH_LAYOVER";
+  tripType: "" | "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
   destination: string;
   sortBy: "match" | "recent" | "block_high" | "block_low" | "date_soon";
   lookingForCurrentDays: number[];
@@ -103,7 +103,6 @@ export function TradeBoardFilters({
             <option value="LAYOVER">Layovers only</option>
             <option value="TURNAROUND">Round Trips only</option>
             <option value="MULTI_STOP">Pairing only</option>
-            <option value="PAIRING_WITH_LAYOVER">Pairing with Layover only</option>
           </select>
         </div>
       </div>

@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { Moon } from "lucide-react";
+import { Moon, Lock } from "lucide-react";
+import { buildTripRouteChainNodes } from "@/utils/multiStopRouteDisplay";
+import { RouteChain } from "@/components/RouteChain";
 import { getAllAirports } from "@/utils/airportNames";
 import { normalizeFlightNumberInput } from "@/utils/flightNumber";
 import { classifyQuickLegs } from "@/utils/tripClassifier";
@@ -102,6 +104,11 @@ function isValidTimeValue(raw: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(normalizeTimeValue(raw));
 }
 
+function isLockedReturnLeg(legIdx: number, legs: QuickPostLegEntry[], baseCode: string): boolean {
+  if (!baseCode) return false;
+  return legIdx === legs.length - 1 && legs[legIdx]?.to.trim().toUpperCase() === baseCode.toUpperCase();
+}
+
 export function QuickPostForm({
   offeredTrips,
   wantCriteria,
@@ -128,20 +135,27 @@ export function QuickPostForm({
 
   const wtfOk = wantCriteria.wtfDays.length > 0;
 
-  const canProceed =
-    offeredTrips.length >= MIN_TRIPS_PER_POST &&
-    offeredTrips.every((trip) => {
-      if (!trip.date) return false;
-      if (!isValidTimeValue(trip.reportTime ?? "")) return false;
-      const legs = trip.legs;
-      if (legs.length < MIN_LEGS || legs.length > MAX_LEGS) return false;
-      if (!legs.every((l) => l.to.trim())) return false;
-      if (userBaseCode && legs[legs.length - 1]?.to.trim().toUpperCase() !== userBaseCode.toUpperCase()) return false;
-      if (legs.some((l) => l.hasLayover && !((l.layoverHours ?? 0) > 0))) return false;
-      return true;
-    }) &&
-    wantsOk &&
-    wtfOk;
+  const missingItems: string[] = [];
+  if (offeredTrips.length < MIN_TRIPS_PER_POST)
+    missingItems.push(`Offer at least ${MIN_TRIPS_PER_POST} trips`);
+  offeredTrips.forEach((trip, i) => {
+    const label = offeredTrips.length > 1 ? `Trip ${i + 1}: ` : "";
+    if (!trip.date) missingItems.push(`${label}Date required`);
+    if (!isValidTimeValue(trip.reportTime ?? "")) missingItems.push(`${label}Valid report time required`);
+    const legs = trip.legs;
+    if (legs.length < MIN_LEGS) missingItems.push(`${label}At least ${MIN_LEGS} legs required`);
+    if (legs.some((l) => !l.to.trim())) missingItems.push(`${label}All legs need a destination`);
+    if (userBaseCode && legs[legs.length - 1]?.to.trim().toUpperCase() !== userBaseCode.toUpperCase())
+      missingItems.push(`${label}Last leg must return to ${userBaseCode}`);
+    if (legs.some((l) => l.hasLayover && !((l.layoverHours ?? 0) > 0)))
+      missingItems.push(`${label}Layover legs need hours`);
+  });
+  if (!wantsOk)
+    missingItems.push(wantCriteria.wantType === "DAYS_OFF" ? "Select days off wanted" : "Choose at least one destination or Anything");
+  if (!wtfOk)
+    missingItems.push("Choose at least one day you're willing to fly");
+
+  const canProceed = missingItems.length === 0;
 
   const updateTrip = (tripId: number | undefined, updates: Partial<QuickPostOfferedTripData>) => {
     onOfferedTripsChange(
@@ -167,7 +181,12 @@ export function QuickPostForm({
 
   function addLeg(trip: QuickPostOfferedTripData) {
     if (trip.legs.length >= MAX_LEGS) return;
-    const legs = [...trip.legs, { to: "", hasLayover: false, layoverHours: null }];
+    const newLeg: QuickPostLegEntry = { to: "", hasLayover: false, layoverHours: null };
+    const lastLeg = trip.legs[trip.legs.length - 1];
+    // Insert before the last leg if it already has a destination, so the return stays at the end
+    const legs = lastLeg?.to.trim()
+      ? [...trip.legs.slice(0, -1), newLeg, lastLeg]
+      : [...trip.legs, newLeg];
     updateTrip(trip.id, { legs, ...legsToApiFields(legs) });
   }
 
@@ -235,11 +254,16 @@ export function QuickPostForm({
                       const fromCode =
                         legIdx === 0 ? (userBaseCode || "Base") : (legs[legIdx - 1]?.to || "—");
                       const isLast = legIdx === legs.length - 1;
+                      const locked = isLockedReturnLeg(legIdx, legs, userBaseCode);
                       const lastLegWrong =
                         isLast &&
+                        !locked &&
                         !!userBaseCode &&
                         !!leg.to &&
                         leg.to.trim().toUpperCase() !== userBaseCode.toUpperCase();
+                      const filteredAirports = airports.filter(
+                        (a) => !fromCode || a.code.toUpperCase() !== fromCode.toUpperCase()
+                      );
 
                       return (
                         <div key={legIdx} className="space-y-1.5">
@@ -249,14 +273,22 @@ export function QuickPostForm({
                             </span>
                             <span className="text-slate-400 text-xs shrink-0">→</span>
                             <div className="flex-1 min-w-0">
-                              <AirportSearchInput
-                                airports={airports}
-                                value={leg.to}
-                                onChange={(code) => updateLeg(trip, legIdx, { to: code })}
-                                placeholder={
-                                  isLast ? `Return to ${userBaseCode || "base"}` : `Stop ${legIdx + 1}`
-                                }
-                              />
+                              {locked ? (
+                                <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-3 py-2">
+                                  <Lock className="h-3 w-3 shrink-0 text-slate-400" />
+                                  <span className="text-sm font-medium text-slate-700">{leg.to}</span>
+                                  <span className="ml-auto text-xs text-slate-400">Base</span>
+                                </div>
+                              ) : (
+                                <AirportSearchInput
+                                  airports={filteredAirports}
+                                  value={leg.to}
+                                  onChange={(code) => updateLeg(trip, legIdx, { to: code })}
+                                  placeholder={
+                                    isLast ? `Return to ${userBaseCode || "base"}` : `Stop ${legIdx + 1}`
+                                  }
+                                />
+                              )}
                             </div>
                             {isLast && legs.length > MIN_LEGS && (
                               <button
@@ -272,42 +304,47 @@ export function QuickPostForm({
 
                           {/* Layover checkbox — only on non-final legs */}
                           {!isLast && (
-                            <div className="flex items-center gap-2 pl-[4.25rem]">
-                              <input
-                                type="checkbox"
-                                id={`leg-${trip.id}-${legIdx}-layover`}
-                                checked={leg.hasLayover}
-                                onChange={(e) =>
-                                  updateLeg(trip, legIdx, {
-                                    hasLayover: e.target.checked,
-                                    layoverHours: e.target.checked ? (leg.layoverHours ?? null) : null,
-                                  })
-                                }
-                                className="h-3.5 w-3.5 accent-[#3BA34A]"
-                              />
-                              <label
-                                htmlFor={`leg-${trip.id}-${legIdx}-layover`}
-                                className="flex cursor-pointer items-center gap-1 text-xs text-slate-600"
-                              >
-                                <Moon className="h-3 w-3" />
-                                Layover here
-                              </label>
-                              {leg.hasLayover && (
+                            <div className="pl-[4.25rem]">
+                              <div className="flex items-center gap-2">
                                 <input
-                                  type="number"
-                                  min={1}
-                                  max={99}
-                                  placeholder="hrs *"
-                                  value={leg.layoverHours ?? ""}
+                                  type="checkbox"
+                                  id={`leg-${trip.id}-${legIdx}-layover`}
+                                  checked={leg.hasLayover}
                                   onChange={(e) =>
                                     updateLeg(trip, legIdx, {
-                                      layoverHours: e.target.value ? Number(e.target.value) : null,
+                                      hasLayover: e.target.checked,
+                                      layoverHours: e.target.checked ? (leg.layoverHours ?? null) : null,
                                     })
                                   }
-                                  className={`w-16 rounded border px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400 bg-white ${
-                                    !leg.layoverHours ? "border-rose-300" : "border-slate-200"
-                                  }`}
+                                  className="h-3.5 w-3.5 accent-[#3BA34A]"
                                 />
+                                <label
+                                  htmlFor={`leg-${trip.id}-${legIdx}-layover`}
+                                  className="flex cursor-pointer items-center gap-1 text-xs text-slate-600"
+                                >
+                                  <Moon className="h-3 w-3" />
+                                  Layover here
+                                </label>
+                                {leg.hasLayover && (
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={99}
+                                    placeholder="hrs *"
+                                    value={leg.layoverHours ?? ""}
+                                    onChange={(e) =>
+                                      updateLeg(trip, legIdx, {
+                                        layoverHours: e.target.value ? Number(e.target.value) : null,
+                                      })
+                                    }
+                                    className={`w-16 rounded border px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400 bg-white ${
+                                      !leg.layoverHours ? "border-rose-300" : "border-slate-200"
+                                    }`}
+                                  />
+                                )}
+                              </div>
+                              {leg.hasLayover && !((leg.layoverHours ?? 0) > 0) && (
+                                <p className="mt-0.5 text-xs text-rose-500">Enter layover hours</p>
                               )}
                             </div>
                           )}
@@ -324,13 +361,25 @@ export function QuickPostForm({
 
                   <div className="mt-3 flex items-center justify-between">
                     {legs.length < MAX_LEGS ? (
-                      <button
-                        type="button"
-                        onClick={() => addLeg(trip)}
-                        className="text-sm text-[#2668B0] hover:underline"
-                      >
-                        + Add leg
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => addLeg(trip)}
+                          disabled={!legs[legs.length - 2]?.to?.trim()}
+                          className="text-sm text-[#2668B0] hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          + Add leg
+                        </button>
+                        {userBaseCode && legs[legs.length - 1]?.to.trim().toUpperCase() !== userBaseCode.toUpperCase() && (
+                          <button
+                            type="button"
+                            onClick={() => updateLeg(trip, legs.length - 1, { to: userBaseCode })}
+                            className="text-sm text-[#3BA34A] hover:underline"
+                          >
+                            + Return to {userBaseCode}
+                          </button>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-xs text-slate-400">Maximum {MAX_LEGS} legs</span>
                     )}
@@ -341,6 +390,35 @@ export function QuickPostForm({
                     </span>
                   </div>
                 </div>
+
+                {/* Live route chain preview */}
+                {(() => {
+                  const interimLegs = legs.slice(0, -1);
+                  const filledCount = legs.filter((l) => l.to.trim()).length;
+                  if (filledCount < 2) return null;
+                  const firstLayoverLeg = interimLegs.find((l) => l.hasLayover && (l.layoverHours ?? 0) > 0);
+                  const legLayovers = interimLegs
+                    .map((l, i) =>
+                      l.hasLayover && l.layoverHours ? { legIndex: i, layoverHours: l.layoverHours } : null
+                    )
+                    .filter((x): x is { legIndex: number; layoverHours: number } => x !== null);
+                  const nodes = buildTripRouteChainNodes({
+                    destination: firstLayoverLeg?.to ?? interimLegs[0]?.to ?? "",
+                    destinations: interimLegs.map((l) => l.to).filter(Boolean),
+                    baseCode: userBaseCode || undefined,
+                    layoverCity: firstLayoverLeg?.to ?? null,
+                    layoverHours: firstLayoverLeg?.layoverHours ?? null,
+                    legLayovers,
+                  });
+                  if (nodes.length < 2) return null;
+                  return (
+                    <div className="mb-4 rounded-lg border border-slate-100 bg-white p-3">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Route preview</p>
+                      <RouteChain nodes={nodes} tripType={classified.type} />
+                      <p className="mt-1.5 text-xs font-medium text-[#2668B0]">{classified.label}</p>
+                    </div>
+                  );
+                })()}
 
                 {/* Date + report time */}
                 <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -372,7 +450,7 @@ export function QuickPostForm({
                           : "border-slate-200"
                       }`}
                     />
-                    <p className="mt-1 text-xs text-slate-500">24-hour format HH:MM</p>
+                    <p className="mt-1 text-xs text-slate-500">24-hour format HH:MM · Local time</p>
                   </div>
                 </div>
 
@@ -562,6 +640,17 @@ export function QuickPostForm({
           />
         </div>
       </section>
+
+      {missingItems.length > 0 && (
+        <ul className="rounded-lg bg-slate-50 px-3 py-2.5 space-y-1">
+          {missingItems.map((item) => (
+            <li key={item} className="flex items-center gap-1.5 text-xs text-slate-500">
+              <span className="text-rose-400">·</span>
+              {item}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="flex justify-between pt-2">
         <button type="button" onClick={onBack} className="text-sm text-slate-500 hover:underline">

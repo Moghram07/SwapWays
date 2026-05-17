@@ -104,16 +104,6 @@ async function main() {
     });
   }
 
-  const existingRules = await prisma.swapRule.findMany({ where: { airlineId: airline.id } });
-  const existingTypes = new Set(existingRules.map((r: { ruleType: string }) => r.ruleType));
-  for (const rule of saudiaConfig.swapRules) {
-    if (!existingTypes.has(rule.ruleType)) {
-      await prisma.swapRule.create({
-        data: { airlineId: airline.id, ruleType: rule.ruleType, description: rule.description },
-      });
-    }
-  }
-
   const rank = await prisma.rank.findFirst({ where: { airlineId: airline.id, code: "SNF" } });
   const base = await prisma.base.findFirst({ where: { airlineId: airline.id, airportCode: "JED" } });
   const aircraft = await prisma.aircraftType.findFirst({ where: { airlineId: airline.id, code: "A330" } });

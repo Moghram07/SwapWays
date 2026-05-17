@@ -35,17 +35,6 @@ export const saudiaConfig: AirlineConfig = {
     { name: "Madinah", airportCode: "MED" },
   ],
 
-  swapRules: [
-    { ruleType: "OVERTIME_LIMIT", description: "Swap would cause crew member to exceed monthly flight hour limit" },
-    { ruleType: "NO_PARTIAL_TRADE", description: "Partial trading of reserved (RR) days is not permitted" },
-    { ruleType: "DOMESTIC_RESTRICTION", description: "Domestic flights cannot be swapped with international flights" },
-    { ruleType: "QUALIFICATION_MISMATCH", description: "Crew member is not type-rated for the aircraft" },
-    { ruleType: "BASE_MISMATCH", description: "Crew members must be from the same base" },
-    { ruleType: "RANK_MISMATCH", description: "Crew members must hold the same or compatible rank" },
-    { ruleType: "REST_VIOLATION", description: "Swap would violate minimum rest period requirements" },
-    { ruleType: "SCHEDULE_CONFLICT", description: "Incoming trip conflicts with existing scheduled duties" },
-  ],
-
   scheduleFormat: {
     // Trip: "#259 REPORT AT 01.55Z" or "Trip #259 Report: 01:55Z"
     tripPattern: /#(\d{3})\s+REPORT\s*(?:AT)?\s*[:\s]*(\d{2}[.:]\d{2}Z?)/i,

@@ -290,17 +290,14 @@ export async function calculateSwapPostMatch(
     return scoreSingle(post);
   }
 
-  let bestResult: ReturnType<typeof scoreSingle> | null = null;
-  for (let index = 0; index < post.offeredTrips.length; index++) {
-    const virtualPost = { ...post, offeredTrips: [post.offeredTrips[index]] };
-    const current = scoreSingle(virtualPost, index);
-    if (!bestResult || current.matchPercent > bestResult.matchPercent) {
-      bestResult = current;
-    }
-  }
-  if (bestResult) return bestResult;
+  const bestResult = post.offeredTrips
+    .map((trip, index) => scoreSingle({ ...post, offeredTrips: [trip] }, index))
+    .reduce(
+      (best, r) => (!best || r.matchPercent > best.matchPercent ? r : best),
+      null as ReturnType<typeof scoreSingle> | null
+    );
 
-  return scoreSingle(post);
+  return bestResult ?? scoreSingle(post);
 }
 
 export async function getTradeboardForViewer(

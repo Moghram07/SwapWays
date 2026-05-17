@@ -35,16 +35,6 @@ export type SystemAction =
   | "TRIP_OFFERED"
   | "TRIP_CHANGED"
   | "CONVERSATION_CLOSED";
-export type SwapRuleType =
-  | "OVERTIME_LIMIT"
-  | "NO_PARTIAL_TRADE"
-  | "DOMESTIC_RESTRICTION"
-  | "QUALIFICATION_MISMATCH"
-  | "BASE_MISMATCH"
-  | "RANK_MISMATCH"
-  | "REST_VIOLATION"
-  | "SCHEDULE_CONFLICT";
-
 export type TripType = "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
 
 export type SwapPostType =

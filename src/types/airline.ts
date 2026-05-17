@@ -1,5 +1,3 @@
-import type { SwapRuleType } from "./enums";
-
 export interface AirlineConfig {
   name: string;
   code: string;
@@ -10,7 +8,6 @@ export interface AirlineConfig {
   };
   aircraftTypes: AircraftTypeConfig[];
   bases: BaseConfig[];
-  swapRules: SwapRuleConfig[];
   scheduleFormat?: ScheduleFormatConfig;
 }
 
@@ -29,11 +26,6 @@ export interface AircraftTypeConfig {
 export interface BaseConfig {
   name: string;
   airportCode: string;
-}
-
-export interface SwapRuleConfig {
-  ruleType: SwapRuleType;
-  description: string;
 }
 
 export interface ScheduleFormatConfig {

@@ -23,7 +23,8 @@ type RiyadhDateParts = {
 
 type TripLike = {
   departureDate: Date | string;
-  scheduleTrip?: { reportTime: string | null } | null;
+  reportTime?: string | null;
+  scheduleTrip?: unknown;
 };
 
 type SwapPostLike = {
@@ -146,7 +147,7 @@ export function isSwapPostExpired(post: SwapPostLike, now = new Date()): boolean
     const hasFutureTrip = trips.some((trip) => {
       const departure = getRiyadhDateTimeUtc(
         toDate(trip.departureDate),
-        trip.scheduleTrip?.reportTime ?? "00:00"
+        trip.reportTime ?? "00:00"
       );
       return departure.getTime() > now.getTime();
     });

@@ -27,8 +27,12 @@ function makeReferralCode(): string {
   return Math.random().toString(36).slice(2, 10).toUpperCase();
 }
 
-async function ensureReferralCode(userId: string, existingCode: string | null): Promise<string> {
-  if (existingCode) return existingCode;
+async function ensureReferralCode(userId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { referralCode: true },
+  });
+  if (user?.referralCode) return user.referralCode;
 
   for (let i = 0; i < 8; i += 1) {
     const candidate = makeReferralCode();
@@ -43,7 +47,7 @@ async function ensureReferralCode(userId: string, existingCode: string | null): 
       // Unique collision or concurrent update; retry.
     }
   }
-  throw new Error("Failed to assign referral code");
+  return null;
 }
 
 export async function GET(request: Request) {
@@ -62,7 +66,7 @@ export async function GET(request: Request) {
   try {
     const [
       access,
-      user,
+      referralCode,
       schedule,
       activeSwaps,
       newMatches,
@@ -72,14 +76,7 @@ export async function GET(request: Request) {
     ] = await withTimeout(
       Promise.all([
         getUserAccess(userId),
-        prisma.user.findUnique({
-          where: { id: userId },
-          select: {
-            referralCode: true,
-            trialStartedAt: true,
-            trialEndsAt: true,
-          },
-        }),
+        ensureReferralCode(userId),
         prisma.schedule.findFirst({
           where: { userId },
           orderBy: { createdAt: "desc" },
@@ -116,7 +113,6 @@ export async function GET(request: Request) {
     );
 
     const trialCapReached = usedReferrals >= 3;
-    const referralCode = user ? await ensureReferralCode(userId, user.referralCode) : null;
     const referralLink = referralCode
       ? `${process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? ""}/register?ref=${referralCode}`
       : null;

@@ -112,27 +112,21 @@ const swapPostBoardSelect = {
     select: {
       id: true,
       scheduleTripId: true,
-      flightNumber: true,
       destination: true,
       destinations: true,
       departureDate: true,
       tripType: true,
       creditHours: true,
-      tafb: true,
       reportTime: true,
-      aircraftType: true,
       blockHours: true,
       hasLayover: true,
       layoverCity: true,
       layoverHours: true,
       legLayovers: true,
-      isManualEntry: true,
       scheduleTrip: {
         select: {
-          reportTime: true,
           legs: {
             select: {
-              legOrder: true,
               flightNumber: true,
               departureTime: true,
               departureDate: true,

@@ -212,20 +212,10 @@ export async function calculateSwapPostMatch(
   );
 
   const allViewerTrips = schedules.flatMap((s) => s?.trips ?? []);
-  const primarySchedule = schedules.find((s) => s?.month === primaryMonth && s?.year === primaryYear);
-
-  if (!primarySchedule) {
-    return {
-      postId,
-      viewerId,
-      matchPercent: 0,
-      breakdown: emptyBreakdown(),
-      matchingTrips: [],
-      reasons: [],
-      failReason: "No schedule found for post month",
-      bestTripIndex: null,
-    };
-  }
+  // Allow viewers with only a quick post (no uploaded schedule) to match via WTF/signal scoring.
+  // Hard constraints handle empty trips gracefully (no conflicts, no aircraft evidence → passes).
+  const primarySchedule = schedules.find((s) => s?.month === primaryMonth && s?.year === primaryYear)
+    ?? { month: primaryMonth, year: primaryYear, trips: [] as NonNullable<(typeof schedules)[number]>["trips"] };
 
   const wtfGate =
     viewerSignals.hasExplicitWtfFromPosts && viewerSignals.wtfDateKeys.size > 0

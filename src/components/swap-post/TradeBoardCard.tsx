@@ -202,6 +202,12 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
 
   const reportTime = (() => {
     if (!trip.reportTime) return null;
+    // Schedule trips store report time in Zulu; quick/manual posts store local time directly.
+    // Schedule trips always have legs populated; quick posts don't.
+    const hasScheduleLegs = !!(trip.legs && trip.legs.length > 0);
+    if (!hasScheduleLegs) {
+      return trip.reportTime.replace(".", ":");
+    }
     const reportAirport = trip.baseAirportCode ?? firstLeg?.departureAirport ?? "";
     if (!reportAirport) return null;
     return timeMode === "zulu"

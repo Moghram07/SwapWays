@@ -114,13 +114,17 @@ export function buildTripRouteChainNodes(params: {
   }
 
   return chain.map((code, i) => {
-    // legLayovers: legIndex i-1 arrives at chain position i
-    const ll = legLayovers?.find((l) => l.legIndex === i - 1);
+    // legLayovers: legIndex i-1 arrives at chain position i (never the final arrival)
+    const ll = i > 0 && i < chain.length - 1
+      ? legLayovers?.find((l) => l.legIndex === i - 1)
+      : undefined;
     if (ll) {
       const hrs = ll.hours ?? ll.layoverHours;
       if (hrs != null) return { code, layoverHours: hrs };
     }
     if (
+      i > 0 &&
+      (chain.length <= 2 || i < chain.length - 1) &&
       layoverCity &&
       layoverHours != null &&
       normalizeAirportCode(code) === normalizeAirportCode(layoverCity)

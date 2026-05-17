@@ -131,7 +131,7 @@ function normalizeManualOfferedTrips(
       // New form: legs include the final return leg — exclude it for stored destinations
       const interimLegs = trip.legs!.slice(0, -1);
       destinations = interimLegs.map((l) => String(l.to ?? "").trim().toUpperCase()).filter(Boolean);
-      legLayovers = trip.legs!
+      legLayovers = interimLegs
         .map((l, i) => ({ legIndex: i, hasLayover: l.hasLayover, layoverHours: l.layoverHours }))
         .filter((l) => l.hasLayover && l.layoverHours != null && l.layoverHours > 0)
         .map((l) => ({ legIndex: l.legIndex, layoverHours: l.layoverHours! }));

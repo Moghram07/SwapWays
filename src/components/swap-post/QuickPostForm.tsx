@@ -47,7 +47,7 @@ function legsToApiFields(legs: QuickPostLegEntry[]) {
   const classified = classifyQuickLegs(legs);
   const interimLegs = legs.slice(0, -1); // exclude final return leg
   const destinations = interimLegs.map((l) => l.to).filter(Boolean);
-  const firstLayover = legs.find((l) => l.hasLayover && (l.layoverHours ?? 0) > 0);
+  const firstLayover = interimLegs.find((l) => l.hasLayover && (l.layoverHours ?? 0) > 0);
   const destination =
     classified.type === "LAYOVER"
       ? (firstLayover?.to ?? destinations[0] ?? "")

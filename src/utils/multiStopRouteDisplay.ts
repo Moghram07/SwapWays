@@ -131,6 +131,16 @@ export function buildTripRouteChainNodes(params: {
     ) {
       return { code, layoverHours };
     }
+    // Fallback for corrupt/legacy data: 3-node trip with known hours but wrong layoverCity stored —
+    // the only intermediate stop must be the layover city.
+    if (
+      i > 0 && i < chain.length - 1 &&
+      chain.length === 3 &&
+      layoverCity != null &&
+      layoverHours != null
+    ) {
+      return { code, layoverHours };
+    }
     return { code };
   });
 }

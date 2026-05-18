@@ -164,8 +164,6 @@ function emptyBreakdown(): ScoreBreakdown {
 export function scoreSwapPost(
   signals: ViewerSignals,
   post: PostLike,
-  _primaryYear: number,
-  _primaryMonth: number,
 ): MatchScore {
   const fitResult = computeFitScore(signals, post);
   const dateResult = computeDateMultiplier(signals, post);

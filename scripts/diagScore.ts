@@ -46,7 +46,7 @@ async function scoreForViewer(viewerId: string) {
       quickLayoverHours: post.quickLayoverHours ?? null,
       advancedBlockHours: post.advancedBlockHours ?? null,
     };
-    const score = scoreSwapPost(signals, postLike, 2026, 5);
+    const score = scoreSwapPost(signals, postLike);
     // Only flag as bug if viewer wants LAYOVER (not ROUND_TRIP, which correctly maps to TURNAROUND)
     const viewerWantsLayoverOnly = signals.wantTypes.includes("LAYOVER") || signals.wantTypes.includes("LONGER_LAYOVER");
     const hasTripMismatch = posterTripTypes.some((t) => t === "TURNAROUND") && score.reasons.includes("Same trip type") && viewerWantsLayoverOnly;

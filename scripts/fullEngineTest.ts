@@ -195,7 +195,7 @@ let passed = 0;
 let failed = 0;
 
 for (const t of tests) {
-  const r = scoreSwapPost(t.signals, t.post, 2026, 5);
+  const r = scoreSwapPost(t.signals, t.post);
   const expectedOk = t.expectedScore === undefined || r.total === t.expectedScore;
   const icon = expectedOk ? "✅" : "❌";
   if (expectedOk) passed++; else failed++;

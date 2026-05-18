@@ -62,13 +62,13 @@ const layoverPost = {
   }],
 };
 
-const r1 = scoreSwapPost(signals, turnaroundPost, 2026, 5);
+const r1 = scoreSwapPost(signals, turnaroundPost);
 console.log("Viewer wants LAYOVER vs TURNAROUND post:", { total: r1.total, reasons: r1.reasons });
 
-const r2 = scoreSwapPost(signals, layoverPost, 2026, 5);
+const r2 = scoreSwapPost(signals, layoverPost);
 console.log("Viewer wants LAYOVER vs LAYOVER post:", { total: r2.total, reasons: r2.reasons });
 
 // Test with ANY_FLIGHT viewer (should match both)
 const flexSignals = { ...signals, wantTypes: ["ANY_FLIGHT"] as ["ANY_FLIGHT"], hasAnyDestinationFlex: true };
-const r3 = scoreSwapPost(flexSignals, turnaroundPost, 2026, 5);
+const r3 = scoreSwapPost(flexSignals, turnaroundPost);
 console.log("Viewer ANY_FLIGHT vs TURNAROUND post:", { total: r3.total, reasons: r3.reasons });

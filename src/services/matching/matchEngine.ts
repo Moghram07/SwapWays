@@ -214,9 +214,6 @@ export async function calculateSwapPostMatch(
   const allViewerTrips = schedules.flatMap((s) => s?.trips ?? []);
   // Allow viewers with only a quick post (no uploaded schedule) to match via WTF/signal scoring.
   // Hard constraints handle empty trips gracefully (no conflicts, no aircraft evidence → passes).
-  const primarySchedule = schedules.find((s) => s?.month === primaryMonth && s?.year === primaryYear)
-    ?? { month: primaryMonth, year: primaryYear, trips: [] as NonNullable<(typeof schedules)[number]>["trips"] };
-
   const hardResult = checkHardConstraints(
     viewer,
     allViewerTrips,
@@ -240,7 +237,7 @@ export async function calculateSwapPostMatch(
 
   const scoreSingle = (postCandidate: typeof post, bestTripIndex?: number) => {
     const postLike = toPostLikeForScoring(postCandidate);
-    const score = scoreSwapPost(viewerSignals, postLike, primaryYear, primaryMonth);
+    const score = scoreSwapPost(viewerSignals, postLike);
     return {
       postId,
       viewerId,

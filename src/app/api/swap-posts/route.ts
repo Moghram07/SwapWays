@@ -362,6 +362,21 @@ export async function POST(request: Request) {
     normalizedManualTrips.trips = fallback.trips;
   }
 
+  // Strip the user's own base airport from offered destinations — it can never be a valid swap destination.
+  const userBaseRow = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { base: { select: { airportCode: true } } },
+  });
+  const userBaseCode = userBaseRow?.base?.airportCode?.toUpperCase() ?? null;
+  if (userBaseCode) {
+    for (const trip of normalizedManualTrips.trips) {
+      trip.destinations = trip.destinations.filter((d) => d.toUpperCase() !== userBaseCode);
+      if (trip.destination?.toUpperCase() === userBaseCode) {
+        trip.destination = trip.destinations[0] ?? "";
+      }
+    }
+  }
+
   if (postType === "OFFERING_TRIPS" && selectedTrips.length === 0 && normalizedManualTrips.trips.length === 0) {
     return error("Flight Swap requires selectedTrips or offeredTrips data", 400);
   }

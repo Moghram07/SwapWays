@@ -271,7 +271,7 @@ export default function PostToTradeBoardPage() {
       throw new Error(res.ok ? "Invalid response from server." : editId ? "Failed to update post. Please try again." : "Failed to create post. Please try again.");
     }
     if (res.ok && json.data) {
-      router.push(editId ? "/dashboard/matches?tab=mySwaps" : "/dashboard/matches?tab=mySwaps&posted=1");
+      router.push(editId ? "/dashboard/board?mode=mySwaps" : "/dashboard/board?mode=mySwaps&posted=1");
     } else if (json.message) {
       throw new Error(json.message);
     } else if (!res.ok) {

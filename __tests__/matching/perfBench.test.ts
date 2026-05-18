@@ -59,6 +59,7 @@ function buildFixture() {
     ],
     offeredDateKeys: new Set(["2026-05-10", "2026-05-14", "2026-05-22"]),
     offeredDestinations: ["JED", "DXB", "CAI"],
+    offeredTripTypes: new Set<"LAYOVER" | "TURNAROUND" | "MULTI_STOP">(["LAYOVER"]),
     wantedDestinations: ["KWI", "LHE"],
     excludedDestinations: [],
     wtfDateKeys: new Set(["2026-05-08", "2026-05-12", "2026-05-18", "2026-05-25"]),

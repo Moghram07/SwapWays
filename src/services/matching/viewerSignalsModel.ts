@@ -14,6 +14,7 @@ export interface ViewerSignals {
   offeredDates: Date[];
   offeredDateKeys: Set<string>;
   offeredDestinations: string[];
+  offeredTripTypes: Set<"LAYOVER" | "TURNAROUND" | "MULTI_STOP">;
   wantedDestinations: string[];
   excludedDestinations: string[];
   wtfDateKeys: Set<string>;

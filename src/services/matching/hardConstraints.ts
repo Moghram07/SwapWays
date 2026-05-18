@@ -26,8 +26,11 @@ type PostLike = {
   wantExclude: string[];
   advancedAircraftTypeCode?: string | null;
   quickDate?: Date | null;
+  quickDestinations?: string[] | null;
   offeredTrips: {
     departureDate?: Date;
+    destination?: string | null;
+    destinations?: string[] | null;
     scheduleTrip: {
       legs: {
         departureDate: Date;
@@ -41,24 +44,25 @@ type PostLike = {
   }[];
 };
 
-export type ViewerWtfGate = {
-  /** When true, every candidate departure must fall on one of wtfDateKeys. */
-  hasExplicitWtfFromPosts: boolean;
-  wtfDateKeys: Set<string>;
-};
-
 export interface HardConstraintResult {
   passes: boolean;
   failReason: string | null;
 }
 
+/**
+ * Hard gates for swap post matching. All gates are directional — failing for
+ * viewer A does not affect viewer B's score. Conditional gates (aircraft,
+ * visa, schedule conflict) are only enforced when the required data exists.
+ *
+ * Removed from previous version: WTF date gate (moved to date multiplier in
+ * swapPostScorer), reverse aircraft qualification gate.
+ */
 export function checkHardConstraints(
   viewer: ViewerLike,
   viewerScheduleTrips: ViewerScheduleTripLike[],
   post: PostLike,
   postOwner: ViewerLike,
-  viewerCandidateTrips: ViewerScheduleTripLike[] = viewerScheduleTrips,
-  viewerWtfGate: ViewerWtfGate | null = null
+  viewerExcludedDestinations: string[] = []
 ): HardConstraintResult {
   const baseResult = checkBase(viewer, postOwner);
   if (!baseResult.passes) return baseResult;
@@ -69,56 +73,15 @@ export function checkHardConstraints(
   const qualResult = checkAircraftQualification(viewer, post);
   if (!qualResult.passes) return qualResult;
 
-  const hasAircraftHint =
-    !!post.advancedAircraftTypeCode ||
-    post.offeredTrips.some((trip) => (trip.scheduleTrip?.legs?.length ?? 0) > 0);
-  const reverseQualResult = checkReverseAircraftQualification(
-    postOwner,
-    viewerCandidateTrips,
-    hasAircraftHint
-  );
-  if (!reverseQualResult.passes) return reverseQualResult;
-
   const visaResult = checkVisa(viewer, post);
   if (!visaResult.passes) return visaResult;
 
-  const excludeResult = checkDestinationExclusions(viewerScheduleTrips, post);
+  const excludeResult = checkDestinationExclusions(viewerExcludedDestinations, post);
   if (!excludeResult.passes) return excludeResult;
 
   const conflictResult = checkScheduleConflict(viewerScheduleTrips, post);
   if (!conflictResult.passes) return conflictResult;
 
-  const wtfResult = checkViewerWtfDays(viewerWtfGate, post);
-  if (!wtfResult.passes) return wtfResult;
-
-  return { passes: true, failReason: null };
-}
-
-/**
- * If the viewer has an active swap post with explicit willing-to-fly days,
- * every offered trip departure date in the candidate post must fall on one of those days.
- * Without this, viewers see matches on dates they explicitly didn't say they're willing to fly.
- */
-function checkViewerWtfDays(
-  gate: ViewerWtfGate | null,
-  post: PostLike
-): HardConstraintResult {
-  if (!gate || !gate.hasExplicitWtfFromPosts) return { passes: true, failReason: null };
-  if (gate.wtfDateKeys.size === 0) return { passes: true, failReason: null };
-
-  const offeredDates: Date[] = [];
-  for (const trip of post.offeredTrips) {
-    if (trip.departureDate) offeredDates.push(trip.departureDate);
-  }
-  if (offeredDates.length === 0 && post.quickDate) offeredDates.push(post.quickDate);
-  if (offeredDates.length === 0) return { passes: true, failReason: null };
-
-  for (const date of offeredDates) {
-    const key = dateKeyUTC(date);
-    if (!gate.wtfDateKeys.has(key)) {
-      return { passes: false, failReason: "Trip date not in your willing-to-fly days" };
-    }
-  }
   return { passes: true, failReason: null };
 }
 
@@ -190,46 +153,6 @@ function checkAircraftQualification(viewer: ViewerLike, post: PostLike): HardCon
   return { passes: true, failReason: null };
 }
 
-function collectQualificationFamilies(user: ViewerLike): Set<string> {
-  const codes = new Set<string>();
-  for (const q of user.qualifications) {
-    codes.add(normalizeAircraftFamily(q.aircraftType.code));
-    if (q.aircraftType.scheduleCode) {
-      codes.add(normalizeAircraftFamily(q.aircraftType.scheduleCode));
-    }
-  }
-  return codes;
-}
-
-function checkReverseAircraftQualification(
-  postOwner: ViewerLike,
-  viewerCandidateTrips: ViewerScheduleTripLike[],
-  hasAircraftHint = true
-): HardConstraintResult {
-  if (!hasAircraftHint) return { passes: true, failReason: null };
-  const ownerCodes = collectQualificationFamilies(postOwner);
-  let foundTripWithAircraft = false;
-  for (const trip of viewerCandidateTrips) {
-    const requiredFamilies = new Set<string>();
-    for (const leg of trip.legs) {
-      if (isDeadHeadFlightNumber(leg.flightNumber ?? "")) continue;
-      if (!leg.aircraftTypeCode?.trim()) continue;
-      requiredFamilies.add(normalizeAircraftFamily(leg.aircraftTypeCode));
-    }
-    if (requiredFamilies.size === 0) continue;
-    foundTripWithAircraft = true;
-    const ownerCanOperateTrip = Array.from(requiredFamilies).every((family) => ownerCodes.has(family));
-    if (ownerCanOperateTrip) {
-      return { passes: true, failReason: null };
-    }
-  }
-  if (!foundTripWithAircraft) return { passes: true, failReason: null };
-  return {
-    passes: false,
-    failReason: "Post owner is not qualified for your offered trip aircraft",
-  };
-}
-
 function checkVisa(viewer: ViewerLike, post: PostLike): HardConstraintResult {
   for (const trip of post.offeredTrips) {
     const legs = trip.scheduleTrip?.legs ?? [];
@@ -247,29 +170,34 @@ function checkVisa(viewer: ViewerLike, post: PostLike): HardConstraintResult {
   return { passes: true, failReason: null };
 }
 
-function getTripDestinations(trip: ViewerScheduleTripLike): string[] {
-  const base = trip.legs[0]?.departureAirport;
-  if (!base) return [];
+/** Collects all destinations the poster is actively offering. */
+function collectPosterOfferedDestinations(post: PostLike): string[] {
   const out = new Set<string>();
-  for (const leg of trip.legs) {
-    if (leg.departureAirport !== base) out.add(leg.departureAirport);
-    if (leg.arrivalAirport !== base) out.add(leg.arrivalAirport);
+  for (const t of post.offeredTrips) {
+    if (t.destination) out.add(t.destination.toUpperCase());
+    for (const d of t.destinations ?? []) out.add(d.toUpperCase());
   }
+  for (const d of post.quickDestinations ?? []) out.add(d.toUpperCase());
   return Array.from(out);
 }
 
+/**
+ * Blocks when ALL of the poster's offered destinations are in the viewer's
+ * personal exclude list. Directional: only the viewer's own excludes matter.
+ */
 function checkDestinationExclusions(
-  viewerScheduleTrips: ViewerScheduleTripLike[],
+  viewerExcludedDestinations: string[],
   post: PostLike
 ): HardConstraintResult {
-  if (post.wantExclude.length === 0) return { passes: true, failReason: null };
-  const excluded = new Set(post.wantExclude.map((d) => d.toUpperCase()));
-  for (const trip of viewerScheduleTrips) {
-    const destinations = getTripDestinations(trip).map((d) => d.toUpperCase());
-    const allExcluded = destinations.length > 0 && destinations.every((d) => excluded.has(d));
-    if (!allExcluded) return { passes: true, failReason: null };
+  if (viewerExcludedDestinations.length === 0) return { passes: true, failReason: null };
+  const excluded = new Set(viewerExcludedDestinations.map((d) => d.toUpperCase()));
+  const posterOffered = collectPosterOfferedDestinations(post);
+  if (posterOffered.length === 0) return { passes: true, failReason: null };
+  const allExcluded = posterOffered.every((d) => excluded.has(d));
+  if (allExcluded) {
+    return { passes: false, failReason: "All offered destinations are in your exclude list" };
   }
-  return { passes: false, failReason: "All available trips are in excluded destinations" };
+  return { passes: true, failReason: null };
 }
 
 function dateKey(date: Date): string {

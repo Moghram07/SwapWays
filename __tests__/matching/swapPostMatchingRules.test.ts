@@ -126,7 +126,7 @@ describe("swap post matching updates", () => {
     expect(result.breakdown.sameDateBonus).toBe(4);
   });
 
-  it("fails hard constraints when post owner is not qualified for viewer trip aircraft", () => {
+  it("passes hard constraints when viewer is qualified for post aircraft (reverse qual check removed)", () => {
     const viewer = buildViewer(["A320"], { id: "viewer", rankId: "rank", rankCode: "HST" });
     const postOwner = buildViewer(["B777"], { id: "owner", rankId: "rank", rankCode: "HST" });
 
@@ -165,25 +165,10 @@ describe("swap post matching updates", () => {
           },
         ],
       },
-      postOwner,
-      [
-        {
-          legs: [
-            {
-              departureDate: new Date("2026-03-15T00:00:00.000Z"),
-              arrivalDate: new Date("2026-03-15T02:00:00.000Z"),
-              departureAirport: "JED",
-              arrivalAirport: "RUH",
-              flightNumber: "7777",
-              aircraftTypeCode: "A320",
-            },
-          ],
-        },
-      ]
+      postOwner
     );
 
-    expect(result.passes).toBe(false);
-    expect(result.failReason).toContain("not qualified");
+    expect(result.passes).toBe(true);
   });
 
   it("allows quick posts without aircraft details to pass aircraft hard constraints", () => {
@@ -211,21 +196,7 @@ describe("swap post matching updates", () => {
         advancedAircraftTypeCode: null,
         offeredTrips: [],
       },
-      postOwner,
-      [
-        {
-          legs: [
-            {
-              departureDate: new Date("2026-03-15T00:00:00.000Z"),
-              arrivalDate: new Date("2026-03-15T02:00:00.000Z"),
-              departureAirport: "JED",
-              arrivalAirport: "RUH",
-              flightNumber: "7777",
-              aircraftTypeCode: "A320",
-            },
-          ],
-        },
-      ]
+      postOwner
     );
 
     expect(result.passes).toBe(true);

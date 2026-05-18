@@ -34,6 +34,7 @@ function buildSignals(overrides: Partial<ViewerSignals> = {}): ViewerSignals {
     offeredDates: [],
     offeredDateKeys,
     offeredDestinations,
+    offeredTripTypes: overrides.offeredTripTypes ?? new Set<"LAYOVER" | "TURNAROUND" | "MULTI_STOP">(),
     wantedDestinations: overrides.wantedDestinations ?? [],
     excludedDestinations: overrides.excludedDestinations ?? [],
     wtfDateKeys,
@@ -127,12 +128,7 @@ describe("Hard filter — viewer's WTF days (calendar keys)", () => {
     hasChinaVisa: true,
   };
 
-  const gateMay = {
-    hasExplicitWtfFromPosts: true,
-    wtfDateKeys: new Set(["2026-05-12", "2026-05-18", "2026-05-20"]),
-  };
-
-  it("rejects when offered departure date is not in viewer's WTF calendar", () => {
+  it("passes when offered departure date is not in viewer's WTF calendar (WTF is now a multiplier, not a hard gate)", () => {
     const result = checkHardConstraints(
       viewerProfile,
       [],
@@ -146,12 +142,10 @@ describe("Hard filter — viewer's WTF days (calendar keys)", () => {
         ],
       },
       ownerProfile,
-      [],
-      gateMay
+      []
     );
 
-    expect(result.passes).toBe(false);
-    expect(result.failReason).toBe("Trip date not in your willing-to-fly days");
+    expect(result.passes).toBe(true);
   });
 
   it("passes when offered date is in viewer's WTF calendar", () => {
@@ -168,8 +162,7 @@ describe("Hard filter — viewer's WTF days (calendar keys)", () => {
         ],
       },
       ownerProfile,
-      [],
-      gateMay
+      []
     );
 
     expect(result.passes).toBe(true);
@@ -189,8 +182,7 @@ describe("Hard filter — viewer's WTF days (calendar keys)", () => {
         ],
       },
       ownerProfile,
-      [],
-      null
+      []
     );
 
     expect(result.passes).toBe(true);
@@ -210,14 +202,13 @@ describe("Hard filter — viewer's WTF days (calendar keys)", () => {
         ],
       },
       ownerProfile,
-      [],
-      { hasExplicitWtfFromPosts: false, wtfDateKeys: new Set() }
+      []
     );
 
     expect(result.passes).toBe(true);
   });
 
-  it("rejects when ANY of multiple offered trips falls outside wtf calendar", () => {
+  it("passes when offered trips span WTF and non-WTF dates (WTF is now a multiplier, not a hard gate)", () => {
     const result = checkHardConstraints(
       viewerProfile,
       [],
@@ -229,14 +220,13 @@ describe("Hard filter — viewer's WTF days (calendar keys)", () => {
         ],
       },
       ownerProfile,
-      [],
-      gateMay
+      []
     );
 
-    expect(result.passes).toBe(false);
+    expect(result.passes).toBe(true);
   });
 
-  it("uses quickDate when offered trips list is empty", () => {
+  it("passes quick posts regardless of WTF date (WTF is now a multiplier, not a hard gate)", () => {
     const result = checkHardConstraints(
       viewerProfile,
       [],
@@ -246,10 +236,9 @@ describe("Hard filter — viewer's WTF days (calendar keys)", () => {
         quickDate: new Date("2026-05-17T00:00:00.000Z"),
       },
       ownerProfile,
-      [],
-      gateMay
+      []
     );
 
-    expect(result.passes).toBe(false);
+    expect(result.passes).toBe(true);
   });
 });

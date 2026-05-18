@@ -26,6 +26,7 @@ export async function buildViewerSignals(viewerId: string): Promise<ViewerSignal
   const offeredDates: Date[] = [];
   const offeredDateKeys = new Set<string>();
   const offeredDestinations: string[] = [];
+  const offeredTripTypes = new Set<"LAYOVER" | "TURNAROUND" | "MULTI_STOP">();
   const wantedDestinations: string[] = [];
   const excludedDestinations: string[] = [];
   const wtfDateKeys = new Set<string>();
@@ -51,6 +52,7 @@ export async function buildViewerSignals(viewerId: string): Promise<ViewerSignal
 
     for (const k of expandPostWtfToDateKeys(post)) wtfDateKeys.add(k);
 
+    if (post.quickTripType) offeredTripTypes.add(post.quickTripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP");
     for (const t of post.offeredTrips) {
       if (t.departureDate) {
         offeredDates.push(t.departureDate);
@@ -60,6 +62,7 @@ export async function buildViewerSignals(viewerId: string): Promise<ViewerSignal
       for (const x of t.destinations ?? []) offeredDestinations.push(x.toUpperCase());
       const bh = t.blockHours ?? t.creditHours ?? 0;
       viewerPostsBlockHoursTotal += typeof bh === "number" ? bh : 0;
+      if (t.tripType) offeredTripTypes.add(t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP");
     }
     for (const d of post.quickDestinations ?? []) offeredDestinations.push(d.toUpperCase());
     if (post.quickDate) {
@@ -98,6 +101,7 @@ export async function buildViewerSignals(viewerId: string): Promise<ViewerSignal
             : undefined,
       });
     }
+    for (const t of trips) offeredTripTypes.add(t.tripType);
     scheduleTripsByMonth.set(key, trips);
   }
 
@@ -105,6 +109,7 @@ export async function buildViewerSignals(viewerId: string): Promise<ViewerSignal
     offeredDates,
     offeredDateKeys,
     offeredDestinations: dedupe(offeredDestinations),
+    offeredTripTypes,
     wantedDestinations: dedupe(wantedDestinations),
     excludedDestinations: dedupe(excludedDestinations),
     wtfDateKeys,

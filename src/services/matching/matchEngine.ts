@@ -7,7 +7,7 @@ import { filterByHardConstraints } from "./matchValidator";
 import { scoreSingleMatch } from "./matchScorer";
 import { checkHardConstraints } from "./hardConstraints";
 import type { ScoreBreakdown } from "./softScoring";
-import { scoreWithSignalsOrFallbackSchedule } from "./signalScoring";
+import { scoreSwapPost } from "./swapPostScorer";
 import { buildViewerSignals, viewerHasComparableSignals, type ViewerSignals } from "./viewerSignals";
 import { prisma } from "@/lib/prisma";
 import type { MatchResult } from "@/types/match";
@@ -217,21 +217,12 @@ export async function calculateSwapPostMatch(
   const primarySchedule = schedules.find((s) => s?.month === primaryMonth && s?.year === primaryYear)
     ?? { month: primaryMonth, year: primaryYear, trips: [] as NonNullable<(typeof schedules)[number]>["trips"] };
 
-  const wtfGate =
-    viewerSignals.hasExplicitWtfFromPosts && viewerSignals.wtfDateKeys.size > 0
-      ? {
-          hasExplicitWtfFromPosts: true,
-          wtfDateKeys: viewerSignals.wtfDateKeys,
-        }
-      : null;
-
   const hardResult = checkHardConstraints(
     viewer,
     allViewerTrips,
     post,
     postOwner,
-    primarySchedule.trips,
-    wtfGate
+    viewerSignals.excludedDestinations
   );
 
   if (!hardResult.passes) {
@@ -247,23 +238,9 @@ export async function calculateSwapPostMatch(
     };
   }
 
-  const viewerMonthlyBlock = primarySchedule.trips.reduce((sum, t) => sum + (t.blockHours ?? 0), 0);
-  const scheduleForScoring = {
-    month: primarySchedule.month,
-    year: primarySchedule.year,
-    trips: primarySchedule.trips,
-  };
-
   const scoreSingle = (postCandidate: typeof post, bestTripIndex?: number) => {
     const postLike = toPostLikeForScoring(postCandidate);
-    const score = scoreWithSignalsOrFallbackSchedule(
-      viewerSignals,
-      postLike,
-      primaryYear,
-      primaryMonth,
-      scheduleForScoring,
-      viewerMonthlyBlock
-    );
+    const score = scoreSwapPost(viewerSignals, postLike, primaryYear, primaryMonth);
     return {
       postId,
       viewerId,

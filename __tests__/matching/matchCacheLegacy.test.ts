@@ -13,8 +13,14 @@ describe("matchCacheNeedsRecompute", () => {
     expect(matchCacheNeedsRecompute(["Has non-excluded destinations"])).toBe(true);
   });
 
-  it("does not flag mutual-engine reasons", () => {
-    expect(matchCacheNeedsRecompute(["They offer BOM — on your wants list"])).toBe(false);
-    expect(matchCacheNeedsRecompute(["Same-day swap possible"])).toBe(false);
+  it("flags mutual-engine reasons (pre-Fit Score engine is also stale)", () => {
+    expect(matchCacheNeedsRecompute(["They offer BOM — on your wants list"])).toBe(true);
+    expect(matchCacheNeedsRecompute(["Same-day swap possible"])).toBe(true);
+  });
+
+  it("does not flag new-engine reasons", () => {
+    expect(matchCacheNeedsRecompute(["They offer a destination you want"])).toBe(false);
+    expect(matchCacheNeedsRecompute(["Same trip type", "Partial date alignment — their trip isn't on your willing-to-fly days"])).toBe(false);
+    expect(matchCacheNeedsRecompute(["Open to any trip type", "Dates don't align with either side's willing-to-fly days"])).toBe(false);
   });
 });

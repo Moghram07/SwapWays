@@ -318,7 +318,7 @@ const en = {
     postTypeLineSwapCardTitle: "Line swap",
     postTypeLineSwapCardDesc: "Trade your full monthly line with another crew member",
     postFlowFromSchedule: "From Schedule",
-    postFlowQuickPost: "Quick Post",
+    postFlowQuickPost: "Manual Entry",
     postFlowVacationHelp: "Enter your vacation month and which months you are looking for.",
     postFlowBack: "Back",
     postFlowNext: "Next",

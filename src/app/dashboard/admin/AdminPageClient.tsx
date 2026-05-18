@@ -47,12 +47,22 @@ type AdminStatsOverview = {
   unreadFeedbackByAdmin: number;
 };
 
+type DailyStatRow = {
+  day: string;
+  pageViews: number;
+  uniqueVisitors: number;
+  newUsers: number;
+  newPosts: number;
+};
+
 type AdminStats = {
   users: { total: number; active7d: number; active30d: number };
   traffic: { pageViews7d: number; pageViews30d: number; topPages: Array<{ path: string; views: number }> };
   feedback: { open: number; inProgress: number; closed: number };
   funnel: Array<{ eventName: string; count: number }>;
   overview?: AdminStatsOverview;
+  daily?: DailyStatRow[];
+  today?: { pageViews: number; newUsers: number; newPosts: number };
 };
 
 type ApiEnvelope<T> = {
@@ -218,17 +228,37 @@ export function AdminPageClient() {
           {loadingStats && <p className="text-sm text-slate-500">Loading stats...</p>}
           {!loadingStats && stats && (
             <>
+              {stats.today && (
+                <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">Today (since 6am AST)</p>
+                  <div className="mt-2 flex flex-wrap gap-6">
+                    <div>
+                      <p className="text-xs text-blue-600">Page Views</p>
+                      <p className="text-2xl font-semibold text-blue-900">{stats.today.pageViews.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-blue-600">New Users</p>
+                      <p className="text-2xl font-semibold text-blue-900">{stats.today.newUsers}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-blue-600">New Posts</p>
+                      <p className="text-2xl font-semibold text-blue-900">{stats.today.newPosts}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="grid gap-3 md:grid-cols-3">
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="text-xs uppercase tracking-wide text-slate-500">Total Users</p>
                   <p className="mt-1 text-2xl font-semibold text-slate-900">{stats.users.total}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Active Users (7d)</p>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Active Users (7d rolling)</p>
                   <p className="mt-1 text-2xl font-semibold text-slate-900">{stats.users.active7d}</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">Active Users (30d)</p>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">Active Users (30d rolling)</p>
                   <p className="mt-1 text-2xl font-semibold text-slate-900">{stats.users.active30d}</p>
                 </div>
               </div>
@@ -315,17 +345,66 @@ export function AdminPageClient() {
 
               <div className="rounded-xl border border-slate-200 bg-white p-4">
                 <p className="text-sm font-medium text-slate-900">Page Views</p>
-                <p className="mt-1 text-sm text-slate-600">
-                  7d: {stats.traffic.pageViews7d} | 30d: {stats.traffic.pageViews30d}
-                </p>
-                <div className="mt-3 space-y-1 text-sm text-slate-700">
-                  {stats.traffic.topPages.map((p) => (
-                    <p key={p.path}>
-                      {p.path}: {p.views}
-                    </p>
-                  ))}
+                <div className="mt-2 space-y-1 text-sm text-slate-600">
+                  <p>7d rolling: <span className="font-semibold text-slate-900">{stats.traffic.pageViews7d.toLocaleString()}</span></p>
+                  <p>30d rolling: <span className="font-semibold text-slate-900">{stats.traffic.pageViews30d.toLocaleString()}</span></p>
                 </div>
+                {stats.traffic.topPages.length > 0 && (
+                  <div className="mt-3 space-y-1 text-sm text-slate-700">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Top pages (30d)</p>
+                    {stats.traffic.topPages.map((p) => (
+                      <p key={p.path} className="flex justify-between">
+                        <span className="truncate text-slate-600">{p.path}</span>
+                        <span className="ml-4 font-medium text-slate-900">{p.views.toLocaleString()}</span>
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {stats.daily && stats.daily.length > 0 && (() => {
+                // Compute today's Saudi day key on the client (same formula as server: shift UTC -3h, take date)
+                const todaySaudiKey = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+                return (
+                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-medium text-slate-900">Daily breakdown (Saudi days, 6am–5:59am AST)</p>
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
+                            <th className="pb-2 pr-4">Day</th>
+                            <th className="pb-2 pr-4 text-right">Page Views</th>
+                            <th className="pb-2 pr-4 text-right">Unique Visitors</th>
+                            <th className="pb-2 pr-4 text-right">New Users</th>
+                            <th className="pb-2 text-right">New Posts</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {stats.daily.map((row) => {
+                            const isToday = row.day === todaySaudiKey;
+                            const label = new Date(row.day + "T03:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                            return (
+                              <tr
+                                key={row.day}
+                                className={`border-b border-slate-50 last:border-0 ${isToday ? "bg-blue-50" : ""}`}
+                              >
+                                <td className="py-1.5 pr-4 font-medium text-slate-800">
+                                  {label}
+                                  {isToday && <span className="ml-1.5 text-xs text-blue-600">(today)</span>}
+                                </td>
+                                <td className="py-1.5 pr-4 text-right text-slate-700">{row.pageViews.toLocaleString()}</td>
+                                <td className="py-1.5 pr-4 text-right text-slate-700">{row.uniqueVisitors.toLocaleString()}</td>
+                                <td className="py-1.5 pr-4 text-right text-slate-700">{row.newUsers}</td>
+                                <td className="py-1.5 text-right text-slate-700">{row.newPosts}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="rounded-xl border border-slate-200 bg-white p-4">
                 <p className="text-sm font-medium text-slate-900">Core Funnel (30d)</p>

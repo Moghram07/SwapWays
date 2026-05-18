@@ -120,12 +120,23 @@ export function CreatePostFlow({
   const [vacationEndDay, setVacationEndDay] = useState<number | "">(initialVacationEndDay ?? "");
   const [desiredVacationMonths, setDesiredVacationMonths] = useState<number[]>(initialDesiredVacationMonths ?? []);
   const [wantCriteria, setWantCriteria] = useState<WantCriteriaData>(() => {
-    const base = initialWantCriteria ? { ...defaultWantCriteria, ...initialWantCriteria } : defaultWantCriteria;
-    return {
-      ...base,
-      wantAcceptanceOptions: base.wantAcceptanceOptions ?? [],
-      wantOpenToAnyDestination: base.wantOpenToAnyDestination ?? false,
-    };
+    if (initialWantCriteria) {
+      return {
+        ...defaultWantCriteria,
+        ...initialWantCriteria,
+        wantAcceptanceOptions: initialWantCriteria.wantAcceptanceOptions ?? [],
+        wantOpenToAnyDestination: initialWantCriteria.wantOpenToAnyDestination ?? false,
+      };
+    }
+    const today = new Date();
+    const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1;
+    const fromDay = isCurrentMonth ? today.getDate() : 1;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const defaultWtfDays =
+      scheduledDays.length > 0
+        ? scheduledDays.filter((d) => d >= fromDay)
+        : Array.from({ length: daysInMonth - fromDay + 1 }, (_, i) => i + fromDay);
+    return { ...defaultWantCriteria, wtfDays: defaultWtfDays };
   });
   const [offeringInputMode, setOfferingInputMode] = useState<"quick" | "schedule">(
     hasPreselected || myTrips.length > 0 || !quickPostEnabled ? "schedule" : "quick"
@@ -241,7 +252,7 @@ export function CreatePostFlow({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setOfferingInputMode("quick")}
+                    onClick={() => { setOfferingInputMode("quick"); setSelectedTrips([]); }}
                     className={`rounded-md px-3 py-1.5 text-sm font-medium ${
                       offeringInputMode === "quick"
                         ? "bg-white text-[#2668B0] shadow-sm"

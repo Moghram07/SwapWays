@@ -536,7 +536,7 @@ export function QuickPostForm({
         </div>
 
         <div className="mb-4">
-          <label className="mb-2 block text-sm font-medium text-slate-700">Return trip type</label>
+          <label className="mb-2 block text-sm font-medium text-slate-700">What do you want back?</label>
           <div className="flex flex-wrap gap-2">
             {returnTripTypeOptions.map((opt) => (
               <button
@@ -566,8 +566,7 @@ export function QuickPostForm({
           <>
             <div className="mb-4">
               <WantDestinationsField
-                label="Want destinations"
-                description="Pick specific airports or Anything."
+                label="Where?"
                 required
                 wantOpenToAnyDestination={openAny}
                 wantDestinations={wantCriteria.wantDestinations}
@@ -575,14 +574,6 @@ export function QuickPostForm({
                   onWantCriteriaChange({ ...wantCriteria, wantOpenToAnyDestination, wantDestinations })
                 }
               />
-              {!openAny && wantCriteria.wantDestinations.length === 0 && (
-                <p className="mt-1 text-xs text-rose-600">Choose at least one destination or Anything.</p>
-              )}
-              {(wantCriteria.wantType === "LAYOVER" || wantCriteria.wantType === "LONGER_LAYOVER") && (
-                <p className="mt-1 text-xs text-slate-500">
-                  Leave cities blank to accept any layover destination, or add specific cities you prefer.
-                </p>
-              )}
             </div>
 
             <div className="mb-4">
@@ -615,7 +606,7 @@ export function QuickPostForm({
           <WtfDayPicker
             label={
               <>
-                I am willing to fly on <span className="text-rose-600">*</span>
+                Willing to fly <span className="text-rose-600">*</span>
               </>
             }
             selectedDays={wantCriteria.wtfDays}
@@ -624,9 +615,6 @@ export function QuickPostForm({
             year={year}
             onChange={(days) => onWantCriteriaChange({ ...wantCriteria, wtfDays: days })}
           />
-          {wantCriteria.wtfDays.length === 0 && (
-            <p className="mt-1 text-xs text-rose-600">Choose at least one day you are willing to fly.</p>
-          )}
         </div>
 
         <div>

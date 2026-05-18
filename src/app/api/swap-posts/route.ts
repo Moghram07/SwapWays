@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { authOptions } from "@/lib/auth";
 import {
   createSwapPost,
@@ -230,8 +230,8 @@ export async function POST(request: Request) {
   const timer = withTiming("POST /api/swap-posts");
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return timer.end(unauthorized());
-  const access = await getUserAccess(session.user.id);
 
+  // Parallelize: user access check + base airport lookup + body parse
   let body: {
     postType?: string;
     selectedTrips?: string[];
@@ -288,8 +288,20 @@ export async function POST(request: Request) {
       flightNumber?: string | null;
     };
   };
+  let access: Awaited<ReturnType<typeof getUserAccess>>;
+  let userBaseCode: string | null;
   try {
-    body = await request.json();
+    const [bodyRaw, accessResult, userBaseRow] = await Promise.all([
+      request.json(),
+      getUserAccess(session.user.id),
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { base: { select: { airportCode: true } } },
+      }),
+    ]);
+    body = bodyRaw;
+    access = accessResult;
+    userBaseCode = userBaseRow?.base?.airportCode?.toUpperCase() ?? null;
   } catch {
     return timer.end(error("Invalid JSON", 400));
   }
@@ -363,11 +375,6 @@ export async function POST(request: Request) {
   }
 
   // Strip the user's own base airport from offered destinations — it can never be a valid swap destination.
-  const userBaseRow = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { base: { select: { airportCode: true } } },
-  });
-  const userBaseCode = userBaseRow?.base?.airportCode?.toUpperCase() ?? null;
   if (userBaseCode) {
     for (const trip of normalizedManualTrips.trips) {
       trip.destinations = trip.destinations.filter((d) => d.toUpperCase() !== userBaseCode);
@@ -453,38 +460,37 @@ export async function POST(request: Request) {
   }[] = [];
 
   try {
-    if (selectedTrips.length > 0) {
-      const trips = await prisma.scheduleTrip.findMany({
-        where: {
-          id: { in: selectedTrips },
-          schedule: { userId: session.user.id },
-        },
-        select: {
-          id: true,
-          tripNumber: true,
-          startDate: true,
-          creditHours: true,
-          blockHours: true,
-          tafb: true,
-          reportTime: true,
-          legs: {
-            orderBy: { legOrder: "asc" },
+    // Fetch schedule trips and deduplication fingerprints in parallel
+    const [scheduledTripsRaw, dedupeInfo] = await Promise.all([
+      selectedTrips.length > 0
+        ? prisma.scheduleTrip.findMany({
+            where: { id: { in: selectedTrips }, schedule: { userId: session.user.id } },
             select: {
-              legOrder: true,
-              flightNumber: true,
-              aircraftTypeCode: true,
-              departureAirport: true,
-              arrivalAirport: true,
+              id: true,
+              tripNumber: true,
+              startDate: true,
+              creditHours: true,
+              blockHours: true,
+              tafb: true,
+              reportTime: true,
+              legs: {
+                orderBy: { legOrder: "asc" },
+                select: { legOrder: true, flightNumber: true, aircraftTypeCode: true, departureAirport: true, arrivalAirport: true },
+              },
+              layovers: {
+                orderBy: { afterLegOrder: "asc" },
+                select: { airport: true, durationDecimal: true },
+              },
             },
-          },
-          layovers: {
-            orderBy: { afterLegOrder: "asc" },
-            select: { airport: true, durationDecimal: true },
-          },
-        },
-      });
+          })
+        : Promise.resolve([]),
+      postType === "OFFERING_TRIPS"
+        ? getOpenOfferingDedupeInfoForUser(session.user.id)
+        : Promise.resolve(null),
+    ]);
 
-      for (const trip of trips) {
+    if (selectedTrips.length > 0) {
+      for (const trip of scheduledTripsRaw) {
         const tripType = classifyTrip(trip);
         const destinations = getUniqueDestinations(trip);
         const destination = destinations[0] ?? trip.legs[trip.legs.length - 1]?.arrivalAirport ?? "";
@@ -536,10 +542,8 @@ export async function POST(request: Request) {
       }
     }
 
-    if (postType === "OFFERING_TRIPS" && swapPostTrips.length > 0) {
-      const { tripFingerprints, looseManualMultiStopKeys, looseSimpleTripKeys } = await getOpenOfferingDedupeInfoForUser(
-        session.user.id
-      );
+    if (postType === "OFFERING_TRIPS" && swapPostTrips.length > 0 && dedupeInfo) {
+      const { tripFingerprints, looseManualMultiStopKeys, looseSimpleTripKeys } = dedupeInfo;
       const candidates = swapPostTrips.map((row) =>
         offeredTripFingerprintFromCandidate({
           scheduleTripId: row.scheduleTripId,
@@ -620,9 +624,7 @@ export async function POST(request: Request) {
       offeredDaysOff: selectedDaysOff,
       wantCriteria: criteria,
       swapPostTrips,
-      source:
-        body.source ??
-        (selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
+      source: selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK",
       quickTrip:
         normalizedManualTrips.trips.length > 0
           ? {
@@ -653,44 +655,42 @@ export async function POST(request: Request) {
       expiresAt,
     });
 
-    try {
-      const matches = await findMatchesForPost(post.id);
-      const highMatches = matches.filter((m) => m.matchPercent >= HIGH_MATCH_NOTIFICATION_MIN_PERCENT).slice(0, 10);
-      const premiumViewerIds = await getPremiumViewerIds(highMatches.map((m) => m.viewerId));
-      await Promise.all(
-        highMatches.map((m) => {
-          if (!premiumViewerIds.has(m.viewerId)) return Promise.resolve();
-          return createNotification({
-            userId: m.viewerId,
-            type: "MATCH_FOUND",
-            title: "New match found",
-            message: `A new swap post matches your profile (${Math.round(m.matchPercent)}%).`,
-            data: { postId: m.postId, matchPercent: m.matchPercent, failReason: m.failReason },
-          });
-        })
-      );
-    } catch (matchErr) {
-      console.error("[swap-posts] post-created matching failed", matchErr);
-    }
+    // Return immediately — matching, notifications, and cache run after the response is sent.
+    const postId = post.id;
+    const viewerId = session.user.id;
+    const hasAdvanced = normalizedManualTrips.trips.some(
+      (trip) => trip.reportTime || trip.aircraftType || trip.blockHours || trip.flightNumber
+    );
+    after(async () => {
+      try {
+        const matches = await findMatchesForPost(postId);
+        const highMatches = matches.filter((m) => m.matchPercent >= HIGH_MATCH_NOTIFICATION_MIN_PERCENT).slice(0, 10);
+        const premiumViewerIds = await getPremiumViewerIds(highMatches.map((m) => m.viewerId));
+        await Promise.all(
+          highMatches.map((m) => {
+            if (!premiumViewerIds.has(m.viewerId)) return Promise.resolve();
+            return createNotification({
+              userId: m.viewerId,
+              type: "MATCH_FOUND",
+              title: "New match found",
+              message: `A new swap post matches your profile (${Math.round(m.matchPercent)}%).`,
+              data: { postId: m.postId, matchPercent: m.matchPercent, failReason: m.failReason },
+            });
+          })
+        );
+      } catch (matchErr) {
+        console.error("[swap-posts] post-created matching failed", matchErr);
+      }
+      await trackEventServer({
+        eventName: "swap_post_created",
+        userId: viewerId,
+        path: "/dashboard/add-trade",
+        properties: { postType, source: selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK", hasAdvanced },
+      }).catch(() => {});
+      await invalidateMatchCacheForPosts([postId]).catch(() => {});
+      await invalidateMatchCacheForViewer(viewerId).catch(() => {});
+    });
 
-    await trackEventServer({
-      eventName: "swap_post_created",
-      userId: session.user.id,
-      path: "/dashboard/add-trade",
-      properties: {
-        postType,
-        source: body.source ?? (selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
-        hasAdvanced: !!(
-          normalizedManualTrips.trips.some(
-            (trip) => trip.reportTime || trip.aircraftType || trip.blockHours || trip.flightNumber
-          )
-        ),
-      },
-    }).catch(() => {});
-
-    await invalidateMatchCacheForPosts([post.id]).catch(() => {});
-    // The viewer's own wants now influence every cached pair they see; flush their cache.
-    await invalidateMatchCacheForViewer(session.user.id).catch(() => {});
     return timer.end(json(post));
   } catch (err) {
     const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : null;

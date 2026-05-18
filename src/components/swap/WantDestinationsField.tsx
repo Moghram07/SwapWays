@@ -27,13 +27,21 @@ export function WantDestinationsField({
   const [open, setOpen] = useState(false);
   const airports = useMemo(() => getAllAirports(), []);
 
-  const summary = wantOpenToAnyDestination
+  const summaryText = wantOpenToAnyDestination
     ? "Anything — any destination"
     : wantDestinations.length === 0
       ? required
-        ? "Tap to choose"
+        ? "Want Destinations"
         : "Optional — tap to add"
       : wantDestinations.map((c) => airports.find((a) => a.code === c)?.city ?? c).join(", ");
+
+  const summaryClass = wantOpenToAnyDestination
+    ? "text-emerald-600 font-medium"
+    : wantDestinations.length > 0
+      ? "text-emerald-600 font-medium"
+      : required
+        ? "text-emerald-600 font-medium"
+        : "text-slate-400";
 
   return (
     <div>
@@ -47,9 +55,7 @@ export function WantDestinationsField({
         onClick={() => setOpen(true)}
         className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm text-slate-800 hover:border-slate-300"
       >
-        <span className={wantDestinations.length === 0 && !wantOpenToAnyDestination ? "text-slate-400" : ""}>
-          {summary}
-        </span>
+        <span className={summaryClass}>{summaryText}</span>
         <ChevronRight size={18} className="shrink-0 text-slate-400" />
       </button>
       <AirportMultiSelectModal
@@ -87,10 +93,10 @@ export function ExcludeDestinationsField({
   const [open, setOpen] = useState(false);
   const airports = useMemo(() => getAllAirports(), []);
 
-  const summary =
-    wantExclude.length === 0
-      ? "None — tap to exclude airports"
-      : wantExclude.map((c) => airports.find((a) => a.code === c)?.city ?? c).join(", ");
+  const isEmpty = wantExclude.length === 0;
+  const summaryText = isEmpty
+    ? "No destinations"
+    : wantExclude.map((c) => airports.find((a) => a.code === c)?.city ?? c).join(", ");
 
   return (
     <div>
@@ -100,7 +106,7 @@ export function ExcludeDestinationsField({
         onClick={() => setOpen(true)}
         className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm text-slate-800 hover:border-slate-300"
       >
-        <span className={wantExclude.length === 0 ? "text-slate-400" : ""}>{summary}</span>
+        <span className="text-red-700 font-medium">{summaryText}</span>
         <ChevronRight size={18} className="shrink-0 text-slate-400" />
       </button>
       <AirportMultiSelectModal

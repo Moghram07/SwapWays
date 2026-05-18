@@ -313,7 +313,7 @@ const ar = {
     postTypeLineSwapCardTitle: "تبديل الجدول",
     postTypeLineSwapCardDesc: "تبادل جدولك الشهري بالكامل مع زميل من الطاقم",
     postFlowFromSchedule: "من الجدول",
-    postFlowQuickPost: "نشر سريع",
+    postFlowQuickPost: "إدخال يدوي",
     postFlowVacationHelp: "أدخل شهر إجازتك والأشهر التي تبحث عنها.",
     postFlowBack: "رجوع",
     postFlowNext: "التالي",

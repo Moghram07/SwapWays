@@ -499,9 +499,7 @@ export async function PATCH(
       offeringDaysOff: false,
       offeredDaysOff: selectedDaysOff,
       swapPostTrips: hasTripPayload ? swapPostTrips : undefined,
-      source:
-        body.source ??
-        (selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
+      source: selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK",
       quickTrip:
         normalizedManualTrips.trips.length > 0
           ? {
@@ -533,9 +531,7 @@ export async function PATCH(
       path: "/dashboard/add-trade",
       properties: {
         postId: id,
-        source:
-          body.source ??
-          (selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK"),
+        source: selectedTrips.length > 0 ? "SCHEDULE_PREFILL" : "MANUAL_QUICK",
       },
     }).catch(() => {});
 

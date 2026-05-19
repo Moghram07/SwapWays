@@ -69,7 +69,6 @@ export function WantCriteria({
 
       {/* Return type */}
       <div>
-        <label className="mb-2 block text-sm font-medium text-slate-700">What do you want back?</label>
         <div className="flex flex-wrap gap-2">
           {wantTypeOptions.map((opt) => (
             <button

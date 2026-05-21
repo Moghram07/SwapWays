@@ -75,6 +75,9 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
+    const _nextMonthDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+    const _defaultMonth = MONTH_VALUES[_nextMonthDate.getMonth()];
+    const _defaultYear = _nextMonthDate.getFullYear();
     if (editId) {
       fetch(`/api/line-swap/${editId}`)
         .then((r) => r.json())
@@ -83,8 +86,8 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
           if (!s) return;
           setLineNumber(s.lineNumber || "");
           setLineType(s.lineType || "NORMAL");
-          setPostMonth(MONTH_VALUES.includes(s.month) ? s.month : postMonth);
-          setPostYear(s.year || postYear);
+          setPostMonth(MONTH_VALUES.includes(s.month) ? s.month : _defaultMonth);
+          setPostYear(s.year || _defaultYear);
           setDaysOffStart(s.daysOffStart || "");
           setDaysOffEnd(s.daysOffEnd || "");
           setHasReserve(!!s.hasReserve);
@@ -130,7 +133,7 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
       })
       .catch(() => undefined)
       .finally(() => setLoadingSummary(false));
-  }, []);
+  }, [editId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

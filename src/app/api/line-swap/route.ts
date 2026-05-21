@@ -99,7 +99,10 @@ export async function GET(request: Request) {
   const posts = await prisma.lineSwapPost.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    include: { layovers: true },
+    include: {
+      layovers: true,
+      user: { select: { firstName: true, rank: { select: { name: true } }, base: { select: { name: true } } } },
+    },
   });
   return json(posts.filter((post) => !isLineSwapExpired(post, now)));
 }
@@ -143,6 +146,23 @@ export async function POST(request: Request) {
 
   const reserveDays = normalizeReserveDays(body.reserveDays);
   const wantDestination = body.wantDestination?.trim().toUpperCase() || null;
+
+  const duplicate = await prisma.lineSwapPost.findFirst({
+    where: {
+      userId: session.user.id,
+      lineNumber: body.lineNumber.trim(),
+      month: body.month,
+      year: body.year,
+      status: "OPEN",
+    },
+    select: { id: true },
+  });
+  if (duplicate) {
+    return NextResponse.json(
+      { data: null, error: "Validation", message: "You already have an active post for this line in the same month." },
+      { status: 409 }
+    );
+  }
 
   const post = await prisma.$transaction(async (tx) => {
     const lineSwap = await tx.lineSwapPost.create({

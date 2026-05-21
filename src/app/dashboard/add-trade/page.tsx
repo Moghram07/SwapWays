@@ -7,8 +7,7 @@ import { useSession } from "next-auth/react";
 import type { TripOption } from "@/components/swap-post/TripSelector";
 import type { WantCriteriaData } from "@/types/swapPost";
 import { parseWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
-import type { QuickPostOfferedTripData, SwapPostInputSource } from "@/types/swapPost";
-import { isQuickPostEnabledForUser } from "@/lib/featureFlags";
+import type { SwapPostInputSource } from "@/types/swapPost";
 import { useUserAccess } from "@/hooks/useUserAccess";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { useDashboardLocale } from "@/contexts/DashboardLocaleContext";
@@ -227,19 +226,14 @@ export default function PostToTradeBoardPage() {
     base: t("dashboard.baseSuffix"),
     baseAirportCode,
   };
-  const quickPostEnabled = isQuickPostEnabledForUser(session.user.id);
-
   async function handleSubmit(data: {
     postType: import("@/types/swapPost").SwapPostType;
     selectedTrips: string[];
     selectedDaysOff: number[];
     wantCriteria: WantCriteriaData;
     source?: SwapPostInputSource;
-    offeredTrips?: QuickPostOfferedTripData[];
     vacationYear?: number;
     vacationMonth?: number;
-    vacationStartDay?: number;
-    vacationEndDay?: number;
     desiredVacationMonths?: number[];
   }) {
     const body: Record<string, unknown> = {
@@ -248,13 +242,10 @@ export default function PostToTradeBoardPage() {
       selectedDaysOff: data.selectedDaysOff,
       wantCriteria: data.wantCriteria,
       source: data.source,
-      offeredTrips: data.offeredTrips,
     };
     if (data.postType === "VACATION_SWAP") {
       body.vacationYear = data.vacationYear;
       body.vacationMonth = data.vacationMonth;
-      body.vacationStartDay = data.vacationStartDay;
-      body.vacationEndDay = data.vacationEndDay;
       body.desiredVacationMonths = data.desiredVacationMonths ?? [];
     }
     const url = editId ? `/api/swap-posts/${editId}` : "/api/swap-posts";
@@ -350,7 +341,7 @@ export default function PostToTradeBoardPage() {
               </button>
             </div>
           ) : (
-            <LineSwapForm locale={locale} />
+            <LineSwapForm locale={locale} editId={editId} />
           )}
         </div>
       ) : (
@@ -369,8 +360,6 @@ export default function PostToTradeBoardPage() {
           initialSelectedDaysOff={editPost?.offeredDaysOff}
           initialVacationYear={editPost?.vacationYear != null ? editPost.vacationYear : undefined}
           initialVacationMonth={editPost?.vacationMonth != null ? editPost.vacationMonth : undefined}
-          initialVacationStartDay={editPost?.vacationStartDay != null ? editPost.vacationStartDay : undefined}
-          initialVacationEndDay={editPost?.vacationEndDay != null ? editPost.vacationEndDay : undefined}
           initialDesiredVacationMonths={editPost?.desiredVacationMonths}
           onSelectLineSwap={() => {
             if (access && !access.canPostLineSwap) {
@@ -387,7 +376,6 @@ export default function PostToTradeBoardPage() {
             setUpgradeReason(reason);
             setShowUpgradeModal(true);
           }}
-          quickPostEnabled={quickPostEnabled}
         />
       )}
       <UpgradeModal

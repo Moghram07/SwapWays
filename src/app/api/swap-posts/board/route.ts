@@ -13,6 +13,28 @@ import { trackSession } from "@/lib/sessionTracker";
 
 /** Over-fetch from DB before % filter; must stay in sync with `maxCompute` below so every row is scored. */
 const BOARD_FETCH_SIZE = 50;
+
+const VACATION_MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+
+function scoreVacationMonths(
+  viewerPost: { vacationMonth: number | null; desiredVacationMonths: number[] } | null,
+  postMonth: number | null | undefined,
+  postDesiredMonths: number[] | null | undefined
+): { score: number; reasons: string[] } {
+  if (!viewerPost) return { score: 0, reasons: [] };
+  let score = 0;
+  const reasons: string[] = [];
+  const desired = postDesiredMonths ?? [];
+  if (postMonth && postMonth >= 1 && postMonth <= 12 && viewerPost.desiredVacationMonths.includes(postMonth)) {
+    score += 50;
+    reasons.push(`Offers ${VACATION_MONTH_NAMES[postMonth - 1]} — a month you want`);
+  }
+  if (viewerPost.vacationMonth && desired.includes(viewerPost.vacationMonth)) {
+    score += 50;
+    reasons.push(`Wants ${VACATION_MONTH_NAMES[viewerPost.vacationMonth - 1]} — the month you're offering`);
+  }
+  return { score, reasons };
+}
 /** Default page size after filtering ( cap 20 per product spec ). */
 const BOARD_PAGE_SIZE_MAX = 20;
 
@@ -112,15 +134,28 @@ export async function GET(request: Request) {
         return true;
       });
 
-    const matchResults = await getTradeboardForViewer(session.user.id, posts.map((p) => p.id), {
-      maxCompute: BOARD_FETCH_SIZE,
-      viewerSignals,
-    });
+    const vacationPostIds = new Set(posts.filter((p) => p.postType === "VACATION_SWAP").map((p) => p.id));
+
+    const [matchResults, viewerVacationPost] = await Promise.all([
+      getTradeboardForViewer(session.user.id, posts.map((p) => p.id), {
+        maxCompute: BOARD_FETCH_SIZE,
+        viewerSignals,
+      }),
+      vacationPostIds.size > 0
+        ? prisma.swapPost.findFirst({
+            where: { userId: session.user.id, postType: "VACATION_SWAP", status: "OPEN" },
+            select: { vacationMonth: true, desiredVacationMonths: true },
+          })
+        : Promise.resolve(null),
+    ]);
     const matchMap = new Map(matchResults.map((m) => [m.postId, m]));
 
     const enriched = posts.map((post) => {
       const match = matchMap.get(post.id);
-      const rawMatchPercent = match?.matchPercent ?? 0;
+      const vacationScore = vacationPostIds.has(post.id)
+        ? scoreVacationMonths(viewerVacationPost, post.vacationMonth, post.desiredVacationMonths)
+        : null;
+      const rawMatchPercent = vacationScore !== null ? vacationScore.score : (match?.matchPercent ?? 0);
       const notesView = access.canSeeFullNotes
         ? { notes: post.notes, isTruncated: false }
         : truncateNotesForFree(post.notes);
@@ -145,7 +180,9 @@ export async function GET(request: Request) {
         matchTier: getMatchTier(rawMatchPercent),
         matchBreakdown: access.canSeeExactMatch ? match?.breakdown ?? null : null,
         matchingTrips: match?.matchingTrips ?? [],
-        matchReasons: access.canSeeExactMatch ? match?.reasons ?? [] : [],
+        matchReasons: access.canSeeExactMatch
+          ? (vacationScore !== null ? vacationScore.reasons : match?.reasons ?? [])
+          : [],
         failReason: match?.failReason ?? null,
         bestTripIndex: match?.bestTripIndex ?? null,
         priorityPlacement: ownerIsPriority,

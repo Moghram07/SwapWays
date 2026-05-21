@@ -16,8 +16,6 @@ interface PostPreviewProps {
   userDisplay: { firstName: string; rank: string; base: string; baseAirportCode?: string };
   vacationYear?: number | "";
   vacationMonth?: number | "";
-  vacationStartDay?: number | "";
-  vacationEndDay?: number | "";
   desiredVacationMonths?: number[];
   onPost: () => void | Promise<void>;
   onBack: () => void;
@@ -33,8 +31,6 @@ export function PostPreview({
   userDisplay,
   vacationYear,
   vacationMonth,
-  vacationStartDay,
-  vacationEndDay,
   desiredVacationMonths = [],
   onPost,
   onBack,
@@ -159,8 +155,6 @@ export function PostPreview({
       vacationMonth !== "" && {
         vacationYear: Number(vacationYear),
         vacationMonth: Number(vacationMonth),
-        vacationStartDay: vacationStartDay === "" ? null : Number(vacationStartDay),
-        vacationEndDay: vacationEndDay === "" ? null : Number(vacationEndDay),
         desiredVacationMonths: desiredVacationMonths,
       }),
   };

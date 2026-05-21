@@ -1,6 +1,5 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const MONTH_NAMES = [
@@ -11,13 +10,9 @@ const MONTH_NAMES = [
 interface VacationSwapFieldsProps {
   vacationYear: number | "";
   vacationMonth: number | "";
-  vacationStartDay: number | "";
-  vacationEndDay: number | "";
   desiredMonths: number[];
   onVacationYearChange: (v: number | "") => void;
   onVacationMonthChange: (v: number | "") => void;
-  onVacationStartDayChange: (v: number | "") => void;
-  onVacationEndDayChange: (v: number | "") => void;
   onDesiredMonthsChange: (months: number[]) => void;
   /**
    * When editing a legacy post, the saved year may be before the allowed window.
@@ -70,7 +65,7 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
         </div>
         <div className="space-y-2">
           <Label>
-            Year <span className="text-rose-600">*</span>
+            Year — offered &amp; desired <span className="text-rose-600">*</span>
           </Label>
           <select
             className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
@@ -87,43 +82,6 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
               </option>
             ))}
           </select>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label className="text-slate-600">Specific block or dates (optional)</Label>
-        <p className="text-xs text-slate-500">
-          Crew usually swap by block (full month, 1 or 2 weeks). Same number of days is often required.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1">
-            <Label className="text-xs font-normal text-slate-500">Start day (1–31)</Label>
-            <Input
-              type="number"
-              min={1}
-              max={31}
-              placeholder="e.g. 10"
-              value={props.vacationStartDay === "" ? "" : props.vacationStartDay}
-              onChange={(e) => {
-                const v = e.target.value;
-                props.onVacationStartDayChange(v === "" ? "" : Math.max(1, Math.min(31, Number(v) || 0)));
-              }}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs font-normal text-slate-500">End day (1–31)</Label>
-            <Input
-              type="number"
-              min={1}
-              max={31}
-              placeholder="e.g. 23"
-              value={props.vacationEndDay === "" ? "" : props.vacationEndDay}
-              onChange={(e) => {
-                const v = e.target.value;
-                props.onVacationEndDayChange(v === "" ? "" : Math.max(1, Math.min(31, Number(v) || 0)));
-              }}
-            />
-          </div>
         </div>
       </div>
 

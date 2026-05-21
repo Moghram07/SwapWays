@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { scoreLineSwapMatch } from "@/services/matching/lineSwapMatcher";
+import { checkLineSwapHardConstraints, scoreLineSwapMatch } from "@/services/matching/lineSwapMatcher";
 import { isLineSwapExpired } from "@/lib/swapExpiry";
 
 function unauthorized() {
@@ -22,7 +22,13 @@ export async function GET(request: Request) {
 
   const viewer = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { baseId: true },
+    select: {
+      baseId: true,
+      rankId: true,
+      rank: { select: { code: true, category: true } },
+      hasUsVisa: true,
+      hasChinaVisa: true,
+    },
   });
   if (!viewer?.baseId) return json([]);
 
@@ -45,8 +51,11 @@ export async function GET(request: Request) {
       user: {
         select: {
           firstName: true,
-          rank: { select: { name: true, code: true } },
+          rankId: true,
+          rank: { select: { name: true, code: true, category: true } },
           base: { select: { name: true, airportCode: true } },
+          hasUsVisa: true,
+          hasChinaVisa: true,
         },
       },
       layovers: true,
@@ -67,6 +76,17 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
     }));
   const activeViewerLine = viewerLine && !isLineSwapExpired(viewerLine, now) ? viewerLine : null;
+
+  // Apply rank and visa hard constraints
+  posts = posts.filter((post) => {
+    const result = checkLineSwapHardConstraints(
+      { rankId: viewer.rankId, rank: viewer.rank, hasUsVisa: viewer.hasUsVisa, hasChinaVisa: viewer.hasChinaVisa },
+      { rankId: post.user.rankId, rank: post.user.rank, hasUsVisa: post.user.hasUsVisa, hasChinaVisa: post.user.hasChinaVisa },
+      { lineType: post.lineType, layovers: post.layovers },
+      activeViewerLine ? { lineType: activeViewerLine.lineType, layovers: activeViewerLine.layovers } : null
+    );
+    return result.passes;
+  });
 
   if (destination) {
     posts = posts.filter((p) =>

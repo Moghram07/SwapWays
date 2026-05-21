@@ -22,21 +22,6 @@ const MONTH_VALUES = [
   "Dec",
 ] as const;
 
-const MONTH_LABEL_KEYS: Record<(typeof MONTH_VALUES)[number], string> = {
-  Jan: "dashboard.monthJan",
-  Feb: "dashboard.monthFeb",
-  Mar: "dashboard.monthMar",
-  Apr: "dashboard.monthApr",
-  May: "dashboard.monthMay",
-  Jun: "dashboard.monthJun",
-  Jul: "dashboard.monthJul",
-  Aug: "dashboard.monthAug",
-  Sep: "dashboard.monthSep",
-  Oct: "dashboard.monthOct",
-  Nov: "dashboard.monthNov",
-  Dec: "dashboard.monthDec",
-};
-
 const LINE_TYPES: LineType[] = [
   "NORMAL",
   "US_LINE",
@@ -61,7 +46,7 @@ const LINE_TYPE_LABEL_KEYS: Record<LineType, string> = {
 
 type LayoverEntry = { destination: string; hours: number };
 
-export function LineSwapForm({ locale }: { locale: Locale }) {
+export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: string | null }) {
   const t = getTranslator(locale);
   const router = useRouter();
   const airports = getInternationalAirports();
@@ -69,10 +54,12 @@ export function LineSwapForm({ locale }: { locale: Locale }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const nextMonthDate = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1);
+  const [postMonth, setPostMonth] = useState(MONTH_VALUES[nextMonthDate.getMonth()]);
+  const [postYear, setPostYear] = useState(nextMonthDate.getFullYear());
+
   const [lineNumber, setLineNumber] = useState("");
   const [lineType, setLineType] = useState<LineType>("NORMAL");
-  const [month, setMonth] = useState<(typeof MONTH_VALUES)[number]>("Jan");
-  const [year, setYear] = useState(new Date().getFullYear());
   const [daysOffStart, setDaysOffStart] = useState<number | "">("");
   const [daysOffEnd, setDaysOffEnd] = useState<number | "">("");
   const [hasReserve, setHasReserve] = useState(false);
@@ -88,6 +75,38 @@ export function LineSwapForm({ locale }: { locale: Locale }) {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
+    if (editId) {
+      fetch(`/api/line-swap/${editId}`)
+        .then((r) => r.json())
+        .then((json) => {
+          const s = json?.data;
+          if (!s) return;
+          setLineNumber(s.lineNumber || "");
+          setLineType(s.lineType || "NORMAL");
+          setPostMonth(MONTH_VALUES.includes(s.month) ? s.month : postMonth);
+          setPostYear(s.year || postYear);
+          setDaysOffStart(s.daysOffStart || "");
+          setDaysOffEnd(s.daysOffEnd || "");
+          setHasReserve(!!s.hasReserve);
+          setReserveDays(Array.isArray(s.reserveDays) ? s.reserveDays : []);
+          setWantDaysOffStart(s.wantDaysOffStart ?? "");
+          setWantDaysOffEnd(s.wantDaysOffEnd ?? "");
+          setWantDestination(s.wantDestination || "");
+          setWantLineType(s.wantLineType || "");
+          setWantNoReserve(!!s.wantNoReserve);
+          setNotes(s.notes || "");
+          if (Array.isArray(s.layovers)) {
+            setLayovers(s.layovers.map((l: { destination: string; durationHours: number }) => ({
+              destination: l.destination,
+              hours: Math.floor(l.durationHours),
+            })));
+          }
+        })
+        .catch(() => undefined)
+        .finally(() => setLoadingSummary(false));
+      return;
+    }
+
     fetch("/api/schedule/line-summary")
       .then((r) => r.json())
       .then((json) => {
@@ -95,9 +114,6 @@ export function LineSwapForm({ locale }: { locale: Locale }) {
         if (!s) return;
         setLineNumber(s.lineNumber || "");
         setLineType(s.lineType || "NORMAL");
-        const m = s.month || "Jan";
-        setMonth(MONTH_VALUES.includes(m) ? m : "Jan");
-        setYear(s.year || new Date().getFullYear());
         setDaysOffStart(s.daysOffStart || "");
         setDaysOffEnd(s.daysOffEnd || "");
         setHasReserve(!!s.hasReserve);
@@ -129,14 +145,15 @@ export function LineSwapForm({ locale }: { locale: Locale }) {
     }
 
     setSubmitting(true);
-    const res = await fetch("/api/line-swap", {
-      method: "POST",
+    const url = editId ? `/api/line-swap/${editId}` : "/api/line-swap";
+    const res = await fetch(url, {
+      method: editId ? "PATCH" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         lineNumber,
         lineType,
-        month,
-        year,
+        month: postMonth,
+        year: postYear,
         daysOffStart: Number(daysOffStart),
         daysOffEnd: Number(daysOffEnd),
         hasReserve,
@@ -163,14 +180,16 @@ export function LineSwapForm({ locale }: { locale: Locale }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {loadingSummary ? (
-        <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-500">
-          {t("dashboard.lineSwapLoadingSummary")}
-        </div>
-      ) : (
-        <div className="rounded-lg bg-[#E8F5EA] px-3 py-2 text-sm text-[#3BA34A]">
-          {t("dashboard.lineSwapAutoFilledHint")}
-        </div>
+      {!editId && (
+        loadingSummary ? (
+          <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-500">
+            {t("dashboard.lineSwapLoadingSummary")}
+          </div>
+        ) : (
+          <div className="rounded-lg bg-[#E8F5EA] px-3 py-2 text-sm text-[#3BA34A]">
+            {t("dashboard.lineSwapAutoFilledHint")}
+          </div>
+        )
       )}
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
@@ -178,34 +197,13 @@ export function LineSwapForm({ locale }: { locale: Locale }) {
 
       <div className="rounded-xl border border-slate-200 p-4">
         <h3 className="mb-3 text-sm font-semibold text-slate-700">{t("dashboard.lineSwapMyLine")}</h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <input
-            name="lineNumber"
-            value={lineNumber}
-            onChange={(e) => setLineNumber(e.target.value)}
-            placeholder={t("dashboard.lineSwapLineNumberPh")}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-          />
-          <select
-            name="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value as (typeof MONTH_VALUES)[number])}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
-          >
-            {MONTH_VALUES.map((m) => (
-              <option key={m} value={m}>
-                {t(MONTH_LABEL_KEYS[m])}
-              </option>
-            ))}
-          </select>
-          <input
-            name="year"
-            type="number"
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value) || new Date().getFullYear())}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
-          />
-        </div>
+        <input
+          name="lineNumber"
+          value={lineNumber}
+          onChange={(e) => setLineNumber(e.target.value)}
+          placeholder={t("dashboard.lineSwapLineNumberPh")}
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+        />
 
         <div className="mt-3">
           <p className="mb-2 text-xs font-medium text-slate-500">{t("dashboard.lineSwapLineType")}</p>
@@ -414,13 +412,14 @@ export function LineSwapForm({ locale }: { locale: Locale }) {
           <input name="wantNoReserve" type="checkbox" checked={wantNoReserve} onChange={(e) => setWantNoReserve(e.target.checked)} />
           {t("dashboard.lineSwapNoReserve")}
         </label>
+        <p className="mb-1 mt-3 text-xs font-medium text-slate-500">{t("dashboard.lineSwapNotesLabel")}</p>
         <textarea
           name="notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           placeholder={t("dashboard.lineSwapNotesPh")}
-          className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
         />
       </div>
 
@@ -442,7 +441,9 @@ export function LineSwapForm({ locale }: { locale: Locale }) {
           disabled={submitting}
           className="rounded-xl bg-[#2668B0] px-6 py-3 text-sm font-medium text-white disabled:opacity-50"
         >
-          {submitting ? t("dashboard.lineSwapPosting") : t("dashboard.lineSwapSubmit")}
+          {editId
+            ? (submitting ? t("dashboard.lineSwapSaving") : t("dashboard.lineSwapSaveChanges"))
+            : (submitting ? t("dashboard.lineSwapPosting") : t("dashboard.lineSwapSubmit"))}
         </button>
       </div>
     </form>

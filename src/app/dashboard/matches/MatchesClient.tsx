@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Inbox, Pencil } from "lucide-react";
 import { SwapPostTradeBoardCard } from "@/components/swap-post/TradeBoardCard";
 import { TradeBoardSection } from "@/components/swap-post/TradeBoardSection";
+import { LineSwapCard } from "@/components/line-swap/LineSwapCard";
 import { getAirportCity, normalizeAirportCode } from "@/utils/airportNames";
 import { collapseConsecutiveAirports } from "@/utils/multiStopRouteDisplay";
 import { isSwapPostExpired, isTradeExpired } from "@/lib/swapExpiry";
@@ -286,6 +287,27 @@ type MySwapRow = {
   recordStatus: string;
 };
 
+interface LineSwapPostRecord {
+  id: string;
+  lineNumber: string;
+  lineType: import("@/types/enums").LineType;
+  month: string;
+  year: number;
+  daysOffStart: number;
+  daysOffEnd: number;
+  hasReserve: boolean;
+  reserveDays: number[];
+  wantDaysOffStart: number | null;
+  wantDaysOffEnd: number | null;
+  wantDestination: string | null;
+  wantLineType: import("@/types/enums").LineType | null;
+  wantNoReserve: boolean;
+  notes: string | null;
+  createdAt: string;
+  layovers: { destination: string; durationHours: number; durationRaw: string }[];
+  user: { firstName: string; rank: { name: string }; base: { name: string } };
+}
+
 interface MatchesClientProps {
   initialMatches?: MatchRecord[];
   currentUserId?: string;
@@ -322,9 +344,10 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
   const [vacationTradesHistory, setVacationTradesHistory] = useState<VacationTrade[]>([]);
   const [mySwapPostsActive, setMySwapPostsActive] = useState<SwapPostRecord[]>([]);
   const [mySwapPostsHistory, setMySwapPostsHistory] = useState<SwapPostRecord[]>([]);
+  const [myLineSwapPosts, setMyLineSwapPosts] = useState<LineSwapPostRecord[]>([]);
 
   const loadMineData = async (signal?: AbortSignal) => {
-    const [activePostsRes, historyPostsRes, activeTradesRes, historyTradesRes] = await Promise.all([
+    const [activePostsRes, historyPostsRes, activeTradesRes, historyTradesRes, lineSwapRes] = await Promise.all([
       fetch("/api/swap-posts?mine=1&scope=active", { credentials: "include", signal }).then((r) =>
         r.json().catch(() => ({}))
       ),
@@ -339,9 +362,13 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
         credentials: "include",
         signal,
       }).then((r) => r.json().catch(() => ({}))),
+      fetch("/api/line-swap?mine=1&status=OPEN", { credentials: "include", signal }).then((r) =>
+        r.json().catch(() => ({}))
+      ),
     ]);
     setMySwapPostsActive(Array.isArray(activePostsRes?.data) ? activePostsRes.data : []);
     setMySwapPostsHistory(Array.isArray(historyPostsRes?.data) ? historyPostsRes.data : []);
+    setMyLineSwapPosts(Array.isArray(lineSwapRes?.data) ? lineSwapRes.data : []);
     const activeItems = activeTradesRes?.data?.items ?? [];
     const historyItems = historyTradesRes?.data?.items ?? [];
     setVacationTradesActive(activeItems.filter((t: { tradeType: string }) => t.tradeType === "VACATION_SWAP"));
@@ -369,6 +396,12 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
     const res = await fetch(url, { method: "PATCH" });
     if (!res.ok) return;
     await loadMineData();
+  };
+
+  const handleCancelLineSwap = async (id: string) => {
+    if (!confirm("Cancel this line swap? It will be removed from the board.")) return;
+    const res = await fetch(`/api/line-swap/${id}`, { method: "DELETE" });
+    if (res.ok) setMyLineSwapPosts((prev) => prev.filter((p) => p.id !== id));
   };
 
   const mySwapsActiveRows = useMemo(() => {
@@ -525,7 +558,7 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
                   : "border-slate-200 bg-slate-50/80 text-slate-600 hover:text-slate-900"
               }`}
             >
-              Active ({mySwapsActiveRows.length})
+              Active ({mySwapsActiveRows.length + myLineSwapPosts.length})
             </button>
             <button
               type="button"
@@ -541,12 +574,29 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
               History
             </button>
           </div>
-          {displayedMySwaps.length === 0 ? (
+          {mySwapsSubTab === "active" && myLineSwapPosts.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Line Swaps</p>
+              <ul className="space-y-3">
+                {myLineSwapPosts.map((post) => (
+                  <li key={post.id} className="rounded-xl border border-s-4 border-s-[var(--primary)] border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <LineSwapCard
+                      post={post}
+                      isOwner
+                      onEdit={() => router.push(`/dashboard/add-trade?type=line-swap&edit=${post.id}`)}
+                      onCancel={() => handleCancelLineSwap(post.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {displayedMySwaps.length === 0 && (mySwapsSubTab !== "active" || myLineSwapPosts.length === 0) ? (
             emptyState(
               mySwapsSubTab === "active" ? activeEmptyMessage : historyEmptyMessage,
               mySwapsSubTab === "active"
             )
-          ) : (
+          ) : displayedMySwaps.length > 0 ? (
             <ul className="space-y-4">
               {displayedMySwaps.map((item) => (
                 <li key={`${item.source}-${item.id}`}>
@@ -590,7 +640,7 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
         </div>
       )}
 

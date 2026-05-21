@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { Moon } from "lucide-react";
 import { MatchBadge } from "@/components/swap-post/MatchBadge";
 import type { LineType } from "@/types/enums";
 
@@ -81,7 +83,18 @@ function formatTimeAgo(iso: string): string {
   return d.toLocaleDateString();
 }
 
-export function LineSwapCard({ post }: { post: LineSwapCardData }) {
+export function LineSwapCard({
+  post,
+  isOwner,
+  onEdit,
+  onCancel,
+}: {
+  post: LineSwapCardData;
+  isOwner?: boolean;
+  onEdit?: () => void;
+  onCancel?: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
   const lineTypeBadge = getLineTypeBadge(post.lineType);
 
   return (
@@ -112,7 +125,8 @@ export function LineSwapCard({ post }: { post: LineSwapCardData }) {
         {post.layovers.length > 0 ? (
           <div className="mb-2 flex flex-wrap gap-2">
             {post.layovers.map((l, i) => (
-              <span key={`${l.destination}-${i}`} className="rounded-lg bg-[#E8F5EA] px-2.5 py-1 text-sm text-[#3BA34A]">
+              <span key={`${l.destination}-${i}`} className="inline-flex items-center gap-1 rounded-lg bg-[#E8F5EA] px-2.5 py-1 text-sm text-[#3BA34A]">
+                <Moon className="h-3.5 w-3.5 shrink-0" />
                 {l.destination} {Math.round(l.durationHours)}h
               </span>
             ))}
@@ -145,6 +159,47 @@ export function LineSwapCard({ post }: { post: LineSwapCardData }) {
         ) : null}
         {post.notes ? <p className="mt-1 italic text-slate-600">&quot;{post.notes}&quot;</p> : null}
       </div>
+
+      {isOwner && (
+        <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-4 py-2.5">
+          {confirming ? (
+            <>
+              <span className="text-xs text-slate-500">Cancel this post?</span>
+              <button
+                type="button"
+                onClick={() => { setConfirming(false); onCancel?.(); }}
+                className="text-xs font-medium text-red-600 hover:text-red-800"
+              >
+                Yes, cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                className="text-xs font-medium text-slate-500 hover:text-slate-700"
+              >
+                No
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onEdit}
+                className="text-xs font-medium text-[#2668B0] hover:underline"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                className="text-xs font-medium text-red-500 hover:text-red-700"
+              >
+                Cancel Post
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

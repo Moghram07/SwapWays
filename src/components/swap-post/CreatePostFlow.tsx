@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import type { SwapPostType } from "@/types/swapPost";
 import type { WantCriteriaData } from "@/types/swapPost";
 import { PostTypeSelector } from "./PostTypeSelector";
+import { getScheduledDaysFromTrips } from "@/utils/scheduledDays";
 import { TripSelector, type TripOption } from "./TripSelector";
 import { WantCriteria } from "./WantCriteria";
 import { PostPreview } from "./PostPreview";
@@ -63,6 +64,7 @@ export interface CreatePostFlowProps {
   initialVacationMonth?: number | "";
   initialDesiredVacationMonths?: number[];
   onSelectLineSwap?: () => void;
+  onSelectManualEntry?: () => void;
   canPostVacationSwap?: boolean;
   onPremiumRequired?: (feature: string, reason: string) => void;
 }
@@ -86,6 +88,7 @@ export function CreatePostFlow({
   initialVacationMonth,
   initialDesiredVacationMonths,
   onSelectLineSwap,
+  onSelectManualEntry,
   canPostVacationSwap = true,
   onPremiumRequired,
 }: CreatePostFlowProps) {
@@ -98,7 +101,7 @@ export function CreatePostFlow({
     isEditMode || hasPreselected || hasInitialType ? "offering" : "type"
   );
   const [postType, setPostType] = useState<SwapPostType | null>(
-    initialPostType ?? (hasPreselected ? "OFFERING_TRIPS" : hasInitialType ? "VACATION_SWAP" : null)
+    initialPostType ?? (hasPreselected || isEditMode ? "OFFERING_TRIPS" : hasInitialType ? "VACATION_SWAP" : null)
   );
   const [selectedTrips, setSelectedTrips] = useState<string[]>(
     (initialSelectedTripIds && (hasPreselected || isEditMode)) ? [...initialSelectedTripIds] : []
@@ -130,6 +133,11 @@ export function CreatePostFlow({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentStepIndex = steps.indexOf(step);
+
+  const getScheduledDaysForMonth = useCallback(
+    (m: number, y: number) => getScheduledDaysFromTrips(myTrips, m, y),
+    [myTrips]
+  );
 
   const selectedTripObjects = myTrips.filter((trip) => selectedTrips.includes(trip.id));
 
@@ -186,6 +194,7 @@ export function CreatePostFlow({
             setStep("offering");
           }}
           onSelectLineSwap={onSelectLineSwap}
+          onSelectManualEntry={onSelectManualEntry}
           canPostVacationSwap={canPostVacationSwap}
           onPremiumRequired={onPremiumRequired}
         />
@@ -220,7 +229,7 @@ export function CreatePostFlow({
                 <button
                   type="button"
                   onClick={() => setStep("type")}
-                  className="text-sm text-slate-500 hover:underline"
+                  className="rounded-lg border border-slate-800 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
                 >
                   {t("dashboard.postFlowBack")}
                 </button>
@@ -254,6 +263,7 @@ export function CreatePostFlow({
           year={year}
           onNext={() => setStep("preview")}
           onBack={() => setStep("offering")}
+          getScheduledDaysForMonth={getScheduledDaysForMonth}
         />
       )}
 

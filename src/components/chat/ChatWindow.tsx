@@ -8,7 +8,7 @@ import { MessageBubble } from "./MessageBubble";
 import { ChatInput } from "./ChatInput";
 import { SwapProposalBar } from "./SwapProposalBar";
 import { useMessages } from "@/hooks/useMessages";
-import { mapTripsForChat } from "@/utils/chatTripMapping";
+import { mapTripsForChat, type ChatTripView } from "@/utils/chatTripMapping";
 import { ConversationLockScreen } from "@/components/chat/ConversationLockScreen";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 
@@ -23,6 +23,9 @@ interface ConversationDetail {
   swapPost?: { offeredTrips: { scheduleTrip?: unknown }[] };
   offeredTrips?: { scheduleTrip?: unknown }[];
   offeredTrip?: unknown;
+  ownerTripView?: ChatTripView | null;
+  initiatorTripView?: ChatTripView | null;
+  currentOfferId?: string | null;
   initiator: { id: string; firstName: string; rank?: { name: string }; base?: { name: string } };
   tradeOwner?: { id: string; firstName: string; rank?: { name: string }; base?: { name: string } };
   postOwner?: { id: string; firstName: string; rank?: { name: string }; base?: { name: string } };
@@ -175,11 +178,9 @@ export function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
     initiatorId: conversation?.initiatorId ?? "",
     tradeOwnerId: conversation?.tradeOwnerId,
     postOwnerId: conversation?.postOwnerId,
-    offeredTripId: conversation?.offeredTripId,
-    trade: conversation?.trade,
-    swapPost: conversation?.swapPost,
-    offeredTrip: conversation?.offeredTrip,
-    offeredTrips: conversation?.offeredTrips,
+    ownerTripView: conversation?.ownerTripView ?? null,
+    initiatorTripView: conversation?.initiatorTripView ?? null,
+    currentOfferId: conversation?.currentOfferId ?? null,
   });
 
   return (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Moon, Lock } from "lucide-react";
+import { Moon, Lock, Plane } from "lucide-react";
 import { buildTripRouteChainNodes } from "@/utils/multiStopRouteDisplay";
 import { RouteChain } from "@/components/RouteChain";
 import { getAllAirports } from "@/utils/airportNames";
@@ -55,7 +55,8 @@ function legsToApiFields(legs: QuickPostLegEntry[]) {
       ? (firstLayover?.to ?? destinations[0] ?? "")
       : (destinations[0] ?? "");
   const layoverHours = firstLayover?.layoverHours ?? null;
-  return { tripType: classified.type, destination, destinations, layoverHours };
+  const legDeadheads = legs.map((l) => l.isDeadhead ?? false);
+  return { tripType: classified.type, destination, destinations, layoverHours, legDeadheads };
 }
 
 function createEmptyTrip(): QuickPostOfferedTripData {
@@ -181,12 +182,11 @@ export function QuickPostForm({
 
   function addLeg(trip: QuickPostOfferedTripData) {
     if (trip.legs.length >= MAX_LEGS) return;
+    // Always append at the end. The previous last leg (a base return or any stop) stays put and
+    // becomes an editable intermediate waypoint — this lets the user route through base, e.g.
+    // JED → ABT → JED → BHH → JED. The "+ Return to {base}" helper + validation re-close the loop.
     const newLeg: QuickPostLegEntry = { to: "", hasLayover: false, layoverHours: null };
-    const lastLeg = trip.legs[trip.legs.length - 1];
-    // Insert before the last leg if it already has a destination, so the return stays at the end
-    const legs = lastLeg?.to.trim()
-      ? [...trip.legs.slice(0, -1), newLeg, lastLeg]
-      : [...trip.legs, newLeg];
+    const legs = [...trip.legs, newLeg];
     updateTrip(trip.id, { legs, ...legsToApiFields(legs) });
   }
 
@@ -349,6 +349,28 @@ export function QuickPostForm({
                             </div>
                           )}
 
+                          {/* Dead head checkbox — all legs */}
+                          <div className="pl-[4.25rem]">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id={`leg-${trip.id}-${legIdx}-dh`}
+                                checked={leg.isDeadhead ?? false}
+                                onChange={(e) =>
+                                  updateLeg(trip, legIdx, { isDeadhead: e.target.checked })
+                                }
+                                className="h-3.5 w-3.5 accent-purple-600"
+                              />
+                              <label
+                                htmlFor={`leg-${trip.id}-${legIdx}-dh`}
+                                className="flex cursor-pointer items-center gap-1 text-xs text-slate-600"
+                              >
+                                <Plane className="h-3 w-3 text-purple-500" />
+                                Dead head (no duty)
+                              </label>
+                            </div>
+                          </div>
+
                           {lastLegWrong && (
                             <p className="pl-[4.25rem] text-xs text-rose-600">
                               Last leg must return to {userBaseCode}.
@@ -365,7 +387,7 @@ export function QuickPostForm({
                         <button
                           type="button"
                           onClick={() => addLeg(trip)}
-                          disabled={!legs[legs.length - 2]?.to?.trim()}
+                          disabled={legs.some((l) => !l.to.trim())}
                           className="text-sm text-[#2668B0] hover:underline disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           + Add leg
@@ -641,7 +663,7 @@ export function QuickPostForm({
       )}
 
       <div className="flex justify-between pt-2">
-        <button type="button" onClick={onBack} className="text-sm text-slate-500 hover:underline">
+        <button type="button" onClick={onBack} className="rounded-lg border border-slate-800 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">
           ← Back
         </button>
         <button

@@ -64,6 +64,7 @@ interface SwapPostRecord {
     layoverCity?: string | null;
     layoverHours?: number | null;
     legLayovers?: unknown;
+    legDeadheads?: unknown;
     reportTime?: string | null;
     scheduleTrip?: {
       reportTime?: string;
@@ -169,6 +170,7 @@ function postToCard(p: SwapPostRecord) {
           .map((l) => ({
             legOrder: l.legOrder,
             flightNumber: l.flightNumber,
+            isDeadhead: l.flightNumber?.toUpperCase().startsWith("DH") ?? false,
             departureTime: l.departureTime,
             departureDate: l.departureDate ? new Date(l.departureDate) : undefined,
             departureAirport: l.departureAirport,
@@ -177,6 +179,7 @@ function postToCard(p: SwapPostRecord) {
             arrivalAirport: l.arrivalAirport,
             flyingTime: l.flyingTime,
           })),
+        legDeadheads: (t.legDeadheads as boolean[] | null | undefined) ?? undefined,
         stopsDisplay,
       };
     }),
@@ -227,6 +230,9 @@ function swapPostRecordToExpiryLike(p: SwapPostRecord) {
     createdAt: p.createdAt ?? undefined,
     offeredTrips: (p.offeredTrips ?? []).map((t) => ({
       departureDate: t.departureDate,
+      // isSwapPostExpired reads `reportTime` directly — keep it at the top level so a trip
+      // departing later today isn't treated as already expired (defaulting to 00:00).
+      reportTime: t.reportTime ?? t.scheduleTrip?.reportTime ?? null,
       scheduleTrip: { reportTime: t.scheduleTrip?.reportTime ?? t.reportTime ?? null },
     })),
   };
@@ -620,7 +626,11 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
                       <div className="border-t border-slate-100 px-4 py-2.5 flex justify-end gap-3 bg-slate-50/50">
                         {item.source === "swapPost" && (
                           <Link
-                            href={`/dashboard/add-trade?edit=${item.id}`}
+                            href={
+                              item.post.source === "MANUAL_QUICK"
+                                ? `/dashboard/add-trade?type=manual&edit=${item.id}`
+                                : `/dashboard/add-trade?edit=${item.id}`
+                            }
                             className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 rounded"
                           >
                             <Pencil size={14} />

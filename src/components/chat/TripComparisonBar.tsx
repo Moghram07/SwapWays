@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { classifyTrip, getTripTypeInfo } from "@/utils/tripClassifier";
 import { zuluToLocal } from "@/utils/airportTimezones";
 import { formatFlightNumber } from "@/utils/flightNumber";
@@ -21,6 +22,8 @@ interface TripLike {
   legs: Leg[];
   layovers?: unknown[];
   reportTime?: string | null;
+  /** Manual trips store local report time and have no per-leg times. */
+  isManual?: boolean;
 }
 
 /** Round Trip: only destination (e.g. RUH). Pairing/Pairing with Layover: first destination → … → last; omit base at start and end. */
@@ -50,19 +53,44 @@ function toLocalTimeLabel(raw: string | undefined | null, airportCode: string): 
   }
 }
 
+/** An offerable trip: an uploaded schedule trip OR a posted (often manual) swap-post trip. */
 interface MyTripOption {
+  /** scheduleTripId when kind === "schedule", swapPostTripId when kind === "swapPostTrip". */
+  id: string;
+  kind: "schedule" | "swapPostTrip";
+  label: string;
+}
+
+interface ScheduleTripApiItem {
   id: string;
   startDate: string;
   legs: { flightNumber: string; departureAirport: string; arrivalAirport: string }[];
 }
 
-function tripOptionLabel(t: MyTripOption): string {
+function scheduleOptionLabel(t: ScheduleTripApiItem): string {
   const firstLeg = t.legs?.[0];
   const fn = formatFlightNumber(firstLeg?.flightNumber) ?? "—";
   const dest = firstLeg?.arrivalAirport ?? "—";
   const d = new Date(t.startDate);
   const dateStr = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   return `${fn} · ${dest} · ${dateStr}`;
+}
+
+interface SwapPostTripApiItem {
+  id: string;
+  scheduleTripId: string | null;
+  flightNumber: string | null;
+  destination: string;
+  destinations?: string[];
+  departureDate: string;
+}
+
+function swapTripOptionLabel(t: SwapPostTripApiItem): string {
+  const fn = formatFlightNumber(t.flightNumber);
+  const dest = (t.destinations && t.destinations[0]) || t.destination || "—";
+  const d = new Date(t.departureDate);
+  const dateStr = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  return `${fn ? `${fn} · ` : ""}${dest} · ${dateStr}`;
 }
 
 interface TripOfferSelectorProps {
@@ -72,7 +100,7 @@ interface TripOfferSelectorProps {
   saving: boolean;
   canChangeOffer: boolean;
   currentOfferId: string | null | undefined;
-  onSelect: (scheduleTripId: string) => void;
+  onSelect: (option: MyTripOption | null) => void;
   onDropdownOpenChange?: (open: boolean) => void;
   onOpenRequested: () => void;
 }
@@ -134,8 +162,8 @@ const TripOfferSelector = memo(function TripOfferSelector({
     };
   }, [isOpen, loading, onDropdownOpenChange]);
 
-  const handleSelect = (scheduleTripId: string) => {
-    onSelect(scheduleTripId);
+  const handleSelect = (option: MyTripOption | null) => {
+    onSelect(option);
     setIsOpen(false);
     onDropdownOpenChange?.(false);
   };
@@ -212,26 +240,40 @@ const TripOfferSelector = memo(function TripOfferSelector({
                   className="w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleSelect("");
+                    handleSelect(null);
                   }}
                   disabled={saving}
                 >
                   No trip
                 </button>
-                {trips.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className="w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 disabled:opacity-50"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSelect(t.id);
-                    }}
-                    disabled={saving}
-                  >
-                    {tripOptionLabel(t)}
-                  </button>
-                ))}
+                {trips.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-slate-500">
+                    You haven&apos;t posted a trip yet.{" "}
+                    <Link
+                      href="/dashboard/add-trade"
+                      className="font-medium text-[#1E6FB9] hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Post a swap
+                    </Link>{" "}
+                    to offer one here.
+                  </div>
+                ) : (
+                  trips.map((t) => (
+                    <button
+                      key={`${t.kind}:${t.id}`}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 disabled:opacity-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSelect(t);
+                      }}
+                      disabled={saving}
+                    >
+                      {t.label}
+                    </button>
+                  ))
+                )}
               </>
             )}
           </div>,
@@ -266,25 +308,46 @@ export const TripComparisonBar = memo(function TripComparisonBar({
   const fetchMyTrips = useCallback(() => {
     if (!canChangeOffer) return;
     setLoadingTrips(true);
-    fetch("/api/schedule/my-trips")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((json) => {
-        setMyTrips(Array.isArray(json?.data) ? json.data : []);
+    Promise.all([
+      fetch("/api/schedule/my-trips").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch("/api/swap-posts?mine=1&scope=active").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ])
+      .then(([schedJson, swapJson]) => {
+        const options: MyTripOption[] = [];
+        // Uploaded schedule trips (unchanged behavior for schedule users).
+        const schedTrips: ScheduleTripApiItem[] = Array.isArray(schedJson?.data) ? schedJson.data : [];
+        for (const t of schedTrips) {
+          options.push({ id: t.id, kind: "schedule", label: scheduleOptionLabel(t) });
+        }
+        // Posted swap trips from My Swaps — add the MANUAL ones (schedule-backed are already above).
+        const posts: { offeredTrips?: SwapPostTripApiItem[] }[] = Array.isArray(swapJson?.data) ? swapJson.data : [];
+        for (const p of posts) {
+          for (const ot of p.offeredTrips ?? []) {
+            if (ot.scheduleTripId) continue;
+            options.push({ id: ot.id, kind: "swapPostTrip", label: swapTripOptionLabel(ot) });
+          }
+        }
+        setMyTrips(options);
       })
       .catch(() => setMyTrips([]))
       .finally(() => setLoadingTrips(false));
   }, [canChangeOffer]);
 
   const handleSelectTrip = useCallback(
-    async (scheduleTripId: string) => {
+    async (option: MyTripOption | null) => {
       if (!conversationId || !onOfferChanged) return;
-      const value = scheduleTripId === "" ? null : scheduleTripId;
-      if (value === currentOfferId) return;
+      const newId = option?.id ?? null;
+      if (newId === currentOfferId) return;
       setSaving(true);
+      const body = option
+        ? option.kind === "schedule"
+          ? { scheduleTripId: option.id }
+          : { swapPostTripId: option.id }
+        : { scheduleTripId: null };
       const res = await fetch(`/api/conversations/${conversationId}/offer-trip`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scheduleTripId: value }),
+        body: JSON.stringify(body),
       });
       setSaving(false);
       if (res.ok) {
@@ -338,7 +401,10 @@ function TripMiniSummary({ trip }: { trip: TripLike }) {
   });
   const destStr = formatDestination(trip.legs ?? [], tripType);
   const base = firstLeg.departureAirport;
-  const report = toLocalTimeLabel(trip.reportTime, base);
+  // Manual trips store local report time (and have no per-leg times) — show it as entered.
+  const report = trip.isManual
+    ? (trip.reportTime && trip.reportTime.trim() ? trip.reportTime.replace(".", ":") : "—")
+    : toLocalTimeLabel(trip.reportTime, base);
   const departure = toLocalTimeLabel(firstLeg.departureTime, base);
   const returnToBase = toLocalTimeLabel(
     lastLeg?.arrivalTime,

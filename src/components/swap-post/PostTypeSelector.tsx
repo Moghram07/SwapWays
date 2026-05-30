@@ -1,7 +1,7 @@
 "use client";
 
 import type { SwapPostType } from "@/types/swapPost";
-import { RefreshCw, CalendarRange, CalendarDays } from "lucide-react";
+import { RefreshCw, CalendarRange, CalendarDays, PenLine } from "lucide-react";
 import { useDashboardLocale } from "@/contexts/DashboardLocaleContext";
 import { getTranslator } from "@/i18n/getTranslator";
 
@@ -17,6 +17,7 @@ const optionIcons: Record<SwapPostType, React.ElementType> = {
 interface PostTypeSelectorProps {
   onSelect: (type: SwapPostType) => void;
   onSelectLineSwap?: () => void;
+  onSelectManualEntry?: () => void;
   canPostVacationSwap?: boolean;
   onPremiumRequired?: (feature: string, reason: string) => void;
 }
@@ -24,6 +25,7 @@ interface PostTypeSelectorProps {
 export function PostTypeSelector({
   onSelect,
   onSelectLineSwap,
+  onSelectManualEntry,
   canPostVacationSwap = true,
   onPremiumRequired,
 }: PostTypeSelectorProps) {
@@ -95,6 +97,24 @@ export function PostTypeSelector({
             <div>
               <p className="font-medium text-slate-900">{t("dashboard.postTypeLineSwapCardTitle")}</p>
               <p className="mt-0.5 text-sm text-slate-500">{t("dashboard.postTypeLineSwapCardDesc")}</p>
+            </div>
+          </button>
+        )}
+        {onSelectManualEntry && (
+          <button
+            type="button"
+            onClick={onSelectManualEntry}
+            className="flex items-start gap-4 rounded-xl border-2 border-slate-200 bg-white p-4 text-start transition-colors hover:border-[#2668B0] hover:bg-slate-50/50"
+          >
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+              style={{ backgroundColor: `${PRIMARY}18` }}
+            >
+              <PenLine className="h-5 w-5" style={{ color: PRIMARY }} />
+            </div>
+            <div>
+              <p className="font-medium text-slate-900">Manual entry</p>
+              <p className="mt-0.5 text-sm text-slate-500">Enter trip details without uploading a schedule</p>
             </div>
           </button>
         )}

@@ -29,6 +29,7 @@ export async function GET(
     include: {
       schedule: { select: { userId: true } },
       legs: { orderBy: { legOrder: "asc" } },
+      layovers: { orderBy: { afterLegOrder: "asc" } },
     },
   });
 
@@ -38,14 +39,27 @@ export async function GET(
   return NextResponse.json({
     data: {
       id: trip.id,
+      tripNumber: trip.tripNumber,
+      startDate: trip.startDate.toISOString(),
+      creditHours: trip.creditHours,
+      blockHours: trip.blockHours ?? null,
+      tripType: trip.tripType,
       reportTime: trip.reportTime,
+      legDeadheadsOverride: (trip.legDeadheadsOverride as boolean[] | null) ?? null,
       legs: trip.legs.map((leg) => ({
         id: leg.id,
         legOrder: leg.legOrder,
+        flightNumber: leg.flightNumber,
+        departureAirport: leg.departureAirport,
+        arrivalAirport: leg.arrivalAirport,
         departureTime: leg.departureTime,
         arrivalTime: leg.arrivalTime,
         departureDate: leg.departureDate.toISOString(),
         arrivalDate: leg.arrivalDate.toISOString(),
+      })),
+      layovers: trip.layovers.map((l) => ({
+        airport: l.airport,
+        durationDecimal: l.durationDecimal,
       })),
     },
     error: null,
@@ -63,7 +77,7 @@ function normalizeTime(s: string | undefined): string | undefined {
   return normalized;
 }
 
-/** PATCH trip report time and/or leg times. */
+/** PATCH trip report time, leg times, trip type, and/or DH overrides. */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -78,6 +92,7 @@ export async function PATCH(
     include: {
       schedule: { select: { userId: true } },
       legs: { select: { id: true } },
+      layovers: { orderBy: { afterLegOrder: "asc" } },
     },
   });
 
@@ -86,6 +101,8 @@ export async function PATCH(
 
   let body: {
     reportTime?: string;
+    tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+    legDeadheads?: boolean[];
     legs?: Array<{
       id: string;
       departureTime?: string;
@@ -93,6 +110,8 @@ export async function PATCH(
       departureDate?: string;
       arrivalDate?: string;
     }>;
+    layoverCity?: string;
+    layoverHours?: number;
   };
   try {
     body = await request.json();
@@ -112,6 +131,25 @@ export async function PATCH(
     }
   }
 
+  if (body.tripType != null && ["LAYOVER", "TURNAROUND", "MULTI_STOP"].includes(body.tripType)) {
+    await prisma.scheduleTrip.update({ where: { id }, data: { tripType: body.tripType } });
+    await prisma.swapPostTrip.updateMany({
+      where: { scheduleTripId: id, swapPost: { status: "OPEN" } },
+      data: { tripType: body.tripType },
+    });
+  }
+
+  if (Array.isArray(body.legDeadheads)) {
+    await prisma.scheduleTrip.update({
+      where: { id },
+      data: { legDeadheadsOverride: body.legDeadheads },
+    });
+    await prisma.swapPostTrip.updateMany({
+      where: { scheduleTripId: id, swapPost: { status: "OPEN" } },
+      data: { legDeadheads: body.legDeadheads },
+    });
+  }
+
   if (Array.isArray(body.legs) && body.legs.length > 0) {
     for (const leg of body.legs) {
       if (!leg.id || !legIds.has(leg.id)) continue;
@@ -128,6 +166,27 @@ export async function PATCH(
           data,
         });
       }
+    }
+  }
+
+  if (body.layoverCity != null) {
+    const city = body.layoverCity.trim();
+    const hours = body.layoverHours ?? 0;
+    if (trip.layovers.length > 0) {
+      await prisma.scheduleTripLayover.update({
+        where: { id: trip.layovers[0].id },
+        data: { airport: city || trip.layovers[0].airport, durationDecimal: hours, durationRaw: String(hours) },
+      });
+    } else if (city) {
+      await prisma.scheduleTripLayover.create({
+        data: { scheduleTripId: id, airport: city, durationDecimal: hours, durationRaw: String(hours), afterLegOrder: 0 },
+      });
+    }
+    if (city) {
+      await prisma.swapPostTrip.updateMany({
+        where: { scheduleTripId: id, swapPost: { status: "OPEN" } },
+        data: { layoverCity: city, layoverHours: hours, hasLayover: true },
+      });
     }
   }
 

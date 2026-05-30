@@ -1,17 +1,251 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { TripOption } from "@/components/swap-post/TripSelector";
-import type { WantCriteriaData } from "@/types/swapPost";
+import type { WantCriteriaData, QuickPostOfferedTripData, QuickPostLegEntry } from "@/types/swapPost";
 import { parseWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
+import { getScheduledDaysFromTrips } from "@/utils/scheduledDays";
+import { roundLayoverHours } from "@/utils/timeUtils";
 import type { SwapPostInputSource } from "@/types/swapPost";
 import { useUserAccess } from "@/hooks/useUserAccess";
 import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { useDashboardLocale } from "@/contexts/DashboardLocaleContext";
 import { getTranslator } from "@/i18n/getTranslator";
+
+const QuickPostForm = dynamic(
+  () => import("@/components/swap-post/QuickPostForm").then((m) => ({ default: m.QuickPostForm })),
+  {
+    loading: () => (
+      <div className="mx-auto max-w-2xl space-y-3 py-4" aria-hidden>
+        <div className="h-10 rounded-lg bg-slate-100 animate-pulse" />
+        <div className="h-48 rounded-xl border border-slate-200 bg-slate-50/80 animate-pulse" />
+      </div>
+    ),
+  }
+);
+
+const PostPreview = dynamic(
+  () => import("@/components/swap-post/PostPreview").then((m) => ({ default: m.PostPreview })),
+  { loading: () => <div className="h-48 animate-pulse rounded-xl bg-slate-100" /> }
+);
+
+const defaultManualWantCriteria: WantCriteriaData = {
+  wantType: "LAYOVER",
+  wantTripTypes: [],
+  wantMinLayover: null,
+  wantMinCredit: null,
+  wantMaxCredit: null,
+  wantEqualHours: false,
+  wantSameDate: false,
+  wantDestinations: [],
+  wantExclude: [],
+  wantOpenToAnyDestination: false,
+  wantAcceptanceOptions: [],
+  wtfDays: [],
+  wantDaysOff: false,
+  notes: "",
+};
+
+function createInitialManualTrip(): QuickPostOfferedTripData {
+  return {
+    id: Date.now(),
+    tripType: "TURNAROUND",
+    destination: "",
+    destinations: [],
+    date: "",
+    layoverHours: null,
+    reportTime: "",
+    aircraftTypeCode: "",
+    blockHours: null,
+    flightNumber: "",
+    legs: [
+      { to: "", hasLayover: false, layoverHours: null },
+      { to: "", hasLayover: false, layoverHours: null },
+    ],
+  };
+}
+
+/** Rebuild the manual Quick-Post form trips from a saved post (for editing manual entries). */
+function editPostToManualTrips(post: EditPostData): QuickPostOfferedTripData[] {
+  if (!post.offeredTrips || post.offeredTrips.length === 0) return [createInitialManualTrip()];
+  return post.offeredTrips.map((t, idx) => {
+    const interimDests = (t.destinations ?? [])
+      .map((d) => String(d).trim().toUpperCase())
+      .filter(Boolean);
+    const legLayovers = Array.isArray(t.legLayovers)
+      ? (t.legLayovers as Array<{ legIndex: number; layoverHours?: number; hours?: number }>)
+      : [];
+    const legDeadheads = Array.isArray(t.legDeadheads) ? (t.legDeadheads as boolean[]) : [];
+    const legs: QuickPostLegEntry[] = interimDests.map((d, i) => {
+      const ll = legLayovers.find((l) => l.legIndex === i);
+      const hrs = roundLayoverHours(ll?.layoverHours ?? ll?.hours ?? null);
+      return {
+        to: d,
+        hasLayover: hrs != null && hrs > 0,
+        layoverHours: hrs != null && hrs > 0 ? hrs : null,
+        isDeadhead: legDeadheads[i] ?? false,
+      };
+    });
+    // Final return leg back to base — left blank so the base-fetch effect fills it in.
+    legs.push({
+      to: "",
+      hasLayover: false,
+      layoverHours: null,
+      isDeadhead: legDeadheads[interimDests.length] ?? false,
+    });
+    // For LAYOVER trips the duration may have been stored only at the trip level.
+    if (
+      t.tripType === "LAYOVER" &&
+      t.layoverHours != null &&
+      t.layoverHours > 0 &&
+      legs.length > 1 &&
+      !legs[0].hasLayover
+    ) {
+      legs[0] = { ...legs[0], hasLayover: true, layoverHours: roundLayoverHours(t.layoverHours) };
+    }
+    return {
+      id: Date.now() + idx,
+      tripType: (t.tripType ?? "TURNAROUND") as QuickPostOfferedTripData["tripType"],
+      destination: t.destination ?? interimDests[0] ?? "",
+      destinations: interimDests,
+      date: t.departureDate ? new Date(t.departureDate).toISOString().slice(0, 10) : "",
+      layoverHours: roundLayoverHours(t.layoverHours),
+      reportTime: t.reportTime ?? "",
+      aircraftTypeCode: t.aircraftType ?? "",
+      blockHours: t.blockHours ?? null,
+      flightNumber: t.flightNumber ?? "",
+      legs,
+      legDeadheads,
+    };
+  });
+}
+
+interface ManualPostPageProps {
+  month: number;
+  year: number;
+  scheduledDays: number[];
+  userBaseCode: string | null;
+  userDisplay: { firstName: string; rank: string; base: string; baseAirportCode?: string };
+  onBack: () => void;
+  /** When set, the form edits this existing post (PATCH) instead of creating a new one. */
+  editId?: string;
+  initialOfferedTrips?: QuickPostOfferedTripData[];
+  initialWantCriteria?: WantCriteriaData;
+}
+
+function ManualPostPage({ month, year, scheduledDays, userBaseCode: initialBaseCode, userDisplay, onBack, editId, initialOfferedTrips, initialWantCriteria }: ManualPostPageProps) {
+  const router = useRouter();
+  const [step, setStep] = useState<"form" | "preview">("form");
+  const [offeredTrips, setOfferedTrips] = useState<QuickPostOfferedTripData[]>(
+    initialOfferedTrips && initialOfferedTrips.length > 0 ? initialOfferedTrips : [createInitialManualTrip()]
+  );
+  const [wantCriteria, setWantCriteria] = useState<WantCriteriaData>(initialWantCriteria ?? defaultManualWantCriteria);
+  const [selectedDaysOff, setSelectedDaysOff] = useState<number[]>([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userBaseCode, setUserBaseCode] = useState(initialBaseCode);
+  const prefilled = useRef(false);
+
+  // Fetch the user's base airport fast (single DB query) and pre-fill the last leg.
+  useEffect(() => {
+    fetch("/api/user/base")
+      .then((r) => r.json())
+      .then((json) => {
+        const code: string | null = json?.data?.baseAirportCode ?? null;
+        if (!code) return;
+        setUserBaseCode(code);
+        if (prefilled.current) return;
+        prefilled.current = true;
+        setOfferedTrips((prev) =>
+          prev.map((trip) => {
+            const last = trip.legs[trip.legs.length - 1];
+            if (last && !last.to.trim()) {
+              const legs = [...trip.legs];
+              legs[legs.length - 1] = { ...last, to: code };
+              return { ...trip, legs };
+            }
+            return trip;
+          })
+        );
+      })
+      .catch(() => null);
+  }, []);
+
+  async function handleSubmit() {
+    setSubmitError(null);
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(editId ? `/api/swap-posts/${editId}` : "/api/swap-posts", {
+        method: editId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          postType: "OFFERING_TRIPS",
+          selectedTrips: [],
+          selectedDaysOff,
+          wantCriteria,
+          offeredTrips,
+          source: "MANUAL_QUICK",
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        router.push(editId ? "/dashboard/board?mode=mySwaps" : "/dashboard/board?mode=mySwaps&posted=1");
+      } else {
+        setSubmitError(json.message ?? (editId ? "Failed to update. Please try again." : "Failed to post. Please try again."));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl">
+      {submitError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {submitError}
+        </div>
+      )}
+      {step === "form" ? (
+        <QuickPostForm
+          offeredTrips={offeredTrips}
+          wantCriteria={wantCriteria}
+          selectedDaysOff={selectedDaysOff}
+          month={month}
+          year={year}
+          scheduledDays={scheduledDays}
+          userBaseCode={userBaseCode ?? ""}
+          onOfferedTripsChange={setOfferedTrips}
+          onWantCriteriaChange={setWantCriteria}
+          onSelectedDaysOffChange={setSelectedDaysOff}
+          onBack={onBack}
+          onNext={() => setStep("preview")}
+        />
+      ) : (
+        <PostPreview
+          postType="OFFERING_TRIPS"
+          selectedTrips={[]}
+          selectedDaysOff={selectedDaysOff}
+          wantCriteria={wantCriteria}
+          offeredTrips={offeredTrips}
+          // Use the base fetched for the form (userBaseCode). The page-level userDisplay base is
+          // derived from the user's schedule trips, which are empty for many manual-entry users —
+          // without this the preview route loses its base wrapping (e.g. AHB→JED→BHH).
+          userDisplay={{ ...userDisplay, baseAirportCode: userBaseCode ?? userDisplay.baseAirportCode }}
+          onPost={handleSubmit}
+          onBack={() => {
+            if (isSubmitting) return;
+            setSubmitError(null);
+            setStep("form");
+          }}
+          isSubmitting={isSubmitting}
+        />
+      )}
+    </div>
+  );
+}
 
 const CreatePostFlow = dynamic(
   () => import("@/components/swap-post/CreatePostFlow").then((m) => ({ default: m.CreatePostFlow })),
@@ -38,56 +272,25 @@ const LineSwapForm = dynamic(
   }
 );
 
-function getScheduledDaysFromTrips(
-  trips: TripOption[],
-  month: number,
-  year: number
-): number[] {
-  const set = new Set<number>();
-  const monthStartUtc = Date.UTC(year, month - 1, 1);
-  const monthEndUtc = Date.UTC(year, month, 1); // exclusive
-
-  for (const t of trips) {
-    const start = new Date(t.startDate);
-    const lastLeg = t.legs[t.legs.length - 1];
-    const end =
-      lastLeg?.arrivalDate != null ? new Date(lastLeg.arrivalDate) : start;
-
-    // Normalize to UTC day boundaries and clamp to the selected month.
-    const startDayUtc = Date.UTC(
-      start.getUTCFullYear(),
-      start.getUTCMonth(),
-      start.getUTCDate()
-    );
-    const endDayUtc = Date.UTC(
-      end.getUTCFullYear(),
-      end.getUTCMonth(),
-      end.getUTCDate()
-    );
-
-    const rangeStartUtc = Math.min(startDayUtc, endDayUtc);
-    const rangeEndUtc = Math.max(startDayUtc, endDayUtc);
-
-    if (rangeEndUtc < monthStartUtc || rangeStartUtc >= monthEndUtc) continue;
-
-    const clampedStartUtc = Math.max(rangeStartUtc, monthStartUtc);
-    const clampedEndUtc = Math.min(rangeEndUtc, monthEndUtc - 24 * 60 * 60 * 1000);
-
-    for (
-      let dayUtc = clampedStartUtc;
-      dayUtc <= clampedEndUtc;
-      dayUtc += 24 * 60 * 60 * 1000
-    ) {
-      set.add(new Date(dayUtc).getUTCDate());
-    }
-  }
-  return Array.from(set).sort((a, b) => a - b);
+interface EditPostOfferedTrip {
+  scheduleTripId: string | null;
+  tripType?: "LAYOVER" | "TURNAROUND" | "MULTI_STOP";
+  destination?: string;
+  destinations?: string[];
+  departureDate?: string;
+  layoverHours?: number | null;
+  reportTime?: string | null;
+  aircraftType?: string | null;
+  blockHours?: number | null;
+  flightNumber?: string | null;
+  legLayovers?: unknown;
+  legDeadheads?: unknown;
 }
 
 interface EditPostData {
   id: string;
   postType: string;
-  offeredTrips: { scheduleTripId: string | null }[];
+  offeredTrips: EditPostOfferedTrip[];
   offeredDaysOff: number[];
   wantType: string;
   wantTripTypes: string[];
@@ -128,6 +331,7 @@ export default function PostToTradeBoardPage() {
   const typeParam = searchParams.get("type");
   const viewParam = searchParams.get("view");
   const isLineSwapMode = typeParam === "line-swap";
+  const isManualMode = typeParam === "manual";
   const editId = searchParams.get("edit");
   const forceChooser = viewParam === "chooser";
   const initialPostType = typeParam === "vacation" ? "VACATION_SWAP" : undefined;
@@ -147,52 +351,86 @@ export default function PostToTradeBoardPage() {
     setLoading(true);
     if (!editId) setEditPost(null);
 
-    const mapTrips = (json: { data?: unknown[] }) => {
-      const data = (json.data ?? []) as {
-        id: string;
-        tripNumber: string;
-        startDate: string;
-        creditHours: number;
-        tripType: string;
-        legs: { flightNumber: string; departureAirport: string; arrivalAirport: string }[];
-        layovers: { airport: string; durationDecimal: number }[];
-      }[];
-      return data.map((t) => ({
-        id: t.id,
-        tripNumber: t.tripNumber,
-        startDate: new Date(t.startDate),
-        creditHours: t.creditHours ?? 0,
-        tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP",
-        legs: t.legs ?? [],
-        layovers: t.layovers ?? [],
-      }));
+    type RawTrip = {
+      id: string;
+      tripNumber: string;
+      startDate: string;
+      creditHours: number;
+      blockHours?: number | null;
+      tripType: string;
+      legs: { flightNumber: string; departureAirport: string; arrivalAirport: string }[];
+      layovers: { airport: string; durationDecimal: number }[];
     };
 
-    const tripsP = fetch("/api/schedule/my-trips")
-      .then((r) => r.json())
-      .then((json) => {
-        if (!cancelled) setMyTrips(mapTrips(json));
-      })
-      .catch(() => {
-        if (!cancelled) setMyTrips([]);
-      });
-
-    const editP = editId
-      ? fetch(`/api/swap-posts/${editId}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((json) => {
-            if (cancelled) return;
-            if (json?.data) setEditPost(json.data as EditPostData);
-            else setEditPost(null);
-          })
-          .catch(() => {
-            if (!cancelled) setEditPost(null);
-          })
-      : Promise.resolve();
-
-    void Promise.all([tripsP, editP]).finally(() => {
-      if (!cancelled) setLoading(false);
+    const mapRawTrip = (t: RawTrip): TripOption => ({
+      id: t.id,
+      tripNumber: t.tripNumber,
+      startDate: new Date(t.startDate),
+      creditHours: t.creditHours ?? 0,
+      blockHours: t.blockHours ?? null,
+      tripType: t.tripType as "LAYOVER" | "TURNAROUND" | "MULTI_STOP",
+      legs: t.legs ?? [],
+      layovers: t.layovers ?? [],
     });
+
+    async function load() {
+      if (editId) {
+        // FAST PATH: fetch post + specific trips immediately, show form right away
+        const postJson = await fetch(`/api/swap-posts/${editId}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
+
+        if (cancelled) return;
+
+        const post: EditPostData | null = postJson?.data ?? null;
+        const specificIds = (post?.offeredTrips ?? [])
+          .map((t) => t.scheduleTripId)
+          .filter((id): id is string => typeof id === "string" && id.length > 0);
+
+        const specificTrips = await Promise.all(
+          specificIds.map((id) =>
+            fetch(`/api/schedule/trips/${id}`)
+              .then((r) => (r.ok ? r.json() : null))
+              .then((json) => (json?.data ? mapRawTrip(json.data as RawTrip) : null))
+              .catch(() => null)
+          )
+        );
+
+        if (cancelled) return;
+
+        setMyTrips(specificTrips.filter((t): t is TripOption => t !== null));
+        setEditPost(post);
+        setLoading(false); // Render form immediately with just the selected trips
+
+        // Load all upcoming trips in background (non-blocking — adds context for editing)
+        fetch("/api/schedule/my-trips")
+          .then((r) => r.json())
+          .then((json) => {
+            if (!cancelled) {
+              const upcoming = ((json.data ?? []) as RawTrip[]).map(mapRawTrip);
+              setMyTrips((prev) => {
+                const existingIds = new Set(prev.map((t) => t.id));
+                const newOnes = upcoming.filter((t) => !existingIds.has(t.id));
+                return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+              });
+            }
+          })
+          .catch(() => null);
+      } else {
+        // Normal path: load all upcoming trips
+        const tripsJson = await fetch("/api/schedule/my-trips")
+          .then((r) => r.json())
+          .catch(() => ({ data: [] }));
+
+        if (!cancelled) {
+          setMyTrips(((tripsJson.data ?? []) as RawTrip[]).map(mapRawTrip));
+          setEditPost(null);
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
 
     return () => {
       cancelled = true;
@@ -201,7 +439,7 @@ export default function PostToTradeBoardPage() {
 
   const scheduledDays = getScheduledDaysFromTrips(myTrips, month, year);
 
-  if (status === "loading" || loading) {
+  if (status === "loading" || (loading && !isManualMode)) {
     return (
       <div className="flex items-center justify-center py-12 text-slate-500">
         {t("dashboard.loading")}
@@ -307,6 +545,38 @@ export default function PostToTradeBoardPage() {
       })()
     : undefined;
 
+  if (isManualMode) {
+    const baseCode = myTrips[0]?.legs[0]?.departureAirport ?? "";
+    // When editing a manual post, wait for the post to load so we can prefill the form.
+    if (editId && !editPost) {
+      return (
+        <div className="flex items-center justify-center py-12 text-slate-500">
+          {t("dashboard.loading")}
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+            {editId ? t("dashboard.postEditYourPost") : "Manual entry"}
+          </h1>
+        </div>
+        <ManualPostPage
+          month={month}
+          year={year}
+          scheduledDays={scheduledDays}
+          userBaseCode={baseCode}
+          userDisplay={userDisplay}
+          onBack={() => router.push("/dashboard/board?mode=mySwaps")}
+          editId={editId ?? undefined}
+          initialOfferedTrips={editPost ? editPostToManualTrips(editPost) : undefined}
+          initialWantCriteria={initialWantCriteria}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -361,6 +631,7 @@ export default function PostToTradeBoardPage() {
           initialVacationYear={editPost?.vacationYear != null ? editPost.vacationYear : undefined}
           initialVacationMonth={editPost?.vacationMonth != null ? editPost.vacationMonth : undefined}
           initialDesiredVacationMonths={editPost?.desiredVacationMonths}
+          onSelectManualEntry={() => router.push("/dashboard/add-trade?type=manual")}
           onSelectLineSwap={() => {
             if (access && !access.canPostLineSwap) {
               setUpgradeFeature("line_swap");

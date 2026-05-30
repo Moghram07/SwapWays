@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { invalidateConversationCache } from "@/lib/conversationCache";
 
 function unauthorized() {
   return NextResponse.json({ data: null, error: "Unauthorized", message: "Please sign in" }, { status: 401 });
@@ -45,6 +46,8 @@ export async function POST(
       },
     });
   });
+
+  invalidateConversationCache(id);
 
   return NextResponse.json({ data: { success: true }, error: null, message: null });
 }

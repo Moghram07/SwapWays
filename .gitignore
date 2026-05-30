@@ -44,3 +44,7 @@ next-env.d.ts
 
 # local scratch / personal data (keep out of git)
 temp-launch-schedule.txt
+
+# Playwright
+/test-results/
+/playwright-report/

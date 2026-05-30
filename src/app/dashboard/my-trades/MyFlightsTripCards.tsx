@@ -2,9 +2,35 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { TripCard } from "@/components/trip/TripCard";
+import { Pencil } from "lucide-react";
 import { EditTripModal } from "@/components/trip/EditTripModal";
+import { TripTypeBadge } from "@/components/trip/TripTypeBadge";
+import { TripLegItem } from "@/components/trip/TripLegItem";
+import { TripLayoverBar } from "@/components/trip/TripLayoverBar";
+import { TripSummaryFooter } from "@/components/trip/TripSummaryFooter";
+import { SwapStatusBadge } from "@/components/trip/SwapStatusBadge";
+import { getTripTypeInfo } from "@/utils/tripClassifier";
+import { formatZuluTime } from "@/utils/timeUtils";
+import { zuluToLocal } from "@/utils/airportTimezones";
+import { useTimeFormat } from "@/hooks/useTimeFormat";
 import type { TripCardData } from "@/types/tripCard";
+
+const UTC_DATE_OPTS: Intl.DateTimeFormatOptions = {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+};
+
+function formatTripDate(trip: TripCardData): string {
+  const firstLeg = trip.legs[0];
+  const lastLeg = trip.legs[trip.legs.length - 1];
+  if (!firstLeg) return "";
+  const startStr = trip.startDate.toLocaleDateString("en-US", UTC_DATE_OPTS);
+  const endDate = lastLeg?.arrivalDate ?? lastLeg?.departureDate;
+  if (!endDate || trip.startDate.toDateString() === endDate.toDateString()) return startStr;
+  return `${startStr} – ${endDate.toLocaleDateString("en-US", UTC_DATE_OPTS)}`;
+}
 
 /** Rehydrate date strings to Date after server serialization */
 function parseCardDates(card: TripCardData): TripCardData {
@@ -19,6 +45,106 @@ function parseCardDates(card: TripCardData): TripCardData {
   };
 }
 
+interface FlightCardProps {
+  trip: TripCardData;
+  onSwap: () => void;
+  onCancelSwap: (id: string) => void;
+  onEdit?: () => void;
+}
+
+function FlightCard({ trip, onSwap, onCancelSwap, onEdit }: FlightCardProps) {
+  const { format: timeMode } = useTimeFormat();
+  const typeInfo = getTripTypeInfo(trip.tripType);
+  const dateLabel = formatTripDate(trip);
+  const reportAirport = trip.legs[0]?.departureAirport ?? "";
+  const reportLabel = trip.reportTime
+    ? timeMode === "local" && reportAirport
+      ? zuluToLocal(trip.reportTime, reportAirport).label
+      : formatZuluTime(trip.reportTime)
+    : null;
+
+  return (
+    <div
+      className={`overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm border-s-4 ${typeInfo.borderColor}`}
+    >
+      {/* Compact header — no route chain / swap card preview */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <TripTypeBadge typeInfo={typeInfo} />
+          <span className="text-sm text-gray-500">{dateLabel}</span>
+          {reportLabel && (
+            <span className="text-sm text-gray-600">
+              Report:{" "}
+              <span className={`font-medium ${timeMode === "local" ? "text-green-600" : "text-blue-600"}`}>
+                {reportLabel}
+              </span>
+            </span>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {/* Swap status badges */}
+          {trip.swapStatus === "posted" && (
+            <>
+              <SwapStatusBadge status="posted" />
+              <button
+                type="button"
+                onClick={() => onCancelSwap(trip.tradeId ?? trip.tripNumber)}
+                className="text-sm text-red-600 hover:text-red-700"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+          {trip.swapStatus === "matched" && <SwapStatusBadge status="matched" />}
+          {trip.swapStatus === "accepted" && <SwapStatusBadge status="accepted" />}
+          {trip.swapStatus === "completed" && <SwapStatusBadge status="completed" />}
+          {/* Post Swap — only when not already in a swap state */}
+          {!trip.swapStatus && (
+            <button
+              type="button"
+              onClick={onSwap}
+              className="rounded-lg bg-slate-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700"
+            >
+              Post Swap
+            </button>
+          )}
+          {/* Edit button */}
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Leg details — the "ticket" part */}
+      <div className="space-y-1 px-5 py-3">
+        {trip.legs.map((leg, index) => (
+          <div key={`${leg.flightNumber}-${index}`}>
+            <TripLegItem leg={leg} legNumber={index + 1} timeMode={timeMode} />
+            {trip.layovers.find((l) => l.afterLegNumber === index + 1) && (
+              <TripLayoverBar
+                layover={trip.layovers.find((l) => l.afterLegNumber === index + 1)!}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <TripSummaryFooter
+        blockHours={trip.blockHours}
+        tafb={trip.tafb}
+        creditHours={trip.creditHours}
+      />
+    </div>
+  );
+}
+
 interface MyFlightsTripCardsProps {
   scheduledCards: TripCardData[];
   tradeCards: TripCardData[];
@@ -28,7 +154,6 @@ interface MyFlightsTripCardsProps {
 export function MyFlightsTripCards({
   scheduledCards,
   tradeCards,
-  baseAirportCode,
 }: MyFlightsTripCardsProps) {
   const router = useRouter();
   const [editingTrip, setEditingTrip] = useState<TripCardData | null>(null);
@@ -38,24 +163,14 @@ export function MyFlightsTripCards({
     if (res.ok) router.refresh();
   };
 
-  const handleSwapTradeCard = (tripIdOrTradeId: string) => {
-    const card = tradeCards.find(
-      (c) => c.tradeId === tripIdOrTradeId || c.tripNumber === tripIdOrTradeId
-    );
-    if (card?.tradeId) {
-      window.location.href = `/dashboard/browse?trade=${card.tradeId}`;
-    }
-  };
-
-  const handleSwapScheduledTrip = (trip: TripCardData) => {
-    if (trip.scheduleTripId) {
-      router.push(`/dashboard/add-trade?tripId=${trip.scheduleTripId}`);
-    }
-  };
-
   const parsedScheduledCards = useMemo(
     () => scheduledCards.map((card) => parseCardDates(card)),
     [scheduledCards]
+  );
+
+  const parsedTradeCards = useMemo(
+    () => tradeCards.map((card) => parseCardDates(card)),
+    [tradeCards]
   );
 
   return (
@@ -71,38 +186,42 @@ export function MyFlightsTripCards({
           }}
         />
       )}
+
       {parsedScheduledCards.length > 0 && (
         <ul className="mt-4 space-y-3">
           {parsedScheduledCards.map((parsed, index) => (
             <li
               key={`sched-${index}-${parsed.scheduleTripId ?? parsed.tripNumber}-${parsed.startDate.toISOString()}`}
             >
-              <TripCard
+              <FlightCard
                 trip={parsed}
-                onSwap={() => handleSwapScheduledTrip(parsed)}
+                onSwap={() => {
+                  if (parsed.scheduleTripId) {
+                    router.push(`/dashboard/add-trade?tripId=${parsed.scheduleTripId}`);
+                  }
+                }}
                 onCancelSwap={handleCancelSwap}
-                onAcceptMatch={() => {}}
-                onDeclineMatch={() => {}}
-                baseAirportCode={baseAirportCode ?? undefined}
                 onEdit={parsed.scheduleTripId ? () => setEditingTrip(parsed) : undefined}
               />
             </li>
           ))}
         </ul>
       )}
-      {tradeCards.length > 0 && (
+
+      {parsedTradeCards.length > 0 && (
         <ul className="mt-4 space-y-3">
-          {tradeCards.map((card) => {
+          {parsedTradeCards.map((card) => {
             const parsed = parseCardDates(card);
             return (
               <li key={`trade-${card.tradeId ?? card.tripNumber}`}>
-                <TripCard
+                <FlightCard
                   trip={parsed}
-                  onSwap={handleSwapTradeCard}
+                  onSwap={() => {
+                    if (card.tradeId) {
+                      window.location.href = `/dashboard/browse?trade=${card.tradeId}`;
+                    }
+                  }}
                   onCancelSwap={handleCancelSwap}
-                  onAcceptMatch={() => {}}
-                  onDeclineMatch={() => {}}
-                  baseAirportCode={baseAirportCode ?? undefined}
                 />
               </li>
             );

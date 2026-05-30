@@ -76,6 +76,14 @@ export function PostPreview({
     hasLayover: t.layovers.length > 0,
     layoverHours: t.layovers[0]?.durationDecimal ?? null,
     layoverCity: t.layovers[0]?.airport ?? null,
+    blockHours: t.blockHours ?? null,
+    legs: t.legs.map((leg, idx) => ({
+      legOrder: idx,
+      flightNumber: leg.flightNumber,
+      isDeadhead: leg.flightNumber?.toUpperCase().startsWith("DH") ?? false,
+      departureAirport: leg.departureAirport,
+      arrivalAirport: leg.arrivalAirport,
+    })),
   }));
   const offeredTrips =
     offeredTripsFromSchedule.length > 0
@@ -108,6 +116,7 @@ export function PostPreview({
               layoverHours: trip.layoverHours ?? (legLayoversData[0]?.layoverHours ?? null),
               layoverCity: layoverCity ?? null,
               legLayovers: legLayoversData.length > 0 ? legLayoversData : null,
+              legDeadheads: trip.legDeadheads,
               reportTime: trip.reportTime ?? undefined,
             };
           })
@@ -175,7 +184,7 @@ export function PostPreview({
           type="button"
           onClick={onBack}
           disabled={isSubmitting}
-          className="text-sm text-slate-500 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-lg border border-slate-800 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           ← Back
         </button>

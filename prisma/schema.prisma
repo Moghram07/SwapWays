@@ -5,6 +5,7 @@ generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
   engineType = "binary"
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -380,7 +381,10 @@ model SwapPostTrip {
   layoverCity    String?
   layoverHours   Float?
   legLayovers    Json?
+  legDeadheads   Json?
   isManualEntry  Boolean       @default(false)
+
+  conversationOffers ConversationOffer[]
 
   @@index([swapPostId])
   @@index([scheduleTripId])
@@ -454,11 +458,12 @@ model ScheduleTrip {
   reportTime   String
   startDate    DateTime
   endDate      DateTime
-  tripType     TripType
-  creditHours  Float
-  blockHours   Float
-  tafb         Float
-  routeType    RouteType
+  tripType             TripType
+  creditHours          Float
+  blockHours           Float
+  tafb                 Float
+  routeType            RouteType
+  legDeadheadsOverride Json?
 
   legs               ScheduleTripLeg[]
   layovers           ScheduleTripLayover[]
@@ -585,13 +590,16 @@ model LineSwapLayover {
 }
 
 model ConversationOffer {
-  id              String       @id @default(cuid())
+  id              String        @id @default(cuid())
   conversationId  String
-  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  scheduleTripId  String
-  scheduleTrip    ScheduleTrip @relation(fields: [scheduleTripId], references: [id])
+  conversation    Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  // An offer references EITHER an uploaded ScheduleTrip OR a posted SwapPostTrip (manual entry).
+  scheduleTripId  String?
+  scheduleTrip    ScheduleTrip? @relation(fields: [scheduleTripId], references: [id])
+  swapPostTripId  String?
+  swapPostTrip    SwapPostTrip? @relation(fields: [swapPostTripId], references: [id])
 
-  @@unique([conversationId, scheduleTripId])
+  @@index([conversationId])
 }
 
 model Message {

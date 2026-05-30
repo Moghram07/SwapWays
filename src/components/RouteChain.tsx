@@ -29,12 +29,14 @@ export function RouteChain({
   tripType,
   timeColor,
   className,
+  legDeadheads,
 }: {
   nodes: RouteChainNode[];
   nodeTimes?: (string | null | undefined)[];
   tripType?: TripTypeKey | string | null;
   timeColor?: string;
   className?: string;
+  legDeadheads?: boolean[];
 }) {
   if (!nodes.length) return null;
 
@@ -43,6 +45,22 @@ export function RouteChain({
   const barColorCls = variantBarColor[variant];
 
   const layoverNodes = nodes.filter((n) => n.layoverHours != null);
+  const deadheadCount = legDeadheads?.filter(Boolean).length ?? 0;
+
+  // Group repeated layovers by city so e.g. two 18h Madinah layovers render once as
+  // "2 Layovers in Madinah 18h" instead of two identical rows.
+  const layoverGroups = (() => {
+    const byCode = new Map<string, number[]>();
+    const order: string[] = [];
+    for (const n of layoverNodes) {
+      if (!byCode.has(n.code)) {
+        byCode.set(n.code, []);
+        order.push(n.code);
+      }
+      byCode.get(n.code)!.push(n.layoverHours!);
+    }
+    return order.map((code) => ({ code, hours: byCode.get(code)! }));
+  })();
 
   // Highlight non-base destination nodes for these trip types
   // "Round Trip" in the UI stores as TURNAROUND in the DB
@@ -70,8 +88,11 @@ export function RouteChain({
                 />
               </div>
               {!isLast && (
-                <div className="shrink-0 flex items-center pt-4">
-                  <Plane className="h-3 w-3 text-gray-400" aria-hidden />
+                <div className="shrink-0 flex flex-col items-center pt-4 gap-0.5">
+                  <Plane
+                    className={`h-3 w-3 ${legDeadheads?.[i] ? "text-purple-500" : "text-gray-400"}`}
+                    aria-hidden
+                  />
                 </div>
               )}
             </Fragment>
@@ -79,19 +100,39 @@ export function RouteChain({
         })}
       </div>
 
-      {layoverNodes.length > 0 && (
+      {deadheadCount > 0 && (
+        <div className="mt-2">
+          <div className="flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-medium text-purple-700">
+            <Plane className="h-3 w-3 shrink-0 text-purple-500" />
+            <span>
+              {deadheadCount > 1
+                ? `${deadheadCount} Dead head legs (no duty)`
+                : "Dead head leg (no duty)"}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {layoverGroups.length > 0 && (
         <div className="mt-2 space-y-1.5">
-          {layoverNodes.map((node, i) => {
-            const hours = node.layoverHours!;
-            const nights = hours >= 8 ? Math.max(1, Math.round(hours / 24)) : 0;
-            const durationLabel = creditHoursToHumanReadable(hours);
+          {layoverGroups.map((group, i) => {
+            // When every layover in this city has the same duration, show one duration
+            // (and its nights). When they differ, list the distinct durations together.
+            const distinctHours = group.hours.filter((h, idx) => group.hours.indexOf(h) === idx);
+            const count = group.hours.length;
+            const singleDuration = distinctHours.length === 1;
+            const durationLabel = distinctHours.map((h) => creditHoursToHumanReadable(h)).join(", ");
+            const hours = distinctHours[0]!;
+            const nights = singleDuration && hours >= 8 ? Math.max(1, Math.round(hours / 24)) : 0;
             return (
               <div
                 key={i}
                 className={`flex flex-wrap items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-medium ${barColorCls}`}
               >
                 <span className="font-semibold">
-                  Layover in {getAirportCity(node.code)}
+                  {count > 1
+                    ? `${count} Layovers in ${getAirportCity(group.code)}`
+                    : `Layover in ${getAirportCity(group.code)}`}
                 </span>
                 <span className="flex items-center gap-0.5">
                   <Clock className="h-3 w-3" />

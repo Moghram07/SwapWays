@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ReactNode } from "react";
 
 interface WtfDayPickerProps {
@@ -12,24 +13,56 @@ interface WtfDayPickerProps {
   minSelectableDay?: number;
   /** Override the label (default: "Willing to fly days"). Set to empty string to hide. */
   label?: ReactNode;
+  /** When provided, called to get scheduled days when the user navigates to a different month. */
+  getScheduledDaysForMonth?: (month: number, year: number) => number[];
 }
 
 export function WtfDayPicker({
   selectedDays,
-  scheduledDays,
+  scheduledDays: initialScheduledDays,
   month,
   year,
   onChange,
   minSelectableDay,
   label: labelProp,
+  getScheduledDaysForMonth,
 }: WtfDayPickerProps) {
   const label = labelProp !== undefined ? labelProp : "Willing to fly days";
-  const daysInMonth = new Date(year, month, 0).getDate();
 
   const today = new Date();
+  const currentMonth = today.getMonth() + 1;
+  const currentYear = today.getFullYear();
+
+  const [displayMonth, setDisplayMonth] = useState(month);
+  const [displayYear, setDisplayYear] = useState(year);
+  const [navigatedScheduledDays, setNavigatedScheduledDays] = useState<number[] | null>(null);
+
+  const scheduledDays =
+    navigatedScheduledDays !== null ? navigatedScheduledDays : initialScheduledDays;
+
+  const isOnCurrentMonth =
+    displayMonth === currentMonth && displayYear === currentYear;
+
+  const nextMonthNum = currentMonth === 12 ? 1 : currentMonth + 1;
+  const nextMonthYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+
+  function selectMonth(m: number, y: number) {
+    setDisplayMonth(m);
+    setDisplayYear(y);
+    if (m === currentMonth && y === currentYear) {
+      setNavigatedScheduledDays(null);
+    } else if (getScheduledDaysForMonth) {
+      setNavigatedScheduledDays(getScheduledDaysForMonth(m, y));
+    } else {
+      setNavigatedScheduledDays([]);
+    }
+  }
+
+  const daysInMonth = new Date(displayYear, displayMonth, 0).getDate();
+
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   const isPastDay = (day: number) =>
-    new Date(year, month - 1, day).setHours(0, 0, 0, 0) < todayStart;
+    new Date(displayYear, displayMonth - 1, day).setHours(0, 0, 0, 0) < todayStart;
   const isDayDisabled = (day: number) =>
     minSelectableDay != null ? isPastDay(day) : false;
 
@@ -44,11 +77,9 @@ export function WtfDayPicker({
 
   function selectAllDaysOff() {
     if (minSelectableDay != null) {
-      const isCurrentMonth =
-        year === new Date().getFullYear() && month === new Date().getMonth() + 1;
-      const from = isCurrentMonth ? minSelectableDay : 1;
+      const fromDay = isOnCurrentMonth ? minSelectableDay : 1;
       const fromToday: number[] = [];
-      for (let d = from; d <= daysInMonth; d++) fromToday.push(d);
+      for (let d = fromDay; d <= daysInMonth; d++) fromToday.push(d);
       onChange(fromToday);
     } else {
       const off: number[] = [];
@@ -59,6 +90,17 @@ export function WtfDayPicker({
     }
   }
 
+  function monthLabel(m: number, y: number) {
+    return new Date(y, m - 1).toLocaleString("default", { month: "long", year: "numeric" });
+  }
+
+  const selectAllLabel =
+    minSelectableDay != null
+      ? isOnCurrentMonth
+        ? "Select from today"
+        : "Select all"
+      : "Select all days off";
+
   return (
     <div>
       {label !== "" && (
@@ -66,15 +108,15 @@ export function WtfDayPicker({
           <label className="block text-sm font-medium text-gray-700">
             {label}
           </label>
-        <button
-          type="button"
-          onClick={selectAllDaysOff}
-          className="text-xs hover:underline"
-          style={{ color: "var(--primary-cta)" }}
-        >
-          {minSelectableDay != null ? "Select from today" : "Select all days off"}
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={selectAllDaysOff}
+            className="text-xs hover:underline"
+            style={{ color: "var(--primary-cta)" }}
+          >
+            {selectAllLabel}
+          </button>
+        </div>
       )}
       {label !== "" && (
         <p className="mb-2 text-xs text-gray-500">
@@ -83,6 +125,33 @@ export function WtfDayPicker({
             : "Select your days off when you are available to fly instead. Blue days show flights and green days show off days."}
         </p>
       )}
+
+      {/* Month toggle */}
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => selectMonth(currentMonth, currentYear)}
+          className={`rounded-lg border-2 py-2 text-sm font-medium transition-colors ${
+            isOnCurrentMonth
+              ? "border-[var(--primary-cta)] bg-[var(--primary-cta)] text-white"
+              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+          }`}
+        >
+          {monthLabel(currentMonth, currentYear)}
+        </button>
+        <button
+          type="button"
+          onClick={() => selectMonth(nextMonthNum, nextMonthYear)}
+          className={`rounded-lg border-2 py-2 text-sm font-medium transition-colors ${
+            !isOnCurrentMonth
+              ? "border-[var(--primary-cta)] bg-[var(--primary-cta)] text-white"
+              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+          }`}
+        >
+          {monthLabel(nextMonthNum, nextMonthYear)}
+        </button>
+      </div>
+
       <div className="flex flex-wrap gap-1.5">
         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
           const isDisabled = isDayDisabled(day);
@@ -124,12 +193,9 @@ export function WtfDayPicker({
         })}
       </div>
       <p className="mt-2 text-xs text-gray-500">
-        {selectedDays.length} day{selectedDays.length === 1 ? "" : "s"} selected
-        <span className="ml-3">·</span>
-        <span className="ml-3 text-blue-600">Blue = flight day</span>
+        <span className="text-blue-600">Blue = flight day</span>
         <span className="ml-3 text-emerald-600">Green = off day</span>
       </p>
     </div>
   );
 }
-

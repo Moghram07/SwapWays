@@ -1,5 +1,6 @@
 "use client";
 
+import { Pencil } from "lucide-react";
 import { TripTypeBadge } from "./TripTypeBadge";
 import { SwapButton } from "./SwapButton";
 import { SwapStatusBadge } from "./SwapStatusBadge";
@@ -199,8 +200,9 @@ export function TripCardHeader({
           <button
             type="button"
             onClick={() => onEdit(trip)}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
+            <Pencil className="h-3.5 w-3.5" />
             Edit
           </button>
         )}

@@ -14,7 +14,7 @@ import {
   offeredTripFingerprintFromCandidate,
 } from "@/lib/swapPostOfferDedupe";
 import { prisma } from "@/lib/prisma";
-import { classifyTrip, getUniqueDestinations } from "@/utils/tripClassifier";
+import { getUniqueDestinations } from "@/utils/tripClassifier";
 import {
   findMatchesForPost,
   invalidateMatchCacheForPosts,
@@ -88,6 +88,7 @@ type ManualOfferedTrip = {
   blockHours: number | null;
   flightNumber: string | null;
   legLayovers?: { legIndex: number; layoverHours: number }[];
+  legDeadheads?: boolean[];
 };
 
 function normalizeManualOfferedTrips(
@@ -114,18 +115,19 @@ function normalizeManualOfferedTrips(
       aircraftTypeCode?: string | null;
       blockHours?: number | null;
       flightNumber?: string | null;
-      legs?: { to: string; hasLayover: boolean; layoverHours: number | null }[];
+      legs?: { to: string; hasLayover: boolean; layoverHours: number | null; isDeadhead?: boolean }[];
     };
     if (!trip.tripType || !trip.date) {
       return { trips: [], errorMessage: "Each offered trip requires tripType and date" };
     }
 
-    // Derive destinations and legLayovers from legs array
+    // Derive destinations, legLayovers and legDeadheads from legs array
     const isPairing = trip.tripType === "MULTI_STOP";
     // New form always sends legs (all types); old pairing format may also send legs
     const hasLegs = Array.isArray(trip.legs) && trip.legs.length >= 2;
     let destinations: string[];
     let legLayovers: { legIndex: number; layoverHours: number }[] | undefined;
+    let legDeadheads: boolean[] | undefined;
 
     if (hasLegs) {
       // New form: legs include the final return leg — exclude it for stored destinations
@@ -135,6 +137,7 @@ function normalizeManualOfferedTrips(
         .map((l, i) => ({ legIndex: i, hasLayover: l.hasLayover, layoverHours: l.layoverHours }))
         .filter((l) => l.hasLayover && l.layoverHours != null && l.layoverHours > 0)
         .map((l) => ({ legIndex: l.legIndex, layoverHours: l.layoverHours! }));
+      legDeadheads = trip.legs!.map((l) => l.isDeadhead ?? false);
     } else if (isPairing && Array.isArray(trip.legs) && trip.legs.length > 0) {
       // Legacy pairing format (no final return leg)
       destinations = trip.legs.map((l) => String(l.to ?? "").trim().toUpperCase()).filter(Boolean);
@@ -142,6 +145,7 @@ function normalizeManualOfferedTrips(
         .map((l, i) => ({ legIndex: i, hasLayover: l.hasLayover, layoverHours: l.layoverHours }))
         .filter((l) => l.hasLayover && l.layoverHours != null && l.layoverHours > 0)
         .map((l) => ({ legIndex: l.legIndex, layoverHours: l.layoverHours! }));
+      legDeadheads = trip.legs.map((l) => l.isDeadhead ?? false);
     } else {
       destinations = normalizeAirportCodes(trip.destinations);
     }
@@ -184,6 +188,7 @@ function normalizeManualOfferedTrips(
       blockHours: trip.blockHours != null ? Number(trip.blockHours) : null,
       flightNumber: trip.flightNumber?.trim() ? normalizeFlightNumber(trip.flightNumber) : null,
       legLayovers,
+      legDeadheads,
     });
   }
   return { trips: out };
@@ -289,19 +294,13 @@ export async function POST(request: Request) {
     };
   };
   let access: Awaited<ReturnType<typeof getUserAccess>>;
-  let userBaseCode: string | null;
   try {
-    const [bodyRaw, accessResult, userBaseRow] = await Promise.all([
+    const [bodyRaw, accessResult] = await Promise.all([
       request.json(),
       getUserAccess(session.user.id),
-      prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { base: { select: { airportCode: true } } },
-      }),
     ]);
     body = bodyRaw;
     access = accessResult;
-    userBaseCode = userBaseRow?.base?.airportCode?.toUpperCase() ?? null;
   } catch {
     return timer.end(error("Invalid JSON", 400));
   }
@@ -374,15 +373,11 @@ export async function POST(request: Request) {
     normalizedManualTrips.trips = fallback.trips;
   }
 
-  // Strip the user's own base airport from offered destinations — it can never be a valid swap destination.
-  if (userBaseCode) {
-    for (const trip of normalizedManualTrips.trips) {
-      trip.destinations = trip.destinations.filter((d) => d.toUpperCase() !== userBaseCode);
-      if (trip.destination?.toUpperCase() === userBaseCode) {
-        trip.destination = trip.destinations[0] ?? "";
-      }
-    }
-  }
+  // Note: do NOT strip the user's base airport from `destinations`. For a multi-stop trip that
+  // routes back through base (e.g. JED→AHB→JED→BHH→JED), the intermediate base is a real waypoint,
+  // and manual posts have no legs to fall back on — the route chain is rebuilt from `destinations`.
+  // Removing it collapsed the route and mis-aligned per-leg deadhead/layover indices. Base is never
+  // a soft-match destination (scoring uses the poster's *wants*), so keeping it here is safe.
 
   if (postType === "OFFERING_TRIPS" && selectedTrips.length === 0 && normalizedManualTrips.trips.length === 0) {
     return error("Flight Swap requires selectedTrips or offeredTrips data", 400);
@@ -456,6 +451,7 @@ export async function POST(request: Request) {
     layoverCity: string | null;
     layoverHours: number | null;
     legLayovers?: { legIndex: number; layoverHours: number }[];
+    legDeadheads?: boolean[];
     isManualEntry?: boolean;
   }[] = [];
 
@@ -473,6 +469,8 @@ export async function POST(request: Request) {
               blockHours: true,
               tafb: true,
               reportTime: true,
+              tripType: true,
+              legDeadheadsOverride: true,
               legs: {
                 orderBy: { legOrder: "asc" },
                 select: { legOrder: true, flightNumber: true, aircraftTypeCode: true, departureAirport: true, arrivalAirport: true },
@@ -491,7 +489,7 @@ export async function POST(request: Request) {
 
     if (selectedTrips.length > 0) {
       for (const trip of scheduledTripsRaw) {
-        const tripType = classifyTrip(trip);
+        const tripType = trip.tripType;
         const destinations = getUniqueDestinations(trip);
         const destination = destinations[0] ?? trip.legs[trip.legs.length - 1]?.arrivalAirport ?? "";
         const firstLeg = trip.legs[0];
@@ -514,6 +512,8 @@ export async function POST(request: Request) {
           layoverCity: hasLayover && layover ? layover.airport : null,
           layoverHours: hasLayover && layover ? layover.durationDecimal : null,
           isManualEntry: false,
+          legDeadheads: (trip.legDeadheadsOverride as boolean[] | null)
+            ?? trip.legs.map((l) => l.flightNumber?.toUpperCase().startsWith("DH") ?? false),
         });
       }
       if (postType === "OFFERING_TRIPS" && swapPostTrips.length === 0) {
@@ -537,6 +537,7 @@ export async function POST(request: Request) {
           layoverCity: trip.tripType === "LAYOVER" ? trip.destination : (trip.legLayovers?.[0] != null ? trip.destinations[trip.legLayovers[0].legIndex] ?? null : null),
           layoverHours: trip.layoverHours,
           legLayovers: trip.legLayovers,
+          legDeadheads: trip.legDeadheads,
           isManualEntry: true,
         });
       }
@@ -613,7 +614,13 @@ export async function POST(request: Request) {
           if (!earliest) return trip.departureDate;
           return trip.departureDate.getTime() < earliest.getTime() ? trip.departureDate : earliest;
         }, null);
-        return earliestTripDate;
+        // The earliest trip's departureDate is stored at 00:00 UTC. Using it directly as the
+        // hard expiry deadline made a post vanish the moment its departure DAY began (or
+        // immediately for same-day trips), even though the trip flies later that day.
+        // Push the deadline to the end of that UTC day; the precise per-trip departure-time
+        // check in isSwapPostExpired still hides the post once the trip actually departs.
+        if (!earliestTripDate) return null;
+        return new Date(earliestTripDate.getTime() + 24 * 60 * 60 * 1000 - 1);
       }
       return null;
     })();

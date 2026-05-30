@@ -3,9 +3,14 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { withTiming } from "@/lib/apiTimer";
-
-const CONVERSATION_CACHE_TTL_MS = 15_000;
-const conversationCache = new Map<string, { expiresAt: number; payload: unknown }>();
+import {
+  scheduleTripToView,
+  manualSwapTripToView,
+  type ChatTripView,
+  type ScheduleTripMini,
+  type ManualSwapTrip,
+} from "@/utils/chatTripMapping";
+import { getCachedConversation, setCachedConversation, invalidateConversationCache } from "@/lib/conversationCache";
 
 function unauthorized() {
   return NextResponse.json(
@@ -27,10 +32,9 @@ export async function GET(
   if (!session?.user?.id) return timer.end(unauthorized());
 
   const { id } = await params;
-  const cacheKey = `${session.user.id}:${id}`;
-  const cached = conversationCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return timer.end(NextResponse.json({ data: cached.payload, error: null, message: null }));
+  const cached = getCachedConversation(session.user.id, id);
+  if (cached) {
+    return timer.end(NextResponse.json({ data: cached, error: null, message: null }));
   }
 
   try {
@@ -56,6 +60,22 @@ export async function GET(
       },
     } as const;
 
+    // Manual (no-schedule) trips store their data on SwapPostTrip — select enough to
+    // reconstruct the route for display, plus the schedule trip if this post came from a schedule.
+    const swapPostTripMiniSelect = {
+      scheduleTripId: true,
+      destination: true,
+      destinations: true,
+      departureDate: true,
+      reportTime: true,
+      flightNumber: true,
+      hasLayover: true,
+      layoverCity: true,
+      layoverHours: true,
+      legLayovers: true,
+      scheduleTrip: { select: scheduleTripMiniSelect },
+    } as const;
+
     const conversationBase = await prisma.conversation.findUnique({
       where: { id },
       select: {
@@ -72,7 +92,7 @@ export async function GET(
             id: true,
             firstName: true,
             rank: { select: { name: true } },
-            base: { select: { name: true } },
+            base: { select: { name: true, airportCode: true } },
           },
         },
         tradeOwner: {
@@ -80,7 +100,7 @@ export async function GET(
             id: true,
             firstName: true,
             rank: { select: { name: true } },
-            base: { select: { name: true } },
+            base: { select: { name: true, airportCode: true } },
           },
         },
         postOwner: {
@@ -88,7 +108,7 @@ export async function GET(
             id: true,
             firstName: true,
             rank: { select: { name: true } },
-            base: { select: { name: true } },
+            base: { select: { name: true, airportCode: true } },
           },
         },
       },
@@ -115,11 +135,7 @@ export async function GET(
             where: { id: conversationBase.swapPostId },
             select: {
               offeredTrips: {
-                select: {
-                  scheduleTrip: {
-                    select: scheduleTripMiniSelect,
-                  },
-                },
+                select: swapPostTripMiniSelect,
                 take: 1,
               },
             },
@@ -135,12 +151,60 @@ export async function GET(
         where: { conversationId: conversationBase.id },
         select: {
           scheduleTripId: true,
-          scheduleTrip: {
-            select: scheduleTripMiniSelect,
-          },
+          scheduleTrip: { select: scheduleTripMiniSelect },
+          swapPostTripId: true,
+          swapPostTrip: { select: swapPostTripMiniSelect },
         },
       }),
     ]);
+
+    const ownerBaseCode =
+      conversationBase.postOwner?.base?.airportCode ??
+      conversationBase.tradeOwner?.base?.airportCode ??
+      null;
+    const initiatorBaseCode = conversationBase.initiator?.base?.airportCode ?? null;
+
+    // A SwapPostTrip is either schedule-backed (render via its scheduleTrip) or manual.
+    const swapTripToView = (
+      t:
+        | (ManualSwapTrip & { scheduleTrip?: ScheduleTripMini | null })
+        | null
+        | undefined,
+      baseCode: string | null
+    ): ChatTripView | null => {
+      if (!t) return null;
+      if (t.scheduleTrip) return scheduleTripToView(t.scheduleTrip);
+      return manualSwapTripToView(t, baseCode);
+    };
+
+    const ownerTripView: ChatTripView | null = tradeScheduleTrip?.scheduleTrip
+      ? scheduleTripToView(tradeScheduleTrip.scheduleTrip as ScheduleTripMini)
+      : swapTripToView(
+          swapPost?.offeredTrips?.[0] as
+            | (ManualSwapTrip & { scheduleTrip?: ScheduleTripMini | null })
+            | undefined,
+          ownerBaseCode
+        );
+
+    let initiatorTripView: ChatTripView | null = null;
+    let currentOfferId: string | null = null;
+    if (offeredTrip) {
+      // Trade conversation: single offered ScheduleTrip on the conversation.
+      initiatorTripView = scheduleTripToView(offeredTrip as ScheduleTripMini);
+      currentOfferId = conversationBase.offeredTripId ?? null;
+    } else if (offeredTripLink) {
+      if (offeredTripLink.scheduleTrip) {
+        initiatorTripView = scheduleTripToView(offeredTripLink.scheduleTrip as ScheduleTripMini);
+      } else if (offeredTripLink.swapPostTrip) {
+        initiatorTripView = swapTripToView(
+          offeredTripLink.swapPostTrip as
+            | (ManualSwapTrip & { scheduleTrip?: ScheduleTripMini | null })
+            | undefined,
+          initiatorBaseCode
+        );
+      }
+      currentOfferId = offeredTripLink.scheduleTripId ?? offeredTripLink.swapPostTripId ?? null;
+    }
 
     const conversation = {
       ...conversationBase,
@@ -148,11 +212,11 @@ export async function GET(
       swapPost,
       offeredTrip,
       offeredTrips: offeredTripLink ? [offeredTripLink] : [],
+      ownerTripView,
+      initiatorTripView,
+      currentOfferId,
     };
-    conversationCache.set(cacheKey, {
-      expiresAt: Date.now() + CONVERSATION_CACHE_TTL_MS,
-      payload: conversation,
-    });
+    setCachedConversation(session.user.id, id, conversation);
 
     return timer.end(NextResponse.json({
       data: conversation,
@@ -201,6 +265,7 @@ export async function DELETE(
       prisma.conversationOffer.deleteMany({ where: { conversationId: id } }),
       prisma.conversation.delete({ where: { id } }),
     ]);
+    invalidateConversationCache(id);
 
     return new NextResponse(null, { status: 204 });
   } catch {

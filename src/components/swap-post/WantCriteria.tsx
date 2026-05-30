@@ -25,6 +25,7 @@ interface WantCriteriaProps {
   year: number;
   onNext: () => void;
   onBack: () => void;
+  getScheduledDaysForMonth?: (month: number, year: number) => number[];
 }
 
 export function WantCriteria({
@@ -38,6 +39,7 @@ export function WantCriteria({
   year,
   onNext,
   onBack,
+  getScheduledDaysForMonth,
 }: WantCriteriaProps) {
   const [attempted, setAttempted] = useState(false);
   const isVacationMode = postType === "VACATION_SWAP";
@@ -159,6 +161,7 @@ export function WantCriteria({
           year={year}
           minSelectableDay={new Date().getDate()}
           onChange={(d) => onChange({ ...criteria, wtfDays: d })}
+          getScheduledDaysForMonth={getScheduledDaysForMonth}
         />
         {attempted && criteria.wtfDays.length === 0 && (
           <p className="text-xs text-rose-600">Choose at least one day you are willing to fly.</p>
@@ -178,7 +181,7 @@ export function WantCriteria({
       </div>
 
       <div className="flex justify-between pt-2">
-        <button type="button" onClick={onBack} className="text-sm text-slate-500 hover:underline">
+        <button type="button" onClick={onBack} className="rounded-lg border border-slate-800 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">
           ← Back
         </button>
         <button

@@ -23,6 +23,16 @@ export function decimalHoursToDisplayTime(decimal: number): string {
   return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
 }
 
+/**
+ * Round a layover duration (decimal hours, e.g. 49.9166… = 49h55m) to a whole number
+ * for hour-only input fields, so they show "50" instead of "49.9166666666667".
+ * Full precision is preserved elsewhere via the H/M editor and "Xh Ym" display.
+ */
+export function roundLayoverHours(decimal: number | null | undefined): number | null {
+  if (decimal == null || !Number.isFinite(decimal)) return null;
+  return Math.round(decimal);
+}
+
 /** Format credit hours as "10h 30m" for scannable display. */
 export function creditHoursToHumanReadable(decimal: number): string {
   const h = Math.floor(decimal);

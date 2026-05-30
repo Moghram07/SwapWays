@@ -92,6 +92,7 @@ interface BoardPost {
     reportTime?: string | null;
     aircraftType?: string | null;
     isManualEntry?: boolean;
+    legDeadheads?: unknown;
     scheduleTrip?: {
       reportTime: string;
       legs: {
@@ -319,6 +320,7 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
           legs: legs.map((l) => ({
             legOrder: l.legOrder,
             flightNumber: l.flightNumber,
+            isDeadhead: l.flightNumber?.toUpperCase().startsWith("DH") ?? false,
             departureTime: l.departureTime,
             departureDate: l.departureDate ? new Date(l.departureDate) : undefined,
             departureAirport: l.departureAirport,
@@ -327,6 +329,7 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
             arrivalAirport: l.arrivalAirport,
             flyingTime: l.flyingTime,
           })),
+          legDeadheads: t.legDeadheads as boolean[] | null | undefined,
         };
       }),
       offeringDaysOff: p.offeringDaysOff,
@@ -429,7 +432,13 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
                     post={postToCard(post) as Parameters<typeof SwapPostTradeBoardCard>[0]["post"]}
                     onMessage={isOwn ? undefined : () => handleMessageClick(post.id)}
                     isOwn={isOwn}
-                    editHref={isOwn ? `/dashboard/add-trade?edit=${post.id}` : undefined}
+                    editHref={
+                      isOwn
+                        ? post.inputSource === "MANUAL_QUICK"
+                          ? `/dashboard/add-trade?type=manual&edit=${post.id}`
+                          : `/dashboard/add-trade?edit=${post.id}`
+                        : undefined
+                    }
                   />
                 </li>
               );

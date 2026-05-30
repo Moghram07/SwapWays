@@ -82,6 +82,7 @@ export const swapPostSelect = {
       layoverCity: true,
       layoverHours: true,
       legLayovers: true,
+      legDeadheads: true,
       isManualEntry: true,
       scheduleTrip: {
         select: {
@@ -123,6 +124,7 @@ const swapPostBoardSelect = {
       layoverCity: true,
       layoverHours: true,
       legLayovers: true,
+      legDeadheads: true,
       scheduleTrip: {
         select: {
           legs: {
@@ -168,6 +170,7 @@ export async function createSwapPost(
       layoverCity: string | null;
       layoverHours: number | null;
       legLayovers?: { legIndex: number; layoverHours: number }[];
+      legDeadheads?: boolean[];
       isManualEntry?: boolean;
     }[];
     vacationStartDate?: Date | null;
@@ -244,6 +247,7 @@ export async function createSwapPost(
               layoverCity: t.layoverCity,
               layoverHours: t.layoverHours,
               legLayovers: t.legLayovers ? (t.legLayovers as unknown as Prisma.InputJsonValue) : undefined,
+              legDeadheads: t.legDeadheads ? (t.legDeadheads as unknown as Prisma.InputJsonValue) : undefined,
               isManualEntry: t.isManualEntry ?? false,
             })),
           }
@@ -469,6 +473,10 @@ export async function getOpenOfferingDedupeInfoForUser(
       ...(options?.excludeSwapPostId ? { id: { not: options.excludeSwapPostId } } : {}),
     },
     select: {
+      postType: true,
+      expiresAt: true,
+      quickDate: true,
+      createdAt: true,
       offeredTrips: {
         select: {
           scheduleTripId: true,
@@ -486,7 +494,11 @@ export async function getOpenOfferingDedupeInfoForUser(
   const tripFingerprints = new Set<string>();
   const looseManualMultiStopKeys = new Set<string>();
   const looseSimpleTripKeys = new Set<string>();
+  const now = new Date();
   for (const p of posts) {
+    // An OPEN-but-expired post is hidden from every listing, so it must not block re-posting
+    // the same trip — otherwise the user sees "trip is posted" with nothing visible to cancel.
+    if (isSwapPostExpired(p, now)) continue;
     const lk = looseManualMultiStopPostKeyFromTrips(
       p.offeredTrips.map((t) => ({
         scheduleTripId: t.scheduleTripId,
@@ -571,6 +583,7 @@ export async function updateSwapPost(
       layoverCity: string | null;
       layoverHours: number | null;
       legLayovers?: { legIndex: number; layoverHours: number }[];
+      legDeadheads?: boolean[];
       isManualEntry?: boolean;
     }[];
     vacationYear?: number;
@@ -656,6 +669,7 @@ export async function updateSwapPost(
             layoverCity: t.layoverCity,
             layoverHours: t.layoverHours,
             legLayovers: t.legLayovers ? (t.legLayovers as unknown as Prisma.InputJsonValue) : undefined,
+            legDeadheads: t.legDeadheads ? (t.legDeadheads as unknown as Prisma.InputJsonValue) : undefined,
             isManualEntry: t.isManualEntry ?? false,
           })),
         });

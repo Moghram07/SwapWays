@@ -430,7 +430,7 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
         <button
           type="button"
           onClick={() => router.push("/dashboard/add-trade")}
-          className="text-sm text-slate-500 hover:underline"
+          className="rounded-lg border border-slate-800 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
         >
           <span className="inline-flex items-center gap-1">
             <span aria-hidden className="rtl:rotate-180">

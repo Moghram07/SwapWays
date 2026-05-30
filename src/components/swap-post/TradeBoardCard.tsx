@@ -65,6 +65,7 @@ interface TripRow {
   legs?: Array<{
     legOrder: number;
     flightNumber?: string;
+    isDeadhead?: boolean;
     departureTime?: string;
     departureDate?: Date;
     departureAirport?: string;
@@ -73,6 +74,7 @@ interface TripRow {
     arrivalAirport?: string;
     flyingTime?: number;
   }>;
+  legDeadheads?: boolean[] | null;
 }
 
 interface PostCardData {
@@ -239,6 +241,15 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
   const timeColor = isSchedulePost
     ? timeMode === "zulu" ? "text-[#2668B0]" : "text-[#3BA34A]"
     : undefined;
+  // Prefer the stored per-leg deadhead override (set when posting / editing a trip) so
+  // manually-marked deadheads render the same on the board and in My Swaps. Fall back to
+  // deriving from the leg's flight number ("DH…") for schedule posts without an override.
+  const legDeadheads: boolean[] =
+    trip.legDeadheads && trip.legDeadheads.length > 0
+      ? trip.legDeadheads.map(Boolean)
+      : isSchedulePost
+        ? legs.map((l) => l.isDeadhead ?? false)
+        : [];
   const nodeTimes: (string | null)[] = routeChain.map((_node, i) => {
     if (!isSchedulePost) return null;
     if (i === 0) {
@@ -264,7 +275,7 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
           {flightNum && (
             <span className="mb-0.5 block text-xs font-medium text-gray-500">{flightNum}</span>
           )}
-          <RouteChain nodes={routeChain} nodeTimes={nodeTimes} tripType={trip.tripType} timeColor={timeColor} />
+          <RouteChain nodes={routeChain} nodeTimes={nodeTimes} tripType={trip.tripType} timeColor={timeColor} legDeadheads={legDeadheads} />
         </div>
       </div>
 

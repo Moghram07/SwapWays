@@ -52,6 +52,7 @@ export interface QuickPostLegEntry {
   to: string;
   hasLayover: boolean;
   layoverHours: number | null;
+  isDeadhead?: boolean;
 }
 
 export interface QuickPostOfferedTripData {
@@ -67,6 +68,8 @@ export interface QuickPostOfferedTripData {
   flightNumber?: string | null;
   /** Full leg array (always present; includes final return leg). */
   legs: QuickPostLegEntry[];
+  /** Per-leg dead head flags, index matches leg order. */
+  legDeadheads?: boolean[];
 }
 
 export interface SwapPostTripData {

@@ -98,6 +98,8 @@ model User {
   subscriptionStatus SubscriptionStatus @default(TRIALING)
   subscribedAt   DateTime?
   subscriptionRenewsAt DateTime?
+  /** Last time this user was emailed via an admin broadcast — powers "skip already-emailed". */
+  lastBroadcastEmailedAt DateTime?
   cancelledAt    DateTime?
   isActive      Boolean  @default(true)
   isAdmin       Boolean  @default(false)

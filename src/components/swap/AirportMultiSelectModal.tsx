@@ -157,7 +157,7 @@ export function AirportMultiSelectModal({
                     key={airport.code}
                     type="button"
                     onClick={() => toggleCode(airport.code)}
-                    className={`flex w-full items-center justify-between border-b border-slate-50 px-3 py-2.5 text-left text-sm last:border-b-0 ${
+                    className={`flex w-full items-center justify-between border-b border-line px-3 py-2.5 text-left text-sm last:border-b-0 ${
                       selected ? "bg-emerald-50 font-medium text-emerald-900" : "text-content hover:bg-surface-2"
                     }`}
                   >

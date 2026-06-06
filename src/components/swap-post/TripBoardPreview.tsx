@@ -70,7 +70,7 @@ export function TripBoardPreview({
   const dateLabel = startDate.toLocaleDateString("en-US", UTC_DATE_OPTS);
 
   return (
-    <div className={`rounded-lg border p-3 ${typeInfo.bgColor}`}>
+    <div className="rounded-lg border border-line bg-surface p-3">
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-faint">
         Board preview
       </p>

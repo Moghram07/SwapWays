@@ -61,8 +61,9 @@ export function getTripTypeInfo(
       return {
         type: "LAYOVER",
         label: "Layover",
-        bgColor: "bg-[#E8F5EA]",
-        textColor: "text-[#3BA34A]",
+        // Soft tint + green text in light; solid green + white text in dark (see pill tokens).
+        bgColor: "bg-[var(--pill-layover-bg)]",
+        textColor: "text-[var(--pill-layover-fg)]",
         borderColor: "border-s-[#3BA34A]",
         icon: "Moon",
       };
@@ -70,8 +71,8 @@ export function getTripTypeInfo(
       return {
         type: "TURNAROUND",
         label: "Round Trip",
-        bgColor: "bg-[#E3EFF9]",
-        textColor: "text-[#2668B0]",
+        bgColor: "bg-[var(--pill-roundtrip-bg)]",
+        textColor: "text-[var(--pill-roundtrip-fg)]",
         borderColor: "border-s-[#2668B0]",
         icon: "RotateCcw",
       };
@@ -80,8 +81,8 @@ export function getTripTypeInfo(
       return {
         type: "MULTI_STOP",
         label,
-        bgColor: "bg-amber-50",
-        textColor: "text-amber-700",
+        bgColor: "bg-[var(--pill-multistop-bg)]",
+        textColor: "text-[var(--pill-multistop-fg)]",
         borderColor: "border-s-amber-500",
         icon: "Route",
       };

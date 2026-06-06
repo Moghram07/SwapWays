@@ -386,7 +386,7 @@ export function AdminPageClient() {
                             return (
                               <tr
                                 key={row.day}
-                                className={`border-b border-slate-50 last:border-0 ${isToday ? "bg-blue-50" : ""}`}
+                                className={`border-b border-line last:border-0 ${isToday ? "bg-brand-blue-soft" : ""}`}
                               >
                                 <td className="py-1.5 pr-4 font-medium text-content">
                                   {label}

@@ -446,7 +446,7 @@ function ForDisplay({
 
       {wtfDays && wtfDays.length > 0 && (
         <p className="text-sm leading-snug text-content-soft">
-          <span className="font-semibold text-indigo-800">Willing to fly:</span>{" "}
+          <span className="font-semibold text-[var(--node-blue)]">Willing to fly:</span>{" "}
           {formatPreferenceDays(wtfDays)}
         </p>
       )}

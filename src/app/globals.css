@@ -34,6 +34,14 @@
   --line: #e2e8f0;
   --brand-blue-soft: #E3EFF9;
   --brand-green-soft: #E8F5EA;
+  /* Route-node accents (round-trip/multi-stop destination boxes, "willing to fly"). */
+  --node-blue: #2668B0;
+  --node-amber: #b45309;
+  --node-purple: #7e22ce;
+  /* Trip-type pill: soft tint + colored text in light. */
+  --pill-layover-bg: #E8F5EA;   --pill-layover-fg: #3BA34A;
+  --pill-roundtrip-bg: #E3EFF9; --pill-roundtrip-fg: #2668B0;
+  --pill-multistop-bg: #FFFBEB; --pill-multistop-fg: #b45309;
 }
 
 @theme inline {
@@ -82,6 +90,15 @@
   --line: #334155;
   --brand-blue-soft: rgba(38, 104, 176, 0.20);
   --brand-green-soft: rgba(59, 163, 74, 0.18);
+  /* Lighter accents so blue/amber/purple route nodes read on the dark surface. */
+  --node-blue: #7dd3fc;
+  --node-amber: #fbbf24;
+  --node-purple: #c4b5fd;
+  /* Trip-type pill: solid accent + white text in dark (bold, never faded).
+     Layover uses a deeper, less-glowing green than the brand #3BA34A. */
+  --pill-layover-bg: #15803d;   --pill-layover-fg: #ffffff;
+  --pill-roundtrip-bg: #2668B0; --pill-roundtrip-fg: #ffffff;
+  --pill-multistop-bg: #d97706; --pill-multistop-fg: #ffffff;
 }
 
 body {
@@ -244,3 +261,33 @@ select option[value=""] {
 .dark .qualification-label,
 .dark .qualification-label span { color: var(--content) !important; }
 .dark .dashboard-page-title { color: var(--content); }
+
+/* ------------------------------------------------------------
+   Semantic status colors (alerts, badges, highlights). The light *-50/*-100
+   tints are pale boxes in dark mode; soften the fill to a translucent tint and
+   lighten the matching text so it stays readable. Structural surfaces use tokens;
+   this is only for semantic red/amber/green/blue/purple accents.
+   ------------------------------------------------------------ */
+/* Backgrounds → translucent tint that reads on a dark surface */
+.dark .bg-red-50, .dark .bg-red-100, .dark .bg-rose-50, .dark .bg-rose-100 { background-color: rgba(239, 68, 68, 0.15); }
+.dark .bg-amber-50, .dark .bg-amber-100, .dark .bg-yellow-50, .dark .bg-yellow-100, .dark .bg-orange-50, .dark .bg-orange-100 { background-color: rgba(245, 158, 11, 0.15); }
+.dark .bg-emerald-50, .dark .bg-emerald-100, .dark .bg-green-50, .dark .bg-green-100, .dark .bg-teal-50, .dark .bg-teal-100 { background-color: rgba(16, 185, 129, 0.15); }
+.dark .bg-blue-50, .dark .bg-blue-100, .dark .bg-sky-50, .dark .bg-sky-100, .dark .bg-indigo-50, .dark .bg-indigo-100 { background-color: rgba(59, 130, 246, 0.16); }
+.dark .bg-purple-50, .dark .bg-purple-100, .dark .bg-violet-50, .dark .bg-violet-100 { background-color: rgba(139, 92, 246, 0.16); }
+/* Matching text → lighter shade for contrast on dark */
+.dark .text-red-600, .dark .text-red-700, .dark .text-red-800, .dark .text-red-900,
+.dark .text-rose-600, .dark .text-rose-700, .dark .text-rose-800 { color: #fca5a5; }
+.dark .text-amber-600, .dark .text-amber-700, .dark .text-amber-800, .dark .text-amber-900,
+.dark .text-yellow-700, .dark .text-yellow-800, .dark .text-orange-700, .dark .text-orange-800 { color: #fcd34d; }
+.dark .text-emerald-600, .dark .text-emerald-700, .dark .text-emerald-800, .dark .text-emerald-900,
+.dark .text-green-600, .dark .text-green-700, .dark .text-green-800, .dark .text-green-900 { color: #6ee7b7; }
+.dark .text-blue-600, .dark .text-blue-700, .dark .text-blue-800, .dark .text-blue-900,
+.dark .text-sky-600, .dark .text-sky-700, .dark .text-indigo-600, .dark .text-indigo-700 { color: #93c5fd; }
+.dark .text-purple-600, .dark .text-purple-700, .dark .text-purple-800,
+.dark .text-violet-600, .dark .text-violet-700 { color: #c4b5fd; }
+/* Colored borders → translucent so they don't read as harsh light lines */
+.dark .border-red-100, .dark .border-red-200, .dark .border-rose-100, .dark .border-rose-200 { border-color: rgba(239, 68, 68, 0.30); }
+.dark .border-amber-100, .dark .border-amber-200, .dark .border-yellow-200, .dark .border-orange-200 { border-color: rgba(245, 158, 11, 0.30); }
+.dark .border-emerald-100, .dark .border-emerald-200, .dark .border-green-100, .dark .border-green-200 { border-color: rgba(16, 185, 129, 0.30); }
+.dark .border-blue-100, .dark .border-blue-200, .dark .border-sky-200, .dark .border-indigo-200 { border-color: rgba(59, 130, 246, 0.30); }
+.dark .border-purple-100, .dark .border-purple-200, .dark .border-violet-200 { border-color: rgba(139, 92, 246, 0.30); }

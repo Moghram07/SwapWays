@@ -5,11 +5,13 @@ import { getAirportCity } from "@/utils/airportNames";
 
 export type AirportNodeVariant = "green" | "blue" | "orange" | "purple";
 
-const variantColors: Record<AirportNodeVariant, { border: string; bg: string; text: string }> = {
-  green:  { border: "border-[#3BA34A]",  bg: "bg-green-50",  text: "text-[#3BA34A]" },
-  blue:   { border: "border-[#2668B0]",  bg: "bg-blue-50",   text: "text-[#2668B0]" },
-  orange: { border: "border-amber-500",  bg: "bg-amber-50",  text: "text-amber-700" },
-  purple: { border: "border-orange-400", bg: "bg-purple-50", text: "text-purple-700" },
+// Accent colors use tokens (var) so blue/amber/purple stay readable in dark mode.
+// Nodes are now hollow (bold border, no fill); green keeps its literal brand green.
+const variantColors: Record<AirportNodeVariant, { border: string; text: string }> = {
+  green:  { border: "border-[#3BA34A]",            text: "text-[#3BA34A]" },
+  blue:   { border: "border-[var(--node-blue)]",   text: "text-[var(--node-blue)]" },
+  orange: { border: "border-[var(--node-amber)]",  text: "text-[var(--node-amber)]" },
+  purple: { border: "border-[var(--node-purple)]", text: "text-[var(--node-purple)]" },
 };
 
 interface AirportNodeProps {
@@ -36,11 +38,9 @@ export function AirportNode({ code, isLayover, isHighlighted, variant = "green",
       )}
       <div
         className={`w-full rounded-lg border px-2 py-1 text-center ${
-          isLayover
-            ? `border-2 ${colors.border} ${colors.bg}`
-            : isHighlighted
-              ? `${colors.border} ${colors.bg}`
-              : "border-line bg-surface"
+          isLayover || isHighlighted
+            ? `border-2 ${colors.border}`
+            : "border-line bg-surface"
         }`}
       >
         <div

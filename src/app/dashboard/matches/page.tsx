@@ -7,8 +7,8 @@ export default async function MatchesPage() {
   const t = getTranslator(locale);
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold text-slate-900">{t("dashboard.matchesTitle")}</h1>
-      <p className="text-sm text-slate-600">{t("dashboard.matchesSubtitle")}</p>
+      <h1 className="text-2xl font-bold text-content">{t("dashboard.matchesTitle")}</h1>
+      <p className="text-sm text-muted">{t("dashboard.matchesSubtitle")}</p>
       <MatchesFeedClient />
     </div>
   );

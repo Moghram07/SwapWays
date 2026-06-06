@@ -10,7 +10,7 @@ interface TradeListProps {
 export function TradeList({ trades, showRequestButton = false, onMessage }: TradeListProps) {
   if (trades.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50/50 py-12 text-center text-slate-600">
+      <p className="rounded-lg border border-dashed border-line bg-surface-2/50 py-12 text-center text-muted">
         No trades to show.
       </p>
     );

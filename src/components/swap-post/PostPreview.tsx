@@ -170,12 +170,12 @@ export function PostPreview({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-slate-900">Preview your post</h2>
-      <p className="text-sm text-slate-500">
+      <h2 className="text-lg font-semibold text-content">Preview your post</h2>
+      <p className="text-sm text-muted">
         This is how your post will appear on Swaps.
       </p>
 
-      <div className="rounded-xl border-2 border-dashed border-slate-300 p-4">
+      <div className="rounded-xl border-2 border-dashed border-line p-4">
         <SwapPostTradeBoardCard post={post} isPreview />
       </div>
 
@@ -184,7 +184,7 @@ export function PostPreview({
           type="button"
           onClick={onBack}
           disabled={isSubmitting}
-          className="rounded-lg border border-slate-800 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-lg border border-slate-800 bg-surface px-4 py-2 text-sm font-medium text-content hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           ← Back
         </button>

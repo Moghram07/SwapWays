@@ -63,10 +63,10 @@ export function WantCriteria({
   }
 
   return (
-    <div className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-900">What do you want in return?</h2>
+    <div className="space-y-5 rounded-2xl border border-line bg-surface p-6 shadow-sm">
+      <h2 className="text-lg font-semibold text-content">What do you want in return?</h2>
       {isVacationMode && (
-        <p className="text-sm text-slate-500">Set your preferred vacation replacement window.</p>
+        <p className="text-sm text-muted">Set your preferred vacation replacement window.</p>
       )}
 
       {/* Return type */}
@@ -88,8 +88,8 @@ export function WantCriteria({
                 (opt.value === "LAYOVER"
                   ? criteria.wantType === "LAYOVER" || criteria.wantType === "LONGER_LAYOVER"
                   : criteria.wantType === opt.value)
-                  ? "border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
-                  : "border-slate-200 text-slate-600 hover:border-slate-300"
+                  ? "border-[#2668B0] bg-brand-blue-soft text-[#2668B0]"
+                  : "border-line text-muted hover:border-line"
               }`}
             >
               {opt.icon} {opt.label}
@@ -101,7 +101,7 @@ export function WantCriteria({
       {/* Days off picker */}
       {needsOffDaysSelection && (
         <div className="space-y-2 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
-          <p className="text-sm font-medium text-slate-800">Select the days off you want</p>
+          <p className="text-sm font-medium text-content">Select the days off you want</p>
           <WtfDayPicker
             label="Days off I want"
             selectedDays={desiredDaysOff}
@@ -114,7 +114,7 @@ export function WantCriteria({
             <p className="text-xs text-rose-600">Choose at least one day you want off.</p>
           )}
           {desiredDaysOff.length > 0 && (
-            <p className="text-xs font-medium text-slate-700">
+            <p className="text-xs font-medium text-content-soft">
               Days off selected: {[...desiredDaysOff].sort((a, b) => a - b).join(", ")}
             </p>
           )}
@@ -129,7 +129,7 @@ export function WantCriteria({
             required
             wantOpenToAnyDestination={openAny}
             wantDestinations={criteria.wantDestinations}
-            accentClassName="border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
+            accentClassName="border-[#2668B0] bg-brand-blue-soft text-[#2668B0]"
             onChange={({ wantOpenToAnyDestination, wantDestinations }) =>
               onChange({ ...criteria, wantOpenToAnyDestination, wantDestinations })
             }
@@ -142,7 +142,7 @@ export function WantCriteria({
         <ExcludeDestinationsField
           label="Exclude destinations (optional)"
           wantExclude={criteria.wantExclude}
-          accentClassName="border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
+          accentClassName="border-[#2668B0] bg-brand-blue-soft text-[#2668B0]"
           onChange={(wantExclude) => onChange({ ...criteria, wantExclude })}
         />
       )}
@@ -170,18 +170,18 @@ export function WantCriteria({
 
       {/* Notes */}
       <div>
-        <label className="mb-1 block text-sm font-medium text-slate-700">Notes</label>
+        <label className="mb-1 block text-sm font-medium text-content-soft">Notes</label>
         <textarea
           value={criteria.notes}
           onChange={(e) => onChange({ ...criteria, notes: e.target.value })}
           placeholder="e.g. any layover is fine, prefer East Asia…"
-          className="h-20 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+          className="h-20 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
           rows={3}
         />
       </div>
 
       <div className="flex justify-between pt-2">
-        <button type="button" onClick={onBack} className="rounded-lg border border-slate-800 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">
+        <button type="button" onClick={onBack} className="rounded-lg border border-slate-800 bg-surface px-4 py-2 text-sm font-medium text-content hover:bg-surface-2">
           ← Back
         </button>
         <button

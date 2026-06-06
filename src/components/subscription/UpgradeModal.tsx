@@ -38,7 +38,7 @@ export function UpgradeModal({ isOpen, onClose, feature = "", reason = "" }: Upg
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+      <div className="w-full max-w-md rounded-2xl bg-surface shadow-xl">
         <div className="rounded-t-2xl bg-gradient-to-br from-[#2668B0] to-[#3BA34A] p-6 text-center text-white">
           <div className="mb-2 text-4xl">{featureInfo.icon}</div>
           <h2 className="text-xl font-bold">Upgrade to Premium</h2>
@@ -46,14 +46,14 @@ export function UpgradeModal({ isOpen, onClose, feature = "", reason = "" }: Upg
         </div>
 
         <div className="p-6">
-          <p className="mb-4 text-sm text-gray-600">{reason || "Upgrade to unlock this premium capability."}</p>
+          <p className="mb-4 text-sm text-muted">{reason || "Upgrade to unlock this premium capability."}</p>
 
-          <div className="mb-4 rounded-xl border border-gray-200 p-4">
+          <div className="mb-4 rounded-xl border border-line p-4">
             <div className="mb-3 flex items-baseline justify-between">
-              <span className="text-2xl font-bold text-gray-900">35 SR</span>
-              <span className="text-sm text-gray-500">/ month</span>
+              <span className="text-2xl font-bold text-content">35 SR</span>
+              <span className="text-sm text-muted">/ month</span>
             </div>
-            <ul className="space-y-2 text-sm text-gray-600">
+            <ul className="space-y-2 text-sm text-muted">
               <PremiumFeatureItem>Exact match percentages</PremiumFeatureItem>
               <PremiumFeatureItem>Unblurred “Top matches for you” card</PremiumFeatureItem>
               <PremiumFeatureItem>Unlimited conversations + full history</PremiumFeatureItem>
@@ -69,17 +69,17 @@ export function UpgradeModal({ isOpen, onClose, feature = "", reason = "" }: Upg
 
           <button
             disabled
-            className="w-full cursor-not-allowed rounded-xl bg-gray-300 py-3 font-medium text-gray-500"
+            className="w-full cursor-not-allowed rounded-xl bg-gray-300 py-3 font-medium text-muted"
           >
             Upgrade Coming Soon
           </button>
-          <p className="mt-2 text-center text-xs text-gray-400">
+          <p className="mt-2 text-center text-xs text-faint">
             Payment processing will be available shortly.
           </p>
 
           <button
             onClick={onClose}
-            className="mt-3 w-full py-2 text-sm text-gray-500 hover:text-gray-700"
+            className="mt-3 w-full py-2 text-sm text-muted hover:text-content-soft"
           >
             Maybe later
           </button>

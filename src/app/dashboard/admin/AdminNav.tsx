@@ -20,7 +20,7 @@ export function AdminNav() {
   return (
     <nav
       aria-label="Admin"
-      className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm"
+      className="flex flex-wrap gap-1 rounded-xl border border-line bg-surface p-1 shadow-sm"
     >
       {links.map(({ href, label, icon: Icon }) => {
         const active = pathname === href || (href !== "/dashboard/admin" && pathname.startsWith(href));
@@ -29,7 +29,7 @@ export function AdminNav() {
             key={href}
             href={href}
             className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
-              active ? "bg-[#1E6FB9] text-white" : "text-slate-600 hover:bg-slate-50"
+              active ? "bg-[#1E6FB9] text-white" : "text-muted hover:bg-surface-2"
             }`}
           >
             <Icon className="h-4 w-4 shrink-0" />

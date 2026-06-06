@@ -56,7 +56,7 @@ export function ConversationListItem({
             ? "opacity-80"
             : isActive
               ? "bg-[var(--primary)]/10 text-[var(--primary)]"
-              : "hover:bg-slate-100"
+              : "hover:bg-surface-2"
         }`}
       >
         <div className={`flex items-start gap-3 ${isLocked ? "blur-[2px]" : ""}`}>
@@ -68,12 +68,12 @@ export function ConversationListItem({
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-2">
-              <p className="font-medium text-slate-900 truncate">{otherName}</p>
+              <p className="font-medium text-content truncate">{otherName}</p>
               {timeLabel && (
-                <span className="shrink-0 text-xs text-slate-500">{timeLabel}</span>
+                <span className="shrink-0 text-xs text-muted">{timeLabel}</span>
               )}
             </div>
-            <p className="text-sm text-slate-500 truncate mt-0.5">
+            <p className="text-sm text-muted truncate mt-0.5">
               {lastMessagePreview ?? t("dashboard.messagesEmptyPreview")}
             </p>
           </div>
@@ -85,7 +85,7 @@ export function ConversationListItem({
         </div>
       </button>
       {isLocked && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-white/30">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-surface/30">
           <button
             type="button"
             onClick={(e) => {
@@ -106,7 +106,7 @@ export function ConversationListItem({
             if (typeof confirm !== "undefined" && !confirm(t("dashboard.messagesDeleteConfirm"))) return;
             onDelete(id);
           }}
-          className="absolute end-2 top-8 p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-70 focus:opacity-100 focus:outline-none md:opacity-0 md:group-hover:opacity-100"
+          className="absolute end-2 top-8 p-1.5 rounded-md text-faint hover:text-red-600 hover:bg-red-50 opacity-70 focus:opacity-100 focus:outline-none md:opacity-0 md:group-hover:opacity-100"
           aria-label={t("dashboard.messagesDeleteConversation")}
         >
           <Trash2 size={16} />

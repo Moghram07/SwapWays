@@ -72,19 +72,19 @@ export function AirportSearchInput({
         }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#2668B0]"
+        className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content focus:outline-none focus:ring-1 focus:ring-[#2668B0]"
       />
       {open && filtered.length > 0 && (
-        <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+        <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-line bg-surface shadow-lg">
           {filtered.slice(0, 60).map((a) => (
             <li key={a.code}>
               <button
                 type="button"
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-surface-2"
                 onMouseDown={(e) => { e.preventDefault(); select(a.code, a.city); }}
               >
-                <span className="font-semibold text-slate-800">{a.code}</span>
-                <span className="text-slate-500">{a.city}</span>
+                <span className="font-semibold text-content">{a.code}</span>
+                <span className="text-muted">{a.city}</span>
               </button>
             </li>
           ))}

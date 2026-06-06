@@ -7,7 +7,7 @@ function FeatureRow({ icon, children }: { icon: string; children: ReactNode }) {
   return (
     <li className="flex items-start gap-3">
       <span className="text-lg">{icon}</span>
-      <span className="text-sm text-gray-700">{children}</span>
+      <span className="text-sm text-content-soft">{children}</span>
     </li>
   );
 }
@@ -20,22 +20,22 @@ export default async function UpgradePage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="mb-2 text-center text-3xl font-bold text-gray-900">
+      <h1 className="mb-2 text-center text-3xl font-bold text-content">
         {locale === "ar" ? "خطة بيتا المجانية" : "Free Beta Plan"}
       </h1>
-      <p className="mb-8 text-center text-gray-700">
+      <p className="mb-8 text-center text-content-soft">
         {locale === "ar"
           ? "جميع مزايا Swap Ways متاحة مجانًا حاليًا حتى نجمع ملاحظات المستخدمين ونحسن المنتج."
           : "All Swap Ways features are currently unlocked for free while we gather feedback and improve the product."}
       </p>
 
-      <div className="mx-auto mb-8 max-w-md rounded-2xl border-2 border-[#2668B0] bg-white p-8 shadow-lg">
+      <div className="mx-auto mb-8 max-w-md rounded-2xl border-2 border-[#2668B0] bg-surface p-8 shadow-lg">
         <div className="mb-6 text-center">
-          <h2 className="mb-1 text-2xl font-bold text-gray-900">
+          <h2 className="mb-1 text-2xl font-bold text-content">
             {locale === "ar" ? "كل المزايا مفعلة" : "All Features Unlocked"}
           </h2>
           <div className="flex items-baseline justify-center gap-1">
-            <span className="text-4xl font-bold text-gray-900">{locale === "ar" ? "مجاني" : "Free"}</span>
+            <span className="text-4xl font-bold text-content">{locale === "ar" ? "مجاني" : "Free"}</span>
           </div>
         </div>
 
@@ -57,18 +57,18 @@ export default async function UpgradePage() {
         <div className="w-full rounded-xl bg-emerald-50 py-3 text-center font-medium text-emerald-800">
           {locale === "ar" ? "مفعل للجميع أثناء البيتا" : "Enabled for everyone during beta"}
         </div>
-        <p className="mt-2 text-center text-xs text-gray-500">
+        <p className="mt-2 text-center text-xs text-muted">
           {locale === "ar"
             ? "ساعدنا بملاحظاتك لنقدم أفضل تجربة قبل الإطلاق التجاري."
             : "Share your feedback to help us shape the best experience before commercial launch."}
         </p>
       </div>
 
-      <div className="mx-auto max-w-md rounded-xl bg-gray-50 p-6 text-center">
-        <h3 className="mb-3 font-semibold text-gray-900">
+      <div className="mx-auto max-w-md rounded-xl bg-surface-2 p-6 text-center">
+        <h3 className="mb-3 font-semibold text-content">
           {locale === "ar" ? "ما الذي نحتاجه منك الآن؟" : "What we need from you now"}
         </h3>
-        <ul className="space-y-1.5 text-left text-sm text-gray-700">
+        <ul className="space-y-1.5 text-left text-sm text-content-soft">
           <li>✓ {locale === "ar" ? "استخدم كل المزايا بحرية" : "Use all features freely"}</li>
           <li>✓ {locale === "ar" ? "أبلغنا بأي خطأ أو بطء" : "Report any bug or slowness"}</li>
           <li>✓ {locale === "ar" ? "أرسل اقتراحاتك عبر صفحة الملاحظات" : "Send suggestions via feedback page"}</li>

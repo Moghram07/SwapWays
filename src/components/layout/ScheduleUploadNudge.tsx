@@ -48,7 +48,7 @@ export function ScheduleUploadNudge() {
   }
 
   return (
-    <div className="border-b border-emerald-600/15 bg-emerald-50 px-3 py-2 text-sm text-emerald-950">
+    <div className="border-b border-emerald-600/15 bg-brand-green-soft px-3 py-2 text-sm text-content">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2">
         <p className="min-w-0 font-medium">
           Upload your PDF line schedule to post swaps from your trips in one tap.

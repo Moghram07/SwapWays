@@ -173,9 +173,9 @@ const TripOfferSelector = memo(function TripOfferSelector({
       ref={pickerRef}
       className={`relative rounded-lg border-2 p-2.5 w-full ${
         yourTrip
-          ? "border-[#1E6FB9] bg-white"
-          : "border-dashed border-slate-300 bg-slate-50"
-      } ${canChangeOffer ? "cursor-pointer hover:bg-slate-50/80" : ""}`}
+          ? "border-[#1E6FB9] bg-surface"
+          : "border-dashed border-line bg-surface-2"
+      } ${canChangeOffer ? "cursor-pointer hover:bg-surface-2/80" : ""}`}
       onMouseDown={(e) => {
         if (!canChangeOffer) return;
         // prevent text selection on long-press; actual open happens on click
@@ -212,7 +212,7 @@ const TripOfferSelector = memo(function TripOfferSelector({
       {yourTrip ? (
         <TripMiniSummary trip={yourTrip} />
       ) : (
-        <p className="text-sm text-slate-700 italic">No trip selected yet</p>
+        <p className="text-sm text-content-soft italic">No trip selected yet</p>
       )}
       {isOpen &&
         canChangeOffer &&
@@ -221,7 +221,7 @@ const TripOfferSelector = memo(function TripOfferSelector({
         createPortal(
           <div
             ref={dropdownRef}
-            className="rounded-lg border border-slate-200 bg-white shadow-lg py-2 max-h-60 overflow-y-auto z-[9999]"
+            className="rounded-lg border border-line bg-surface shadow-lg py-2 max-h-60 overflow-y-auto z-[9999]"
             style={{
               position: "fixed",
               top: dropdownPosition.top,
@@ -232,12 +232,12 @@ const TripOfferSelector = memo(function TripOfferSelector({
             onClick={(e) => e.stopPropagation()}
           >
             {loading ? (
-              <p className="px-3 py-2 text-sm text-slate-800">Loading…</p>
+              <p className="px-3 py-2 text-sm text-content">Loading…</p>
             ) : (
               <>
                 <button
                   type="button"
-                  className="w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                  className="w-full text-left px-3 py-2 text-sm text-content hover:bg-surface-2"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleSelect(null);
@@ -247,7 +247,7 @@ const TripOfferSelector = memo(function TripOfferSelector({
                   No trip
                 </button>
                 {trips.length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-slate-500">
+                  <div className="px-3 py-2 text-xs text-muted">
                     You haven&apos;t posted a trip yet.{" "}
                     <Link
                       href="/dashboard/add-trade"
@@ -263,7 +263,7 @@ const TripOfferSelector = memo(function TripOfferSelector({
                     <button
                       key={`${t.kind}:${t.id}`}
                       type="button"
-                      className="w-full text-left px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 disabled:opacity-50"
+                      className="w-full text-left px-3 py-2 text-sm text-content hover:bg-surface-2 disabled:opacity-50"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSelect(t);
@@ -370,11 +370,11 @@ export const TripComparisonBar = memo(function TripComparisonBar({
         onDropdownOpenChange={onDropdownOpenChange}
         onOpenRequested={fetchMyTrips}
       />
-      <div className="rounded-lg border-2 border-slate-300 bg-white p-2.5 w-full">
+      <div className="rounded-lg border-2 border-line bg-surface p-2.5 w-full">
         {theirTrip ? (
           <TripMiniSummary trip={theirTrip} />
         ) : (
-          <p className="text-sm text-slate-700 italic">No trip</p>
+          <p className="text-sm text-content-soft italic">No trip</p>
         )}
       </div>
     </div>
@@ -384,7 +384,7 @@ export const TripComparisonBar = memo(function TripComparisonBar({
 function TripMiniSummary({ trip }: { trip: TripLike }) {
   const firstLeg = trip.legs?.[0];
   const lastLeg = trip.legs?.length ? trip.legs[trip.legs.length - 1] : null;
-  if (!firstLeg) return <p className="text-sm text-slate-500">—</p>;
+  if (!firstLeg) return <p className="text-sm text-muted">—</p>;
   const tripType = classifyTrip({
     legs: trip.legs ?? [],
     layovers: trip.layovers ?? [],
@@ -420,19 +420,19 @@ function TripMiniSummary({ trip }: { trip: TripLike }) {
           {typeInfo.label}
         </span>
         {formatFlightNumber(firstLeg.flightNumber) && (
-          <span className="font-semibold text-slate-900">{formatFlightNumber(firstLeg.flightNumber)}</span>
+          <span className="font-semibold text-content">{formatFlightNumber(firstLeg.flightNumber)}</span>
         )}
-        <span className="flex items-center gap-1 text-slate-600">
+        <span className="flex items-center gap-1 text-muted">
           {destStr.split(" → ").map((code, i, arr) => (
             <span key={i} className="flex items-center gap-1">
               <AirportCode code={code} />
-              {i < arr.length - 1 && <span className="text-slate-400">→</span>}
+              {i < arr.length - 1 && <span className="text-faint">→</span>}
             </span>
           ))}
         </span>
-        <span className="text-slate-500">{dateStr}</span>
+        <span className="text-muted">{dateStr}</span>
       </div>
-      <div className="text-xs text-slate-700">
+      <div className="text-xs text-content-soft">
         Report: {report} · Departure: {departure} · Return to base: {returnToBase}
       </div>
     </div>

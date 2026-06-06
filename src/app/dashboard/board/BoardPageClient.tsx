@@ -41,7 +41,7 @@ export function BoardPageClient({ locale }: { locale: Locale }) {
     <div className="space-y-4">
       <div className="flex w-full justify-center">
         <div
-          className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1"
+          className="inline-flex rounded-xl border border-line bg-surface-2 p-1"
           role="tablist"
           aria-label={t("dashboard.swapType")}
         >
@@ -52,7 +52,7 @@ export function BoardPageClient({ locale }: { locale: Locale }) {
               role="tab"
               onClick={() => selectMode(item.id)}
               className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                mode === item.id ? "bg-white text-[#2668B0] shadow-sm" : "text-slate-600"
+                mode === item.id ? "bg-surface text-[#2668B0] shadow-sm" : "text-muted"
               }`}
               aria-selected={mode === item.id}
             >

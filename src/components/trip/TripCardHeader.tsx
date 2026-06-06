@@ -113,7 +113,7 @@ function CardActions({
           <button
             type="button"
             onClick={() => trip.matchId && onDeclineMatch(trip.matchId)}
-            className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700"
+            className="px-3 py-1 text-sm text-muted hover:text-content-soft"
           >
             Decline
           </button>
@@ -168,19 +168,19 @@ export function TripCardHeader({
       : formatZuluTime(trip.reportTime));
 
   return (
-    <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <div className="flex flex-col gap-3 border-b border-line px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
       <div className="flex min-w-0 flex-1 items-start gap-2 sm:items-center sm:gap-3">
         <TripTypeBadge typeInfo={typeInfo} />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1 font-semibold text-gray-900">
+          <div className="flex flex-wrap items-center gap-1 font-semibold text-content">
             {primaryFlightNumber && <span className="shrink-0">{primaryFlightNumber} ·</span>}
             <RouteChain nodes={routeChain} />
           </div>
-          <div className="truncate text-xs text-gray-500 sm:text-sm">
+          <div className="truncate text-xs text-muted sm:text-sm">
             {dateLabel}
           </div>
           {reportLabel && (
-            <div className="truncate text-xs text-gray-600 sm:text-sm">
+            <div className="truncate text-xs text-muted sm:text-sm">
               Report:{" "}
               <span
                 className={
@@ -200,7 +200,7 @@ export function TripCardHeader({
           <button
             type="button"
             onClick={() => onEdit(trip)}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium text-content-soft hover:bg-surface-2"
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit

@@ -13,10 +13,10 @@ interface MatchBadgeProps {
 
 function getMatchColor(percent: number): { bg: string; text: string } {
   if (percent >= 80) return { bg: "bg-green-100", text: "text-green-800" };
-  if (percent >= 60) return { bg: "bg-[#E8F5EA]", text: "text-[#3BA34A]" };
+  if (percent >= 60) return { bg: "bg-brand-green-soft", text: "text-[#3BA34A]" };
   if (percent >= 40) return { bg: "bg-yellow-100", text: "text-yellow-800" };
   if (percent >= 20) return { bg: "bg-orange-100", text: "text-orange-800" };
-  return { bg: "bg-gray-100", text: "text-gray-600" };
+  return { bg: "bg-surface-2", text: "text-muted" };
 }
 
 /** Tier maps to dot color when exact % is unavailable (FREE + gated). */
@@ -77,7 +77,7 @@ export function MatchBadge({
     return (
       <div className="group relative inline-flex">
         <div
-          className="inline-flex items-center justify-center rounded-full bg-slate-100 px-2.5 py-1"
+          className="inline-flex items-center justify-center rounded-full bg-surface-2 px-2.5 py-1"
           title=""
         >
           <span className={`h-2 w-2 rounded-full ${dot}`} />

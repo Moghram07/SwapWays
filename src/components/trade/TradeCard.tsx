@@ -22,9 +22,9 @@ export function TradeCard({ trade, showRequest = false, onMessage }: TradeCardPr
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">{trade.tradeType === "FLIGHT_SWAP" ? "Flight" : "Vacation"}</Badge>
           <span className="font-medium">{getAirportCity(trade.destination)} ({trade.destination})</span>
-          <span className="text-slate-500">{formatDisplayDate(new Date(trade.departureDate))}</span>
+          <span className="text-muted">{formatDisplayDate(new Date(trade.departureDate))}</span>
         </div>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-muted">
           {trade.user.rank.name} · {trade.user.base.name} · Credit {formatCreditHours(trade.creditHours)} · TAFB {formatCreditHours(trade.tafb)}
         </p>
         {matchCount > 0 && <p className="mt-1 text-xs text-sky-600">{matchCount} match{matchCount !== 1 ? "es" : ""}</p>}
@@ -36,7 +36,7 @@ export function TradeCard({ trade, showRequest = false, onMessage }: TradeCardPr
               type="button"
               variant="outline"
               size="sm"
-              className="gap-1.5 border-[#1E6FB9] text-[#1E6FB9] hover:bg-[#E3EFF9]"
+              className="gap-1.5 border-[#1E6FB9] text-[#1E6FB9] hover:bg-brand-blue-soft"
               onClick={() => onMessage(trade)}
             >
               <MessageCircle size={16} />

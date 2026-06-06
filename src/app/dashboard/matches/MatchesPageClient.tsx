@@ -42,8 +42,8 @@ export function MatchesPageClient() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-8 w-40 animate-pulse rounded bg-slate-200" />
-        <div className="h-72 animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
+        <div className="h-8 w-40 animate-pulse rounded bg-surface-2" />
+        <div className="h-72 animate-pulse rounded-xl border border-line bg-surface-2" />
       </div>
     );
   }

@@ -13,15 +13,15 @@ function Row({ href, label, note }: { href: string; label: string; note?: string
   return (
     <Link
       href={href}
-      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-medium text-slate-800 shadow-sm transition hover:bg-slate-50"
+      className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3.5 text-sm font-medium text-content shadow-sm transition hover:bg-surface-2"
     >
       <span className="flex min-w-0 flex-1 flex-col gap-2">
         <span className="leading-snug">{label}</span>
         {note ? (
-          <span className="text-xs font-normal leading-relaxed text-slate-500">{note}</span>
+          <span className="text-xs font-normal leading-relaxed text-muted">{note}</span>
         ) : null}
       </span>
-      <span className="shrink-0 text-slate-400" aria-hidden>
+      <span className="shrink-0 text-faint" aria-hidden>
         ›
       </span>
     </Link>
@@ -64,14 +64,14 @@ export default async function AccountPage() {
   return (
     <div className="space-y-6">
       <section className="flex items-center gap-2 px-1 py-1">
-        <h1 className="text-lg font-semibold text-slate-900">{details}</h1>
+        <h1 className="text-lg font-semibold text-content">{details}</h1>
         {isVerifiedWithSchedule ? (
           <CheckCircle2 className="h-4 w-4 text-[#2668B0]" aria-label={t("dashboard.verifiedAccount")} />
         ) : null}
       </section>
 
       <section className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("dashboard.accountSection")}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("dashboard.accountSection")}</p>
         <Row href="/dashboard/profile" label={t("dashboard.editProfile")} />
         <Row
           href="/dashboard/schedule"
@@ -86,19 +86,19 @@ export default async function AccountPage() {
       </section>
 
       <section className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("dashboard.activitySection")}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("dashboard.activitySection")}</p>
         <Row href="/dashboard/notifications" label={t("dashboard.notificationHistory")} />
         <Row href="/dashboard/feedback" label={t("dashboard.helpAndFeedback")} />
       </section>
 
       <section className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("dashboard.appSection")}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("dashboard.appSection")}</p>
         <Row href="/dashboard/install" label={t("dashboard.installSwapways")} />
       </section>
 
       {isAdmin && (
         <section className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("dashboard.admin")}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("dashboard.admin")}</p>
           <Row href="/dashboard/admin" label={t("dashboard.admin")} />
         </section>
       )}

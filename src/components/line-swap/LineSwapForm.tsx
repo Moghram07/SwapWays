@@ -185,11 +185,11 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
     <form onSubmit={handleSubmit} className="space-y-5">
       {!editId && (
         loadingSummary ? (
-          <div className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-500">
+          <div className="rounded-lg bg-surface-2 px-3 py-2 text-sm text-muted">
             {t("dashboard.lineSwapLoadingSummary")}
           </div>
         ) : (
-          <div className="rounded-lg bg-[#E8F5EA] px-3 py-2 text-sm text-[#3BA34A]">
+          <div className="rounded-lg bg-brand-green-soft px-3 py-2 text-sm text-[#3BA34A]">
             {t("dashboard.lineSwapAutoFilledHint")}
           </div>
         )
@@ -198,18 +198,18 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
 
-      <div className="rounded-xl border border-slate-200 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-slate-700">{t("dashboard.lineSwapMyLine")}</h3>
+      <div className="rounded-xl border border-line p-4">
+        <h3 className="mb-3 text-sm font-semibold text-content-soft">{t("dashboard.lineSwapMyLine")}</h3>
         <input
           name="lineNumber"
           value={lineNumber}
           onChange={(e) => setLineNumber(e.target.value)}
           placeholder={t("dashboard.lineSwapLineNumberPh")}
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+          className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
         />
 
         <div className="mt-3">
-          <p className="mb-2 text-xs font-medium text-slate-500">{t("dashboard.lineSwapLineType")}</p>
+          <p className="mb-2 text-xs font-medium text-muted">{t("dashboard.lineSwapLineType")}</p>
           <div className="flex flex-wrap gap-2">
             {LINE_TYPES.map((value) => (
               <button
@@ -218,8 +218,8 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
                 onClick={() => setLineType(value)}
                 className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition-colors ${
                   lineType === value
-                    ? "border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300"
+                    ? "border-[#2668B0] bg-brand-blue-soft text-[#2668B0]"
+                    : "border-line text-muted hover:border-line"
                 }`}
               >
                 {t(LINE_TYPE_LABEL_KEYS[value])}
@@ -237,7 +237,7 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
             min={1}
             max={31}
             placeholder={t("dashboard.lineSwapDaysOffFrom")}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
           />
           <input
             name="daysOffEnd"
@@ -247,16 +247,16 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
             min={1}
             max={31}
             placeholder={t("dashboard.lineSwapDaysOffTo")}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
           />
         </div>
-        <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+        <label className="mt-3 flex items-center gap-2 text-sm text-content-soft">
           <input name="hasReserve" type="checkbox" checked={hasReserve} onChange={(e) => setHasReserve(e.target.checked)} />
           {t("dashboard.lineSwapHasReserve")}
         </label>
         {hasReserve && (
-          <div className="mt-2 rounded-lg border border-slate-200 p-3">
-            <p className="mb-2 text-xs font-medium text-slate-500">{t("dashboard.lineSwapPickRrDays")}</p>
+          <div className="mt-2 rounded-lg border border-line p-3">
+            <p className="mb-2 text-xs font-medium text-muted">{t("dashboard.lineSwapPickRrDays")}</p>
             <div className="flex flex-wrap gap-1.5">
               {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
                 const active = reserveDays.includes(day);
@@ -270,7 +270,7 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
                       )
                     }
                     className={`h-8 w-8 rounded-md text-xs font-medium ${
-                      active ? "bg-amber-500 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      active ? "bg-amber-500 text-white" : "bg-surface-2 text-muted hover:bg-surface-2"
                     }`}
                   >
                     {day}
@@ -282,9 +282,9 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
         )}
 
         <div className="mt-3 space-y-2">
-          <p className="text-xs font-medium text-slate-500">{t("dashboard.lineSwapLayovers")}</p>
+          <p className="text-xs font-medium text-muted">{t("dashboard.lineSwapLayovers")}</p>
           {lineType === "RESERVE_LINE" ? (
-            <p className="text-sm italic text-slate-400">{t("dashboard.lineSwapReserveNoLayovers")}</p>
+            <p className="text-sm italic text-faint">{t("dashboard.lineSwapReserveNoLayovers")}</p>
           ) : (
             <>
               {layovers.map((layover, index) => (
@@ -297,7 +297,7 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
                         prev.map((l, i) => (i === index ? { ...l, destination: e.target.value } : l))
                       )
                     }
-                    className="w-48 max-w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+                    className="w-48 max-w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content"
                   >
                     <option value="">{t("dashboard.lineSwapSelectDestination")}</option>
                     {airports.map((airport) => (
@@ -317,10 +317,10 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
                         prev.map((l, i) => (i === index ? { ...l, hours: Number(e.target.value) || 0 } : l))
                       )
                     }
-                    className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-sm text-gray-900 placeholder:text-gray-400"
+                    className="w-20 rounded-lg border border-line bg-surface px-2 py-2 text-center text-sm text-content placeholder:text-faint"
                     placeholder="0"
                   />
-                  <span className="text-xs text-slate-500">{t("dashboard.lineSwapHoursAbbr")}</span>
+                  <span className="text-xs text-muted">{t("dashboard.lineSwapHoursAbbr")}</span>
                   <button
                     type="button"
                     onClick={() => setLayovers((prev) => prev.filter((_, i) => i !== index))}
@@ -342,8 +342,8 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 p-4">
-        <h3 className="mb-3 text-sm font-semibold text-slate-700">{t("dashboard.lineSwapWhatIWant")}</h3>
+      <div className="rounded-xl border border-line p-4">
+        <h3 className="mb-3 text-sm font-semibold text-content-soft">{t("dashboard.lineSwapWhatIWant")}</h3>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <input
             name="wantDaysOffStart"
@@ -353,7 +353,7 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
             min={1}
             max={31}
             placeholder={t("dashboard.lineSwapPreferredDaysOffFrom")}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
           />
           <input
             name="wantDaysOffEnd"
@@ -363,7 +363,7 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
             min={1}
             max={31}
             placeholder={t("dashboard.lineSwapPreferredDaysOffTo")}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
           />
         </div>
         <div className="mt-3">
@@ -371,7 +371,7 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
             name="wantDestination"
             value={wantDestination}
             onChange={(e) => setWantDestination(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content"
           >
             <option value="">{t("dashboard.lineSwapAnyDestination")}</option>
             {airports.map((airport) => (
@@ -382,15 +382,15 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
           </select>
         </div>
         <div className="mt-3">
-          <p className="mb-2 text-xs font-medium text-slate-500">{t("dashboard.lineSwapPreferredLineType")}</p>
+          <p className="mb-2 text-xs font-medium text-muted">{t("dashboard.lineSwapPreferredLineType")}</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setWantLineType("")}
               className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition-colors ${
                 wantLineType === ""
-                  ? "border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
-                  : "border-slate-200 text-slate-600 hover:border-slate-300"
+                  ? "border-[#2668B0] bg-brand-blue-soft text-[#2668B0]"
+                  : "border-line text-muted hover:border-line"
               }`}
             >
               {t("dashboard.lineSwapWantAny")}
@@ -402,8 +402,8 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
                 onClick={() => setWantLineType(value)}
                 className={`rounded-lg border-2 px-3 py-2 text-sm font-medium transition-colors ${
                   wantLineType === value
-                    ? "border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300"
+                    ? "border-[#2668B0] bg-brand-blue-soft text-[#2668B0]"
+                    : "border-line text-muted hover:border-line"
                 }`}
               >
                 {t(LINE_TYPE_LABEL_KEYS[value])}
@@ -411,18 +411,18 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
             ))}
           </div>
         </div>
-        <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+        <label className="mt-3 flex items-center gap-2 text-sm text-content-soft">
           <input name="wantNoReserve" type="checkbox" checked={wantNoReserve} onChange={(e) => setWantNoReserve(e.target.checked)} />
           {t("dashboard.lineSwapNoReserve")}
         </label>
-        <p className="mb-1 mt-3 text-xs font-medium text-slate-500">{t("dashboard.lineSwapNotesLabel")}</p>
+        <p className="mb-1 mt-3 text-xs font-medium text-muted">{t("dashboard.lineSwapNotesLabel")}</p>
         <textarea
           name="notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           placeholder={t("dashboard.lineSwapNotesPh")}
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+          className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
         />
       </div>
 
@@ -430,7 +430,7 @@ export function LineSwapForm({ locale, editId }: { locale: Locale; editId?: stri
         <button
           type="button"
           onClick={() => router.push("/dashboard/add-trade")}
-          className="rounded-lg border border-slate-800 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+          className="rounded-lg border border-slate-800 bg-surface px-4 py-2 text-sm font-medium text-content hover:bg-surface-2"
         >
           <span className="inline-flex items-center gap-1">
             <span aria-hidden className="rtl:rotate-180">

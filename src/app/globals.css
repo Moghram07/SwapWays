@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Class-based dark mode: `.dark` is toggled on <html> for dashboard routes only. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #111827;
@@ -20,6 +23,17 @@
   --primary-foreground: #ffffff;
   --card: rgba(255, 255, 255, 0.15);
   --secondary: #86efac;
+  /* Semantic surface/content tokens (light). Dark values live in `.dark` below. */
+  --app: #F7F9FC;
+  --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --content: #0f172a;
+  --content-soft: #334155;
+  --muted: #64748b;
+  --faint: #94a3b8;
+  --line: #e2e8f0;
+  --brand-blue-soft: #E3EFF9;
+  --brand-green-soft: #E8F5EA;
 }
 
 @theme inline {
@@ -32,17 +46,42 @@
   --color-dashboard-bg: var(--dashboard-bg);
   --color-border-default: var(--border-default);
   --color-border-muted: var(--border-muted);
+  /* Semantic tokens → utilities: bg-app, bg-surface, bg-surface-2, text-content,
+     text-content-soft, text-muted, text-faint, border-line, bg-brand-*-soft (opacity-safe). */
+  --color-app: var(--app);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-content: var(--content);
+  --color-content-soft: var(--content-soft);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-brand-blue-soft: var(--brand-blue-soft);
+  --color-brand-green-soft: var(--brand-green-soft);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   /* System stack for monospace — avoids a second font download on mobile */
   --font-mono: ui-monospace, SFMono-Regular, "SF Pro Mono", Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Dark theme is driven solely by the `.dark` class (toggled on <html> for dashboard
+   routes), not OS preference — so marketing/landing pages always stay light. */
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --dashboard-bg: #0f172a;
+  --border-default: #334155;
+  --border-muted: #1e293b;
+  --app: #0f172a;
+  --surface: #1e293b;
+  --surface-2: #334155;
+  --content: #f1f5f9;
+  --content-soft: #cbd5e1;
+  --muted: #94a3b8;
+  --faint: #6b7a90;
+  --line: #334155;
+  --brand-blue-soft: rgba(38, 104, 176, 0.20);
+  --brand-green-soft: rgba(59, 163, 74, 0.18);
 }
 
 body {
@@ -170,3 +209,38 @@ select option[value=""] {
 .modal-panel {
   animation: modal-enter 0.15s ease-out;
 }
+
+/* ============================================================
+   DARK MODE — overrides for the light `!important` form/label rules above.
+   (Surfaces/text/borders elsewhere adapt via the semantic token utilities.)
+   ============================================================ */
+.dark .dashboard-input,
+.dark .dashboard-input input,
+.dark .dashboard-input select,
+.dark .dashboard-input textarea,
+.dark form .form-input-modern,
+.dark form .form-input-modern input,
+.dark form input:not([type="checkbox"]):not([type="radio"]),
+.dark form select.form-select-modern,
+.dark form textarea.form-input-modern {
+  border-color: var(--line) !important;
+  color: var(--content) !important;
+  background-color: var(--surface) !important;
+}
+.dark form .form-select option,
+.dark form select option,
+.dark select option,
+.dark [role="option"].dropdown-item {
+  color: var(--content) !important;
+  background-color: var(--surface) !important;
+}
+.dark input,
+.dark textarea,
+.dark select { color: var(--content); }
+.dark input::placeholder,
+.dark textarea::placeholder { color: var(--faint); }
+.dark select:invalid,
+.dark select option[value=""] { color: var(--faint); }
+.dark .qualification-label,
+.dark .qualification-label span { color: var(--content) !important; }
+.dark .dashboard-page-title { color: var(--content); }

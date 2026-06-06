@@ -112,6 +112,8 @@ const ar = {
   dashboard: {
     menu: "القائمة",
     backToHome: "العودة للرئيسية",
+    darkMode: "الوضع الداكن",
+    lightMode: "الوضع الفاتح",
     overview: "نظرة عامة",
     myFlights: "رحلاتي",
     postToTradeBoard: "نشر في لوحة التبديل",

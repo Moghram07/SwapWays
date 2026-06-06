@@ -249,18 +249,18 @@ export function EditTripModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-xl bg-white shadow-xl"
+        className="w-full max-w-lg rounded-xl bg-surface shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="border-b border-gray-200 px-5 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Edit trip</h2>
-          <p className="mt-1 text-sm text-gray-500">
+        <div className="border-b border-line px-5 py-4">
+          <h2 className="text-lg font-semibold text-content">Edit trip</h2>
+          <p className="mt-1 text-sm text-muted">
             {trip.legs[0]?.flightNumber ? `Trip ${trip.legs[0].flightNumber}` : ""} — correct details before posting
           </p>
         </div>
         <form onSubmit={handleSubmit} className="px-5 py-4 max-h-[80vh] overflow-y-auto">
           {loading ? (
-            <p className="text-sm text-gray-500">Loading…</p>
+            <p className="text-sm text-muted">Loading…</p>
           ) : (
             <div className="space-y-4">
               {/* Live board preview */}
@@ -280,14 +280,14 @@ export function EditTripModal({
 
               {/* Time mode toggle */}
               <div className="flex items-center justify-end gap-1">
-                <span className="text-xs text-gray-500">Time:</span>
+                <span className="text-xs text-muted">Time:</span>
                 <button
                   type="button"
                   onClick={() => setTimeMode("local")}
                   className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                     timeMode === "local"
                       ? "bg-green-100 text-green-700"
-                      : "text-gray-400 hover:text-gray-600"
+                      : "text-faint hover:text-muted"
                   }`}
                 >
                   Local
@@ -299,7 +299,7 @@ export function EditTripModal({
                   className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                     timeMode === "zulu"
                       ? "bg-blue-100 text-blue-700"
-                      : "text-gray-400 hover:text-gray-600"
+                      : "text-faint hover:text-muted"
                   }`}
                 >
                   Zulu
@@ -308,7 +308,7 @@ export function EditTripModal({
 
               {/* Trip type */}
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">Trip type</label>
+                <label className="mb-2 block text-sm font-medium text-content-soft">Trip type</label>
                 <div className="grid grid-cols-3 gap-2">
                   {(["LAYOVER", "TURNAROUND", "MULTI_STOP"] as const).map((type) => {
                     const info = getTripTypeInfo(type);
@@ -321,7 +321,7 @@ export function EditTripModal({
                         className={`rounded-lg border-2 py-2 text-xs font-medium transition-colors ${
                           active
                             ? "border-slate-700 bg-slate-800 text-white"
-                            : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                            : "border-line bg-surface text-muted hover:border-line"
                         }`}
                       >
                         {info.label}
@@ -335,11 +335,11 @@ export function EditTripModal({
               {tripType === "LAYOVER" && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Layover city</label>
+                    <label className="block text-sm font-medium text-content-soft">Layover city</label>
                     <select
                       value={layoverAirport}
                       onChange={(e) => setLayoverAirport(e.target.value)}
-                      className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                      className="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm text-content"
                     >
                       {!layoverAirport && <option value="">Select city</option>}
                       {possibleLayoverAirports.map((apt) => (
@@ -348,7 +348,7 @@ export function EditTripModal({
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Layover duration</label>
+                    <label className="block text-sm font-medium text-content-soft">Layover duration</label>
                     <div className="mt-1 flex items-center gap-2">
                       <div className="flex items-center gap-1">
                         <input
@@ -357,9 +357,9 @@ export function EditTripModal({
                           placeholder="0"
                           value={layoverHM.hours}
                           onChange={(e) => setLayoverFromHM(e.target.value, layoverHM.minutes)}
-                          className="block w-16 rounded-lg border border-gray-300 px-2 py-2 text-sm text-gray-900"
+                          className="block w-16 rounded-lg border border-line px-2 py-2 text-sm text-content"
                         />
-                        <span className="text-sm text-gray-500">h</span>
+                        <span className="text-sm text-muted">h</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <input
@@ -370,9 +370,9 @@ export function EditTripModal({
                           placeholder="0"
                           value={layoverHM.minutes}
                           onChange={(e) => setLayoverFromHM(layoverHM.hours, e.target.value)}
-                          className="block w-16 rounded-lg border border-gray-300 px-2 py-2 text-sm text-gray-900"
+                          className="block w-16 rounded-lg border border-line px-2 py-2 text-sm text-content"
                         />
-                        <span className="text-sm text-gray-500">m</span>
+                        <span className="text-sm text-muted">m</span>
                       </div>
                     </div>
                   </div>
@@ -381,7 +381,7 @@ export function EditTripModal({
 
               {/* Report time */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-content-soft">
                   Report time {timeMode === "local" && firstDepAirport ? `(${firstDepAirport} local)` : "(Zulu)"}
                 </label>
                 <input
@@ -389,15 +389,15 @@ export function EditTripModal({
                   step={60}
                   value={toDisplay(reportTime, firstDepAirport, timeMode)}
                   onChange={(e) => setReportTime(fromInput(e.target.value, firstDepAirport, timeMode))}
-                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                  className="mt-1 block w-full rounded-lg border border-line px-3 py-2 text-sm text-content"
                 />
               </div>
 
               {/* Leg times + DH toggle */}
               {legs.map((leg, index) => (
-                <div key={leg.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                <div key={leg.id} className="rounded-lg border border-line bg-surface-2 p-3">
                   <div className="mb-2 flex items-center justify-between">
-                    <div className="text-sm font-medium text-gray-700">
+                    <div className="text-sm font-medium text-content-soft">
                       {leg.departureAirport} → {leg.arrivalAirport}
                     </div>
                     <label className="flex cursor-pointer items-center gap-1.5">
@@ -412,7 +412,7 @@ export function EditTripModal({
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-gray-500">
+                      <label className="block text-xs text-muted">
                         Dep {timeMode === "local" && leg.departureAirport ? `(${leg.departureAirport})` : "(Z)"}
                       </label>
                       <input
@@ -422,11 +422,11 @@ export function EditTripModal({
                         onChange={(e) =>
                           updateLeg(index, { dep: fromInput(e.target.value, leg.departureAirport, timeMode) })
                         }
-                        className="mt-0.5 block w-full rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-900"
+                        className="mt-0.5 block w-full rounded border border-line px-2 py-1.5 text-sm text-content"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-500">
+                      <label className="block text-xs text-muted">
                         Arr {timeMode === "local" && leg.arrivalAirport ? `(${leg.arrivalAirport})` : "(Z)"}
                       </label>
                       <input
@@ -436,7 +436,7 @@ export function EditTripModal({
                         onChange={(e) =>
                           updateLeg(index, { arr: fromInput(e.target.value, leg.arrivalAirport, timeMode) })
                         }
-                        className="mt-0.5 block w-full rounded border border-gray-300 px-2 py-1.5 text-sm text-gray-900"
+                        className="mt-0.5 block w-full rounded border border-line px-2 py-1.5 text-sm text-content"
                       />
                     </div>
                   </div>
@@ -447,11 +447,11 @@ export function EditTripModal({
           {error && (
             <p className="mt-3 text-sm text-red-600">{error}</p>
           )}
-          <div className="mt-5 flex justify-end gap-2 border-t border-gray-100 pt-4">
+          <div className="mt-5 flex justify-end gap-2 border-t border-line pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-content-soft hover:bg-surface-2"
             >
               Cancel
             </button>

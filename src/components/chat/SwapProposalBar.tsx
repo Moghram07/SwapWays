@@ -36,7 +36,7 @@ export function SwapProposalBar({
   switch (conversation.status) {
     case "ACTIVE":
       return (
-        <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center gap-3">
+        <div className="px-4 py-3 border-t border-line bg-surface-2 flex flex-wrap items-center gap-3">
           {hasOffer && (
             <button
               type="button"
@@ -47,7 +47,7 @@ export function SwapProposalBar({
             </button>
           )}
           {isInitiator && !hasOffer && (
-            <p className="text-sm text-slate-500">Select a trip above to propose a swap.</p>
+            <p className="text-sm text-muted">Select a trip above to propose a swap.</p>
           )}
         </div>
       );
@@ -55,7 +55,7 @@ export function SwapProposalBar({
     case "SWAP_PROPOSED":
       if (lastSwapProposedByInitiator === isInitiator) {
         return (
-          <div className="px-4 py-3 border-t border-slate-200 bg-[#E8F5EA] text-center">
+          <div className="px-4 py-3 border-t border-line bg-brand-green-soft text-center">
             <p className="text-sm text-[#3BA34A] font-medium">
               Swap proposed — waiting for response
             </p>
@@ -63,7 +63,7 @@ export function SwapProposalBar({
         );
       }
       return (
-        <div className="px-4 py-3 border-t border-slate-200 bg-[#E8F5EA] flex items-center justify-center gap-3 flex-wrap">
+        <div className="px-4 py-3 border-t border-line bg-brand-green-soft flex items-center justify-center gap-3 flex-wrap">
           <p className="text-sm text-[#3BA34A] font-medium mr-4">
             Swap proposed!
           </p>
@@ -86,7 +86,7 @@ export function SwapProposalBar({
 
     case "SWAP_ACCEPTED":
       return (
-        <div className="px-4 py-3 border-t border-slate-200 bg-[#E8F5EA] text-center">
+        <div className="px-4 py-3 border-t border-line bg-brand-green-soft text-center">
           <p className="text-sm text-[#3BA34A] font-medium">
             Swap accepted! Coordinate with crew scheduling to finalize.
           </p>
@@ -95,8 +95,8 @@ export function SwapProposalBar({
 
     case "DECLINED":
       return (
-        <div className="px-4 py-3 border-t border-slate-200 bg-slate-100 text-center">
-          <p className="text-sm text-slate-500">This conversation has been closed.</p>
+        <div className="px-4 py-3 border-t border-line bg-surface-2 text-center">
+          <p className="text-sm text-muted">This conversation has been closed.</p>
         </div>
       );
 

@@ -48,7 +48,7 @@ export function MatchCard({
           <Badge variant="secondary">{statusLabel}</Badge>
         </div>
         <p className="mt-2 font-medium">{tradeDestination ?? "—"} · {formatDisplayDate(tradeDepartureDate)}</p>
-        <p className="text-sm text-slate-600">{otherPartyName} · {otherPartyRank}</p>
+        <p className="text-sm text-muted">{otherPartyName} · {otherPartyRank}</p>
       </CardContent>
       {status === "PENDING" && (onAccept || onReject) && (
         <CardFooter className="gap-2">

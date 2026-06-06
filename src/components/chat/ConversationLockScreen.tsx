@@ -13,8 +13,8 @@ export function ConversationLockScreen({
     <div className="flex flex-1 items-center justify-center p-8">
       <div className="max-w-md text-center">
         <div className="mb-4 text-5xl">🔒</div>
-        <h2 className="mb-2 text-xl font-bold text-gray-900">Conversation Locked</h2>
-        <p className="mb-6 text-sm text-gray-600">
+        <h2 className="mb-2 text-xl font-bold text-content">Conversation Locked</h2>
+        <p className="mb-6 text-sm text-muted">
           {hasActiveConversation
             ? "Free tier allows 1 active conversation at a time. Close your current conversation or upgrade to Premium for unlimited conversations."
             : "Upgrade to Premium to view conversation history and have unlimited active conversations."}

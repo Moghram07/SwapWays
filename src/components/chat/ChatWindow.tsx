@@ -106,7 +106,7 @@ export function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
   if (!conversationId) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-4 bg-[var(--border-muted)]/50">
-        <p className="text-slate-500">Select a conversation or start one from Swaps.</p>
+        <p className="text-muted">Select a conversation or start one from Swaps.</p>
         <Link
           href="/dashboard/board"
           className="rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-colors hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1"
@@ -121,7 +121,7 @@ export function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
   if (conversationError && !conversation) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-4 bg-[var(--border-muted)]/50">
-        <p className="text-slate-600">{conversationError}</p>
+        <p className="text-muted">{conversationError}</p>
         <button
           type="button"
           onClick={() => conversationId && fetchConversation(conversationId)}
@@ -184,11 +184,11 @@ export function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
   });
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-white">
+    <div className="flex-1 flex flex-col min-h-0 bg-surface">
       {conversation ? (
         <ChatHeader conversation={conversation as ConversationForHeader} currentUserId={currentUserId ?? ""} />
       ) : (
-        <div className="border-b border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+        <div className="border-b border-line bg-surface px-4 py-3 text-sm text-muted">
           Loading conversation details...
         </div>
       )}
@@ -206,7 +206,7 @@ export function ChatWindow({ conversationId, currentUserId }: ChatWindowProps) {
             }}
           />
         ) : (
-          <div className="h-12 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
+          <div className="h-12 animate-pulse rounded-lg border border-line bg-surface-2" />
         )}
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-4">

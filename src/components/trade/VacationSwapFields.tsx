@@ -48,7 +48,7 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
             Vacation month <span className="text-rose-600">*</span>
           </Label>
           <select
-            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+            className="flex h-10 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-content"
             value={props.vacationMonth === "" ? "" : props.vacationMonth}
             onChange={(e) => {
               const v = e.target.value;
@@ -68,7 +68,7 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
             Year — offered &amp; desired <span className="text-rose-600">*</span>
           </Label>
           <select
-            className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+            className="flex h-10 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-content"
             value={props.vacationYear === "" ? "" : props.vacationYear}
             onChange={(e) => {
               const v = e.target.value;
@@ -89,7 +89,7 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
         <Label>
           Looking for <span className="text-rose-600">*</span> — select at least one month
         </Label>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted">
           Listing multiple months increases your chance of finding a match.
         </p>
         <div className="flex flex-wrap gap-2">
@@ -102,7 +102,7 @@ export function VacationSwapFields(props: VacationSwapFieldsProps) {
                 className={`inline-flex cursor-pointer items-center rounded-full border px-3 py-1.5 text-sm ${
                   checked
                     ? "border-[#2668B0] bg-[#2668B0]/10 text-[#2668B0]"
-                    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
+                    : "border-line bg-surface-2 text-muted hover:border-line"
                 }`}
               >
                 <input

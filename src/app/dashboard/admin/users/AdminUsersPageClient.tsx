@@ -123,18 +123,18 @@ export function AdminUsersPageClient() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-lg font-semibold text-slate-900">Users</h1>
-        <p className="text-sm text-slate-600">Search, message, or remove users.</p>
+        <h1 className="text-lg font-semibold text-content">Users</h1>
+        <p className="text-sm text-muted">Search, message, or remove users.</p>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-line bg-surface p-4">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-slate-600">Search</span>
+          <span className="text-muted">Search</span>
           <input
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && setSearch(searchInput)}
-            className="min-w-[200px] rounded-lg border border-slate-200 px-3 py-2 text-slate-900"
+            className="min-w-[200px] rounded-lg border border-line px-3 py-2 text-content"
             placeholder="Name or email"
           />
         </label>
@@ -146,11 +146,11 @@ export function AdminUsersPageClient() {
           Search
         </button>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-slate-600">Filter</span>
+          <span className="text-muted">Filter</span>
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900"
+            className="rounded-lg border border-line px-3 py-2 text-content"
           >
             <option value="all">All</option>
             <option value="premium">Legacy premium records</option>
@@ -168,9 +168,9 @@ export function AdminUsersPageClient() {
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-xl border border-line bg-surface">
         <table className="min-w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <thead className="border-b border-line bg-surface-2 text-xs uppercase tracking-wide text-muted">
             <tr>
               <th className="px-4 py-3 font-medium">User</th>
               <th className="px-4 py-3 font-medium">Tier</th>
@@ -185,26 +185,26 @@ export function AdminUsersPageClient() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">Loading…</td>
+                <td colSpan={8} className="px-4 py-8 text-center text-muted">Loading…</td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">No users match.</td>
+                <td colSpan={8} className="px-4 py-8 text-center text-muted">No users match.</td>
               </tr>
             ) : (
               rows.map((u) => (
-                <tr key={u.id} className="border-b border-slate-100 last:border-0">
+                <tr key={u.id} className="border-b border-line last:border-0">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900">{u.firstName} {u.lastName}</div>
-                    <div className="text-xs text-slate-500">{u.email}</div>
-                    <div className="text-xs text-slate-400">{u.rank?.name ?? "—"}</div>
+                    <div className="font-medium text-content">{u.firstName} {u.lastName}</div>
+                    <div className="text-xs text-muted">{u.email}</div>
+                    <div className="text-xs text-faint">{u.rank?.name ?? "—"}</div>
                   </td>
-                  <td className="px-4 py-3 text-slate-800">{u.tier}</td>
+                  <td className="px-4 py-3 text-content">{u.tier}</td>
                   <td className="px-4 py-3">
                     <SubscriptionStatusBadge status={u.subscriptionStatus} />
                   </td>
                   <td className="px-4 py-3 text-xs">
-                    <div className="text-slate-700">{formatDateShort(u.trialEndsAt)}</div>
+                    <div className="text-content-soft">{formatDateShort(u.trialEndsAt)}</div>
                     <div className={u.isExpired ? "text-red-500" : u.daysRemaining <= 5 ? "text-amber-600" : "text-emerald-600"}>
                       {u.isExpired ? "Expired" : `${daysUntil(u.trialEndsAt)}d left`}
                     </div>
@@ -212,12 +212,12 @@ export function AdminUsersPageClient() {
                   <td className="px-4 py-3 text-xs">
                     {u.isVerified
                       ? <span className="font-medium text-emerald-600">Verified</span>
-                      : <span className="text-slate-400">Unverified</span>}
+                      : <span className="text-faint">Unverified</span>}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">
+                  <td className="px-4 py-3 text-muted">
                     {u.base ? `${u.base.airportCode} · ${u.base.name}` : "—"}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{new Date(u.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-muted">{new Date(u.createdAt).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button
@@ -246,9 +246,9 @@ export function AdminUsersPageClient() {
       {/* Delete confirmation modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
-            <h2 className="text-base font-semibold text-slate-900">Delete account?</h2>
-            <p className="mt-2 text-sm text-slate-600">
+          <div className="w-full max-w-md rounded-xl border border-line bg-surface p-6 shadow-xl">
+            <h2 className="text-base font-semibold text-content">Delete account?</h2>
+            <p className="mt-2 text-sm text-muted">
               This will permanently delete{" "}
               <span className="font-semibold">{deleteTarget.firstName} {deleteTarget.lastName}</span>{" "}
               ({deleteTarget.email}) and all their data. This cannot be undone.
@@ -259,7 +259,7 @@ export function AdminUsersPageClient() {
                 type="button"
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-content-soft hover:bg-surface-2 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -279,11 +279,11 @@ export function AdminUsersPageClient() {
       {/* Message modal */}
       {messageTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
-            <h2 className="text-base font-semibold text-slate-900">Message user</h2>
-            <p className="mt-1 text-sm text-slate-500">
+          <div className="w-full max-w-md rounded-xl border border-line bg-surface p-6 shadow-xl">
+            <h2 className="text-base font-semibold text-content">Message user</h2>
+            <p className="mt-1 text-sm text-muted">
               Sending to{" "}
-              <span className="font-medium text-slate-700">{messageTarget.firstName} {messageTarget.lastName}</span>{" "}
+              <span className="font-medium text-content-soft">{messageTarget.firstName} {messageTarget.lastName}</span>{" "}
               — appears in their notifications.
             </p>
 
@@ -294,23 +294,23 @@ export function AdminUsersPageClient() {
             ) : (
               <div className="mt-4 space-y-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Title</label>
+                  <label className="mb-1 block text-xs font-medium text-muted">Title</label>
                   <input
                     type="text"
                     value={msgTitle}
                     onChange={(e) => setMsgTitle(e.target.value)}
                     placeholder="Message from SwapWays"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#1E6FB9]"
+                    className="w-full rounded-lg border border-line px-3 py-2 text-sm text-content focus:outline-none focus:ring-1 focus:ring-[#1E6FB9]"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Message</label>
+                  <label className="mb-1 block text-xs font-medium text-muted">Message</label>
                   <textarea
                     rows={4}
                     value={msgBody}
                     onChange={(e) => setMsgBody(e.target.value)}
                     placeholder="Write your message here…"
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#1E6FB9]"
+                    className="w-full rounded-lg border border-line px-3 py-2 text-sm text-content focus:outline-none focus:ring-1 focus:ring-[#1E6FB9]"
                   />
                 </div>
                 {sendError && <p className="text-sm text-red-600">{sendError}</p>}
@@ -321,7 +321,7 @@ export function AdminUsersPageClient() {
               <button
                 type="button"
                 onClick={closeMessage}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-content-soft hover:bg-surface-2"
               >
                 {sendSuccess ? "Close" : "Cancel"}
               </button>
@@ -347,7 +347,7 @@ function SubscriptionStatusBadge({ status }: { status: string }) {
   const classes: Record<string, string> = {
     TRIALING: "bg-blue-100 text-blue-700",
     ACTIVE: "bg-emerald-100 text-emerald-700",
-    EXPIRED: "bg-slate-100 text-slate-500",
+    EXPIRED: "bg-surface-2 text-muted",
     CANCELLED: "bg-red-100 text-red-600",
     PAST_DUE: "bg-amber-100 text-amber-700",
   };

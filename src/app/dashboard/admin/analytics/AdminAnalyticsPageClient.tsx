@@ -57,8 +57,8 @@ export function AdminAnalyticsPageClient() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-lg font-semibold text-slate-900">Analytics</h1>
-        <p className="text-sm text-slate-600">High-level counts and signups over the last 30 days.</p>
+        <h1 className="text-lg font-semibold text-content">Analytics</h1>
+        <p className="text-sm text-muted">High-level counts and signups over the last 30 days.</p>
       </div>
 
       {error && (
@@ -67,7 +67,7 @@ export function AdminAnalyticsPageClient() {
         </div>
       )}
 
-      {loading && <p className="text-sm text-slate-500">Loading…</p>}
+      {loading && <p className="text-sm text-muted">Loading…</p>}
 
       {data && (
         <>
@@ -88,15 +88,15 @@ export function AdminAnalyticsPageClient() {
               ["Messages (7d)", data.messagesThisWeek],
               ["Users active today", data.activeToday],
             ].map(([label, value]) => (
-              <div key={String(label)} className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-                <p className="mt-1 text-2xl font-semibold text-slate-900">{value as number}</p>
+              <div key={String(label)} className="rounded-xl border border-line bg-surface p-4">
+                <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
+                <p className="mt-1 text-2xl font-semibold text-content">{value as number}</p>
               </div>
             ))}
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
-            <h2 className="text-sm font-semibold text-slate-900">Daily signups (30 days)</h2>
+          <div className="rounded-xl border border-line bg-surface p-4">
+            <h2 className="text-sm font-semibold text-content">Daily signups (30 days)</h2>
             <div className="mt-4 flex h-44 gap-1 overflow-x-auto pb-1">
               {data.dailySignups.map((d, i) => (
                 <div
@@ -114,7 +114,7 @@ export function AdminAnalyticsPageClient() {
                 </div>
               ))}
             </div>
-            <p className="mt-2 text-xs text-slate-500">Hover a bar for date and count.</p>
+            <p className="mt-2 text-xs text-muted">Hover a bar for date and count.</p>
           </div>
         </>
       )}

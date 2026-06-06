@@ -70,19 +70,19 @@ export function SwapModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Swap this trip</h2>
+      <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-surface shadow-xl">
+        <div className="flex items-center justify-between border-b border-line px-6 py-4">
+          <h2 className="text-lg font-semibold text-content">Swap this trip</h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-muted hover:text-content-soft"
           >
             Close
           </button>
         </div>
 
-        <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
+        <div className="border-b border-line bg-surface-2 px-6 py-4">
           <TripSummaryReadOnly trip={trip} typeInfo={typeInfo} />
         </div>
 
@@ -101,14 +101,14 @@ export function SwapModal({
           />
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-content-soft">
               Notes (optional)
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Any preferences or details for potential swap partners..."
-              className="h-24 w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#1E6FB9] focus:border-[#1E6FB9]"
+              className="h-24 w-full text-content bg-surface border border-line rounded-lg px-3 py-2 text-sm placeholder:text-faint resize-none focus:outline-none focus:ring-2 focus:ring-[#1E6FB9] focus:border-[#1E6FB9]"
             />
           </div>
 
@@ -119,11 +119,11 @@ export function SwapModal({
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
+        <div className="flex items-center justify-end gap-3 border-t border-line px-6 py-4">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+            className="px-4 py-2 text-sm font-medium text-muted hover:text-content"
             disabled={isSubmitting}
           >
             Cancel
@@ -168,16 +168,16 @@ function TripSummaryReadOnly({
         {firstLeg && formatFlightNumber(firstLeg.flightNumber) && (
           <span className="font-semibold">{formatFlightNumber(firstLeg.flightNumber)}</span>
         )}
-        <RouteChain nodes={routeChain} className="text-sm text-gray-700" />
+        <RouteChain nodes={routeChain} className="text-sm text-content-soft" />
       </div>
-      <div className="text-sm text-gray-500">{dateRange}</div>
+      <div className="text-sm text-muted">{dateRange}</div>
       {layover && (
         <div className="text-sm font-medium text-[#3BA34A]">
           Layover in {getAirportCity(layover.airport)} —{" "}
           {decimalHoursToDisplayTime(layover.durationDecimal)}
         </div>
       )}
-      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+      <div className="flex flex-wrap gap-4 text-xs text-muted">
         <span>
           Block: <strong>{decimalHoursToDisplayTime(trip.blockHours)}</strong>
         </span>

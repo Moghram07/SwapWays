@@ -10,8 +10,8 @@ export function NotesDisplay({ notes, isTruncated, onUpgradeClick }: NotesDispla
   if (!notes) return null;
 
   return (
-    <div className="border-t border-slate-100 px-2.5 py-1.5 sm:px-3 sm:py-2">
-      <p className="relative text-sm italic text-slate-600">
+    <div className="border-t border-line px-2.5 py-1.5 sm:px-3 sm:py-2">
+      <p className="relative text-sm italic text-muted">
         &quot;{notes}
         {isTruncated && (
           <>

@@ -12,7 +12,7 @@ export function AirportCode({ code }: { code: string }) {
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
         onBlur={() => setOpen(false)}
-        className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+        className="font-semibold text-content hover:text-blue-600 transition-colors"
       >
         {code}
       </button>

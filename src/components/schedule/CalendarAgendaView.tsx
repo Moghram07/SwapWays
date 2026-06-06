@@ -35,7 +35,7 @@ export function CalendarAgendaView({ days, month }: CalendarAgendaViewProps) {
   const relevantDays = days.filter((d) => d.events.length > 0);
 
   if (relevantDays.length === 0) {
-    return <div className="py-12 text-center text-gray-400">No flights scheduled for this month.</div>;
+    return <div className="py-12 text-center text-faint">No flights scheduled for this month.</div>;
   }
 
   return (
@@ -43,12 +43,12 @@ export function CalendarAgendaView({ days, month }: CalendarAgendaViewProps) {
       {relevantDays.map((day) => (
         <div
           key={`${day.year}-${day.month}-${day.dayOfMonth}`}
-          className="rounded-xl border border-gray-200 bg-white p-3"
+          className="rounded-xl border border-line bg-surface p-3"
         >
           <div className="mb-2 flex items-baseline gap-2">
-            <span className="text-lg font-bold text-gray-900">{day.dayOfMonth}</span>
-            <span className="text-sm text-gray-500">{getWeekdayLabel(day.weekday)}</span>
-            {day.month !== month && <span className="text-xs text-gray-400">{getMonthShort(day.month)}</span>}
+            <span className="text-lg font-bold text-content">{day.dayOfMonth}</span>
+            <span className="text-sm text-muted">{getWeekdayLabel(day.weekday)}</span>
+            {day.month !== month && <span className="text-xs text-faint">{getMonthShort(day.month)}</span>}
           </div>
 
           <div className="space-y-2">

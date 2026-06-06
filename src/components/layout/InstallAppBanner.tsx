@@ -46,7 +46,7 @@ export function InstallAppBanner() {
   }
 
   return (
-    <div className="border-b border-[#2668B0]/15 bg-[#E3EFF9] px-3 py-2 text-sm text-[#0b3a66]">
+    <div className="border-b border-[#2668B0]/15 bg-brand-blue-soft px-3 py-2 text-sm text-content">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2">
         <p className="min-w-0 flex-1 font-medium leading-snug sm:truncate">{t("dashboard.installBannerBody")}</p>
         <div className="flex shrink-0 items-center gap-2 text-xs sm:text-sm">

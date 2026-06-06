@@ -7,14 +7,14 @@ export function TimeFormatToggle() {
 
   return (
     <div className="flex items-center gap-3">
-      <span className="hidden text-sm font-medium text-slate-600 sm:inline">Time format:</span>
+      <span className="hidden text-sm font-medium text-muted sm:inline">Time format:</span>
       <button
         type="button"
         onClick={() => setFormat("zulu")}
         className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
           format === "zulu"
             ? "bg-[#1E6FB9] text-white"
-            : "bg-slate-100 text-[#1E6FB9] hover:bg-slate-200"
+            : "bg-surface-2 text-[#1E6FB9] hover:bg-surface-2"
         }`}
       >
         Zulu
@@ -25,7 +25,7 @@ export function TimeFormatToggle() {
         className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
           format === "local"
             ? "bg-[#3BA34A] text-white"
-            : "bg-slate-100 text-[#3BA34A] hover:bg-slate-200"
+            : "bg-surface-2 text-[#3BA34A] hover:bg-surface-2"
         }`}
       >
         Local

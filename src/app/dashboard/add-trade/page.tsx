@@ -20,8 +20,8 @@ const QuickPostForm = dynamic(
   {
     loading: () => (
       <div className="mx-auto max-w-2xl space-y-3 py-4" aria-hidden>
-        <div className="h-10 rounded-lg bg-slate-100 animate-pulse" />
-        <div className="h-48 rounded-xl border border-slate-200 bg-slate-50/80 animate-pulse" />
+        <div className="h-10 rounded-lg bg-surface-2 animate-pulse" />
+        <div className="h-48 rounded-xl border border-line bg-surface-2/80 animate-pulse" />
       </div>
     ),
   }
@@ -29,7 +29,7 @@ const QuickPostForm = dynamic(
 
 const PostPreview = dynamic(
   () => import("@/components/swap-post/PostPreview").then((m) => ({ default: m.PostPreview })),
-  { loading: () => <div className="h-48 animate-pulse rounded-xl bg-slate-100" /> }
+  { loading: () => <div className="h-48 animate-pulse rounded-xl bg-surface-2" /> }
 );
 
 const defaultManualWantCriteria: WantCriteriaData = {
@@ -252,9 +252,9 @@ const CreatePostFlow = dynamic(
   {
     loading: () => (
       <div className="mx-auto max-w-2xl space-y-4 py-4" aria-hidden>
-        <div className="h-1 w-full animate-pulse rounded-full bg-slate-200" />
-        <div className="h-40 rounded-xl border border-slate-200 bg-slate-50/80 animate-pulse" />
-        <div className="h-32 rounded-xl border border-slate-200 bg-slate-50/80 animate-pulse" />
+        <div className="h-1 w-full animate-pulse rounded-full bg-surface-2" />
+        <div className="h-40 rounded-xl border border-line bg-surface-2/80 animate-pulse" />
+        <div className="h-32 rounded-xl border border-line bg-surface-2/80 animate-pulse" />
       </div>
     ),
   }
@@ -265,8 +265,8 @@ const LineSwapForm = dynamic(
   {
     loading: () => (
       <div className="mx-auto max-w-2xl space-y-3 py-4" aria-hidden>
-        <div className="h-10 rounded-lg bg-slate-100 animate-pulse" />
-        <div className="h-48 rounded-xl border border-slate-200 bg-slate-50/80 animate-pulse" />
+        <div className="h-10 rounded-lg bg-surface-2 animate-pulse" />
+        <div className="h-48 rounded-xl border border-line bg-surface-2/80 animate-pulse" />
       </div>
     ),
   }
@@ -441,7 +441,7 @@ export default function PostToTradeBoardPage() {
 
   if (status === "loading" || (loading && !isManualMode)) {
     return (
-      <div className="flex items-center justify-center py-12 text-slate-500">
+      <div className="flex items-center justify-center py-12 text-muted">
         {t("dashboard.loading")}
       </div>
     );
@@ -449,7 +449,7 @@ export default function PostToTradeBoardPage() {
 
   if (!session?.user?.id) {
     return (
-      <div className="py-12 text-center text-slate-500">
+      <div className="py-12 text-center text-muted">
         {t("dashboard.pleaseSignIn")}
       </div>
     );
@@ -550,7 +550,7 @@ export default function PostToTradeBoardPage() {
     // When editing a manual post, wait for the post to load so we can prefill the form.
     if (editId && !editPost) {
       return (
-        <div className="flex items-center justify-center py-12 text-slate-500">
+        <div className="flex items-center justify-center py-12 text-muted">
           {t("dashboard.loading")}
         </div>
       );
@@ -558,7 +558,7 @@ export default function PostToTradeBoardPage() {
     return (
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight text-content">
             {editId ? t("dashboard.postEditYourPost") : "Manual entry"}
           </h1>
         </div>
@@ -580,7 +580,7 @@ export default function PostToTradeBoardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+        <h1 className="text-3xl font-bold tracking-tight text-content">
           {isLineSwapMode
             ? t("dashboard.postLineSwap")
             : editId
@@ -591,11 +591,11 @@ export default function PostToTradeBoardPage() {
       {isLineSwapMode ? (
         <div className="mx-auto max-w-2xl">
           {access && !access.canPostLineSwap ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-              <h2 className="text-xl font-semibold text-slate-900">
+            <div className="rounded-xl border border-line bg-surface p-6 text-center shadow-sm">
+              <h2 className="text-xl font-semibold text-content">
                 {t("dashboard.lineSwapsPremiumTitle")}
               </h2>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-muted">
                 {t("dashboard.lineSwapsPremiumBody")}
               </p>
               <button

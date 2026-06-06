@@ -47,15 +47,15 @@ function ConversationStatusBadge({ status }: { status: string }) {
     EXPIRED: "Expired",
   };
   const colors: Record<string, string> = {
-    ACTIVE: "bg-slate-100 text-slate-600",
+    ACTIVE: "bg-surface-2 text-muted",
     SWAP_PROPOSED: "bg-amber-50 text-amber-700",
-    SWAP_ACCEPTED: "bg-[#E8F5EA] text-[#3BA34A]",
+    SWAP_ACCEPTED: "bg-brand-green-soft text-[#3BA34A]",
     DECLINED: "bg-red-50 text-red-600",
-    EXPIRED: "bg-slate-100 text-slate-400",
+    EXPIRED: "bg-surface-2 text-faint",
   };
   return (
     <span
-      className={`text-xs px-2 py-1 rounded-full ${colors[status] ?? "bg-slate-100 text-slate-600"}`}
+      className={`text-xs px-2 py-1 rounded-full ${colors[status] ?? "bg-surface-2 text-muted"}`}
     >
       {labels[status] ?? status}
     </span>
@@ -74,12 +74,12 @@ export function ChatHeader({
   const displayName = otherPerson?.firstName ?? "Crew";
 
   return (
-    <div className="border-b border-slate-200 bg-white shrink-0">
+    <div className="border-b border-line bg-surface shrink-0">
       <div className="px-4 py-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/dashboard/messages"
-            className="md:hidden shrink-0 p-1 -ml-1 rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+            className="md:hidden shrink-0 p-1 -ml-1 rounded-lg text-muted hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             aria-label="Back to conversations"
           >
             <ChevronLeft className="h-6 w-6" />
@@ -90,8 +90,8 @@ export function ChatHeader({
             </span>
           </div>
           <div>
-            <p className="font-medium text-slate-900">{displayName}</p>
-            <p className="text-xs text-slate-500">
+            <p className="font-medium text-content">{displayName}</p>
+            <p className="text-xs text-muted">
               {otherPerson?.rank?.name ?? ""} · {otherPerson?.base?.name ?? ""} Base
             </p>
           </div>

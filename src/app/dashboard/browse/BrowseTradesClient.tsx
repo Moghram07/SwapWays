@@ -109,7 +109,7 @@ export function BrowseTradesClient() {
         onReset={handleReset}
       />
       {loading ? (
-        <p className="py-8 text-center text-slate-600">Loading…</p>
+        <p className="py-8 text-center text-muted">Loading…</p>
       ) : (
         <TradeList
           trades={trades as Parameters<typeof TradeList>[0]["trades"]}

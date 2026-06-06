@@ -127,8 +127,8 @@ export function MyTradesPageClient() {
     <div className="space-y-8">
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl sm:tracking-tight">My Flights</h1>
-          <p className="text-sm text-slate-500">
+          <h1 className="text-2xl font-bold text-content sm:text-3xl sm:tracking-tight">My Flights</h1>
+          <p className="text-sm text-muted">
             {totalFlights} flight{totalFlights !== 1 ? "s" : ""}
           </p>
         </div>
@@ -138,18 +138,18 @@ export function MyTradesPageClient() {
       </div>
 
       <section>
-        <h2 className="text-lg font-semibold text-slate-900">Scheduled flights</h2>
+        <h2 className="text-lg font-semibold text-content">Scheduled flights</h2>
         {tripsLoading ? (
           <div className="mt-4 space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-28 animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
+              <div key={i} className="h-28 animate-pulse rounded-xl border border-line bg-surface-2" />
             ))}
           </div>
         ) : scheduledCards.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white py-12 text-center">
-            <Plane className="mx-auto h-10 w-10 text-gray-400" strokeWidth={1.5} />
-            <p className="mt-3 text-sm text-slate-600">No scheduled flights</p>
-            <p className="mt-1 text-xs text-slate-500">Upload your Line schedule to see your roster</p>
+          <div className="mt-4 rounded-xl border border-dashed border-line bg-surface py-12 text-center">
+            <Plane className="mx-auto h-10 w-10 text-faint" strokeWidth={1.5} />
+            <p className="mt-3 text-sm text-muted">No scheduled flights</p>
+            <p className="mt-1 text-xs text-muted">Upload your Line schedule to see your roster</p>
             <Link href="/dashboard/schedule" className="mt-3 inline-block">
               <Button className="gap-2" style={{ backgroundColor: PRIMARY }}>
                 <Plus className="h-4 w-4" /> Upload Line Schedule

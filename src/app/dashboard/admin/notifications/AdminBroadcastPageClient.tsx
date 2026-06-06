@@ -176,19 +176,19 @@ export function AdminBroadcastPageClient() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold text-slate-900">Broadcast</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-lg font-semibold text-content">Broadcast</h1>
+        <p className="text-sm text-muted">
           Creates in-app notifications (type SYSTEM) for the selected audience. Use sparingly for product announcements.
         </p>
       </div>
 
-      <form onSubmit={(e) => void submit(e)} className="max-w-xl space-y-4 rounded-xl border border-slate-200 bg-white p-4">
+      <form onSubmit={(e) => void submit(e)} className="max-w-xl space-y-4 rounded-xl border border-line bg-surface p-4">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-slate-600">Audience</span>
+          <span className="text-muted">Audience</span>
           <select
             value={audience}
             onChange={(e) => setAudience(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900"
+            className="rounded-lg border border-line px-3 py-2 text-content"
           >
             <option value="all">All users</option>
             <option value="premium">Premium (active or trialing premium)</option>
@@ -197,23 +197,23 @@ export function AdminBroadcastPageClient() {
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-slate-600">Title</span>
+          <span className="text-muted">Title</span>
           <input
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900"
+            className="rounded-lg border border-line px-3 py-2 text-content"
             maxLength={120}
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-slate-600">Message</span>
+          <span className="text-muted">Message</span>
           <textarea
             required
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={5}
-            className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900"
+            className="rounded-lg border border-line px-3 py-2 text-content"
             maxLength={2000}
           />
         </label>
@@ -223,49 +223,49 @@ export function AdminBroadcastPageClient() {
               type="checkbox"
               checked={emailUsers}
               onChange={(e) => { setEmailUsers(e.target.checked); if (e.target.checked) setEmailOnly(false); }}
-              className="h-4 w-4 rounded border-slate-300 accent-[#1E6FB9]"
+              className="h-4 w-4 rounded border-line accent-[#1E6FB9]"
             />
-            <span className="text-slate-700">Also send as email to users</span>
+            <span className="text-content-soft">Also send as email to users</span>
           </label>
           <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
             <input
               type="checkbox"
               checked={emailOnly}
               onChange={(e) => { setEmailOnly(e.target.checked); if (e.target.checked) setEmailUsers(false); }}
-              className="h-4 w-4 rounded border-slate-300 accent-[#1E6FB9]"
+              className="h-4 w-4 rounded border-line accent-[#1E6FB9]"
             />
-            <span className="text-slate-700">
-              Email only <span className="text-slate-400">(no in-app notification — use to re-send a missed email)</span>
+            <span className="text-content-soft">
+              Email only <span className="text-faint">(no in-app notification — use to re-send a missed email)</span>
             </span>
           </label>
         </div>
 
         {emailMode && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-3">
+          <div className="rounded-lg border border-line bg-surface-2 p-3 space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-slate-700">
+              <span className="text-sm font-medium text-content-soft">
                 Recipients{" "}
-                <span className="text-slate-500 font-normal">({selectedCount} selected)</span>
+                <span className="text-muted font-normal">({selectedCount} selected)</span>
               </span>
               <div className="flex gap-2 text-xs">
-                <button type="button" onClick={selectAllVisible} className="rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-white">
+                <button type="button" onClick={selectAllVisible} className="rounded border border-line px-2 py-1 text-content-soft hover:bg-surface">
                   Select {query ? "shown" : "all"}
                 </button>
-                <button type="button" onClick={clearVisible} className="rounded border border-slate-300 px-2 py-1 text-slate-700 hover:bg-white">
+                <button type="button" onClick={clearVisible} className="rounded border border-line px-2 py-1 text-content-soft hover:bg-surface">
                   Clear {query ? "shown" : "all"}
                 </button>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-line bg-surface px-3 py-2">
               <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={skipEmailed}
                   onChange={(e) => setSkipEmailed(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 accent-[#1E6FB9]"
+                  className="h-4 w-4 rounded border-line accent-[#1E6FB9]"
                 />
-                <span className="text-slate-700">Skip users already emailed in the last</span>
+                <span className="text-content-soft">Skip users already emailed in the last</span>
               </label>
               <span className="flex items-center gap-1 text-sm">
                 <input
@@ -274,14 +274,14 @@ export function AdminBroadcastPageClient() {
                   value={windowDays}
                   onChange={(e) => setWindowDays(e.target.value)}
                   disabled={!skipEmailed}
-                  className="w-16 rounded border border-slate-200 px-2 py-1 text-slate-900 disabled:opacity-50"
+                  className="w-16 rounded border border-line px-2 py-1 text-content disabled:opacity-50"
                 />
-                <span className="text-slate-600">days</span>
+                <span className="text-muted">days</span>
               </span>
             </div>
 
             {skipEmailed && hiddenEmailedCount > 0 && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted">
                 {hiddenEmailedCount} user{hiddenEmailedCount !== 1 ? "s" : ""} hidden — already emailed in the last {wDays} day{wDays !== 1 ? "s" : ""}. Uncheck the box above to show everyone.
               </p>
             )}
@@ -291,10 +291,10 @@ export function AdminBroadcastPageClient() {
               value={recipientSearch}
               onChange={(e) => setRecipientSearch(e.target.value)}
               placeholder="Search by name or email…"
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+              className="w-full rounded-lg border border-line px-3 py-2 text-sm text-content"
             />
 
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-muted">
               Resend&apos;s free tier sends max <strong>{DAILY_EMAIL_CAP} emails/day</strong>. The list below auto-excludes
               anyone you already emailed, so you can just press Send each day until everyone&apos;s covered.
             </p>
@@ -304,11 +304,11 @@ export function AdminBroadcastPageClient() {
               </p>
             )}
 
-            <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+            <div className="max-h-64 overflow-y-auto rounded-lg border border-line bg-surface">
               {loadingRecipients ? (
-                <p className="px-3 py-3 text-sm text-slate-500">Loading recipients…</p>
+                <p className="px-3 py-3 text-sm text-muted">Loading recipients…</p>
               ) : visible.length === 0 ? (
-                <p className="px-3 py-3 text-sm text-slate-500">
+                <p className="px-3 py-3 text-sm text-muted">
                   {recipients.length > 0 && skipEmailed ? "Everyone has been emailed already. 🎉" : "No users match."}
                 </p>
               ) : (
@@ -317,21 +317,21 @@ export function AdminBroadcastPageClient() {
                   return (
                     <label
                       key={u.id}
-                      className="flex cursor-pointer items-center gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-b-0 hover:bg-slate-50"
+                      className="flex cursor-pointer items-center gap-2 border-b border-line px-3 py-2 text-sm last:border-b-0 hover:bg-surface-2"
                     >
                       <input
                         type="checkbox"
                         checked={selectedIds.has(u.id)}
                         onChange={() => toggleOne(u.id)}
-                        className="h-4 w-4 rounded border-slate-300 accent-[#1E6FB9]"
+                        className="h-4 w-4 rounded border-line accent-[#1E6FB9]"
                       />
-                      <span className="text-slate-800">{`${u.firstName} ${u.lastName}`.trim() || "(no name)"}</span>
+                      <span className="text-content">{`${u.firstName} ${u.lastName}`.trim() || "(no name)"}</span>
                       {d != null && (
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+                        <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-muted">
                           emailed {d === 0 ? "today" : `${d}d ago`}
                         </span>
                       )}
-                      <span className="ml-auto text-xs text-slate-400">{u.email}</span>
+                      <span className="ml-auto text-xs text-faint">{u.email}</span>
                     </label>
                   );
                 })
@@ -358,10 +358,10 @@ export function AdminBroadcastPageClient() {
         </button>
       </form>
 
-      <div className="max-w-xl rounded-xl border border-red-100 bg-white p-4 space-y-3">
+      <div className="max-w-xl rounded-xl border border-red-100 bg-surface p-4 space-y-3">
         <div>
-          <h2 className="text-sm font-semibold text-slate-900">Danger zone</h2>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <h2 className="text-sm font-semibold text-content">Danger zone</h2>
+          <p className="text-sm text-muted mt-0.5">
             Delete all announcements from every user&apos;s inbox and Messages page.
           </p>
         </div>

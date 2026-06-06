@@ -108,7 +108,7 @@ export function NotificationsDropdown({ ariaLabel }: { ariaLabel?: string }) {
     <div ref={ref} className="relative">
       <button
         onClick={handleOpen}
-        className="relative rounded-lg border border-slate-200 p-2 text-slate-600 transition hover:bg-slate-50"
+        className="relative rounded-lg border border-line p-2 text-muted transition hover:bg-surface-2"
         aria-label={ariaLabel ?? "Notifications"}
         type="button"
       >
@@ -124,9 +124,9 @@ export function NotificationsDropdown({ ariaLabel }: { ariaLabel?: string }) {
       </button>
 
       {open && (
-        <div className="absolute end-0 z-50 mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
-            <span className="text-sm font-semibold text-slate-800">Notifications</span>
+        <div className="absolute end-0 z-50 mt-2 w-80 rounded-xl border border-line bg-surface shadow-lg">
+          <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+            <span className="text-sm font-semibold text-content">Notifications</span>
             {unreadCount > 0 && (
               <button
                 onClick={markAllRead}
@@ -140,7 +140,7 @@ export function NotificationsDropdown({ ariaLabel }: { ariaLabel?: string }) {
           </div>
 
           {notifications.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-10 text-slate-400">
+            <div className="flex flex-col items-center gap-2 py-10 text-faint">
               <Bell className="h-8 w-8" strokeWidth={1.5} />
               <p className="text-sm">No notifications yet</p>
             </div>
@@ -151,7 +151,7 @@ export function NotificationsDropdown({ ariaLabel }: { ariaLabel?: string }) {
                   <Link
                     href={linkHref(n)}
                     onClick={() => setOpen(false)}
-                    className={`flex gap-3 px-4 py-3 transition hover:bg-slate-50 ${
+                    className={`flex gap-3 px-4 py-3 transition hover:bg-surface-2 ${
                       !n.isRead ? "bg-blue-50/40" : ""
                     }`}
                   >
@@ -166,13 +166,13 @@ export function NotificationsDropdown({ ariaLabel }: { ariaLabel?: string }) {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <p className="truncate text-sm font-medium text-slate-900">{n.title}</p>
+                        <p className="truncate text-sm font-medium text-content">{n.title}</p>
                         {!n.isRead && (
                           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" />
                         )}
                       </div>
-                      <p className="mt-0.5 truncate text-xs text-slate-500">{n.message}</p>
-                      <p className="mt-0.5 text-xs text-slate-400">{formatTimeAgo(n.createdAt)}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted">{n.message}</p>
+                      <p className="mt-0.5 text-xs text-faint">{formatTimeAgo(n.createdAt)}</p>
                     </div>
                   </Link>
                 </li>
@@ -180,7 +180,7 @@ export function NotificationsDropdown({ ariaLabel }: { ariaLabel?: string }) {
             </ul>
           )}
 
-          <div className="border-t border-slate-100 px-4 py-2.5 text-center">
+          <div className="border-t border-line px-4 py-2.5 text-center">
             <Link
               href="/dashboard/notifications"
               onClick={() => setOpen(false)}

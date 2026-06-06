@@ -114,6 +114,8 @@ const en = {
   dashboard: {
     menu: "Menu",
     backToHome: "Back to Home",
+    darkMode: "Dark mode",
+    lightMode: "Light mode",
     overview: "Overview",
     myFlights: "My Flights",
     postToTradeBoard: "Post to Trade Board",

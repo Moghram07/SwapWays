@@ -68,15 +68,15 @@ export function LineSwapBoardSection({
 
   return (
     <div className="space-y-6">
-      {!compactHeader && <h1 className="text-2xl font-bold text-slate-900">{t("dashboard.lineSwapBoardTitle")}</h1>}
+      {!compactHeader && <h1 className="text-2xl font-bold text-content">{t("dashboard.lineSwapBoardTitle")}</h1>}
 
       {loading ? (
-        <p className="py-8 text-center text-slate-500">{t("dashboard.loading")}</p>
+        <p className="py-8 text-center text-muted">{t("dashboard.loading")}</p>
       ) : (
         <>
           {myPosts.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t("dashboard.lineSwapMyPosts")}</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{t("dashboard.lineSwapMyPosts")}</h2>
               {myPosts.map((post) => (
                 <LineSwapCard
                   key={post.id}
@@ -91,10 +91,10 @@ export function LineSwapBoardSection({
 
           <div className="space-y-3">
             {!compactHeader && myPosts.length > 0 && (
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t("dashboard.lineSwapOtherPosts")}</h2>
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">{t("dashboard.lineSwapOtherPosts")}</h2>
             )}
             {posts.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50/50 py-10 text-center text-slate-600">
+              <p className="rounded-lg border border-dashed border-line bg-surface-2/50 py-10 text-center text-muted">
                 {t("dashboard.noLineSwapPostsYet")}
               </p>
             ) : (

@@ -48,34 +48,34 @@ export function AdminFeedbackThreadPageClient() {
 
   return (
     <section className="grid gap-4 lg:grid-cols-[minmax(280px,360px)_1fr]">
-      <div className="rounded-xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-100 px-4 py-3">
-          <h1 className="text-base font-semibold text-slate-900">Feedback Inbox</h1>
-          <p className="text-xs text-slate-500">Open a ticket to reply in thread.</p>
+      <div className="rounded-xl border border-line bg-surface">
+        <div className="border-b border-line px-4 py-3">
+          <h1 className="text-base font-semibold text-content">Feedback Inbox</h1>
+          <p className="text-xs text-muted">Open a ticket to reply in thread.</p>
         </div>
         <div className="max-h-[70vh] overflow-y-auto">
           {(data?.data?.items ?? []).map((item) => (
             <button
               key={item.id}
               onClick={() => setSelectedId(item.id)}
-              className={`w-full border-b border-slate-100 px-4 py-3 text-left hover:bg-slate-50 ${
-                selectedId === item.id ? "bg-slate-50" : ""
+              className={`w-full border-b border-line px-4 py-3 text-left hover:bg-surface-2 ${
+                selectedId === item.id ? "bg-surface-2" : ""
               }`}
             >
-              <p className="truncate text-sm font-medium text-slate-900">{item.subject || "(no subject)"}</p>
-              <p className="truncate text-xs text-slate-500">
+              <p className="truncate text-sm font-medium text-content">{item.subject || "(no subject)"}</p>
+              <p className="truncate text-xs text-muted">
                 {item.userFirstName} {item.userLastName} · {item.userEmail}
               </p>
               <div className="mt-1 flex items-center gap-2">
-                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-700">{item.status}</span>
-                <span className="text-[10px] text-slate-400">{formatTimeAgo(item.createdAt)}</span>
+                <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] text-content-soft">{item.status}</span>
+                <span className="text-[10px] text-faint">{formatTimeAgo(item.createdAt)}</span>
               </div>
             </button>
           ))}
         </div>
       </div>
 
-      {selected ? <FeedbackChatPanel feedbackId={selected.id} onMutate={mutate} /> : <p className="text-sm text-slate-500">Select a feedback ticket.</p>}
+      {selected ? <FeedbackChatPanel feedbackId={selected.id} onMutate={mutate} /> : <p className="text-sm text-muted">Select a feedback ticket.</p>}
     </section>
   );
 }
@@ -106,13 +106,13 @@ function FeedbackChatPanel({ feedbackId, onMutate }: { feedbackId: string; onMut
     await onMutate();
   }
 
-  if (!data?.data) return <p className="text-sm text-slate-500">Loading thread...</p>;
+  if (!data?.data) return <p className="text-sm text-muted">Loading thread...</p>;
   const fb = data.data;
   return (
-    <div className="flex max-h-[70vh] flex-col rounded-xl border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 px-4 py-3">
-        <h2 className="text-sm font-semibold text-slate-900">{fb.subject || "(no subject)"}</h2>
-        <p className="text-xs text-slate-500">
+    <div className="flex max-h-[70vh] flex-col rounded-xl border border-line bg-surface">
+      <div className="border-b border-line px-4 py-3">
+        <h2 className="text-sm font-semibold text-content">{fb.subject || "(no subject)"}</h2>
+        <p className="text-xs text-muted">
           {fb.user.firstName} {fb.user.lastName} · {fb.user.email}
         </p>
       </div>
@@ -122,13 +122,13 @@ function FeedbackChatPanel({ feedbackId, onMutate }: { feedbackId: string; onMut
           <Bubble key={m.id} message={m.message} isMine={m.isAdmin} sender={m.isAdmin ? "You" : fb.user.firstName} createdAt={m.createdAt} />
         ))}
       </div>
-      <div className="border-t border-slate-100 p-3">
+      <div className="border-t border-line p-3">
         <div className="flex gap-2">
           <input
             value={reply}
             onChange={(e) => setReply(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && void sendReply()}
-            className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900"
+            className="flex-1 rounded-lg border border-line px-3 py-2 text-sm text-content"
             placeholder="Reply to user..."
           />
           <button onClick={() => void sendReply()} disabled={sending || !reply.trim()} className="rounded-lg bg-[#1E6FB9] px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
@@ -153,9 +153,9 @@ function Bubble({
 }) {
   return (
     <div className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-      <div className={`max-w-[85%] rounded-xl px-3 py-2 ${isMine ? "bg-[#1E6FB9] text-white" : "bg-slate-100 text-slate-800"}`}>
+      <div className={`max-w-[85%] rounded-xl px-3 py-2 ${isMine ? "bg-[#1E6FB9] text-white" : "bg-surface-2 text-content"}`}>
         <p className="text-sm">{message}</p>
-        <p className={`mt-1 text-[10px] ${isMine ? "text-blue-200" : "text-slate-500"}`}>
+        <p className={`mt-1 text-[10px] ${isMine ? "text-blue-200" : "text-muted"}`}>
           {sender} · {formatTime(createdAt)}
         </p>
       </div>

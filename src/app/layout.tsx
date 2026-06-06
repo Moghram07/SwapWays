@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Cairo, Inter } from "next/font/google";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ConditionalShell } from "@/components/layout/ConditionalShell";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { ChunkLoadRecovery } from "@/components/ChunkLoadRecovery";
@@ -43,15 +44,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" dir="ltr">
+    <html lang="en" dir="ltr" suppressHydrationWarning>
+      <head>
+        {/* Dark is the default on dashboard routes (only an explicit "light" choice opts out).
+            Applied before paint to avoid a flash. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(location.pathname.indexOf('/dashboard')===0&&localStorage.getItem('theme')!=='light'){document.documentElement.classList.add('dark')}}catch(e){}`,
+          }}
+        />
+      </head>
       <body suppressHydrationWarning className={`${inter.variable} ${cairo.variable} font-sans antialiased`}>
         <SessionProvider>
-          <AnalyticsProvider />
-          <ChunkLoadRecovery />
-          <ConditionalShell>
-            {children}
-            <ServiceWorkerRegistration />
-          </ConditionalShell>
+          <ThemeProvider>
+            <AnalyticsProvider />
+            <ChunkLoadRecovery />
+            <ConditionalShell>
+              {children}
+              <ServiceWorkerRegistration />
+            </ConditionalShell>
+          </ThemeProvider>
         </SessionProvider>
       </body>
     </html>

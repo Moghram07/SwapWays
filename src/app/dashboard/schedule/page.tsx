@@ -8,8 +8,8 @@ export default async function SchedulePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("dashboard.scheduleTitle")}</h1>
-        <p className="mt-2 text-slate-600">{t("dashboard.scheduleSubtitle")}</p>
+        <h1 className="text-3xl font-bold tracking-tight text-content">{t("dashboard.scheduleTitle")}</h1>
+        <p className="mt-2 text-muted">{t("dashboard.scheduleSubtitle")}</p>
       </div>
 
       <SchedulePageClient />

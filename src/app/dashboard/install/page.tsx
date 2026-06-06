@@ -32,19 +32,19 @@ export default function InstallGuidePage() {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center">
         <div className="mb-4 text-5xl">✅</div>
-        <h1 className="mb-2 text-2xl font-bold text-gray-900">SwapWays is installed!</h1>
-        <p className="text-gray-700">
+        <h1 className="mb-2 text-2xl font-bold text-content">SwapWays is installed!</h1>
+        <p className="text-content-soft">
           You&apos;re using the installed version. Enjoy the fast experience and share feedback to help us improve.
         </p>
-        <p className="mt-3 text-sm text-slate-600">All features are unlocked for everyone during free beta.</p>
+        <p className="mt-3 text-sm text-muted">All features are unlocked for everyone during free beta.</p>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-xl px-4">
-      <h1 className="mb-2 text-2xl font-bold text-gray-900">Install SwapWays on your phone</h1>
-      <p className="mb-6 text-sm text-gray-700">
+      <h1 className="mb-2 text-2xl font-bold text-content">Install SwapWays on your phone</h1>
+      <p className="mb-6 text-sm text-content-soft">
         Add SwapWays to your home screen. It opens instantly like a regular app - no App Store
         download needed.
       </p>
@@ -53,7 +53,7 @@ export default function InstallGuidePage() {
         <button
           onClick={() => setDevice("ios")}
           className={`flex-1 rounded-lg py-2.5 text-sm font-medium ${
-            device === "ios" ? "bg-[#2668B0] text-white" : "bg-gray-100 text-gray-600"
+            device === "ios" ? "bg-[#2668B0] text-white" : "bg-surface-2 text-muted"
           }`}
         >
           📱 iPhone / iPad
@@ -61,7 +61,7 @@ export default function InstallGuidePage() {
         <button
           onClick={() => setDevice("android")}
           className={`flex-1 rounded-lg py-2.5 text-sm font-medium ${
-            device === "android" ? "bg-[#3BA34A] text-white" : "bg-gray-100 text-gray-600"
+            device === "android" ? "bg-[#3BA34A] text-white" : "bg-surface-2 text-muted"
           }`}
         >
           🤖 Android
@@ -110,9 +110,9 @@ export default function InstallGuidePage() {
         </div>
       )}
 
-      <div className="mt-8 rounded-xl bg-[#E3EFF9] p-5">
+      <div className="mt-8 rounded-xl bg-brand-blue-soft p-5">
         <h3 className="mb-2 font-semibold text-[#2668B0]">Why install SwapWays?</h3>
-        <ul className="space-y-1.5 text-sm text-gray-700">
+        <ul className="space-y-1.5 text-sm text-content-soft">
           <li>⚡ Opens instantly, no browser bar</li>
           <li>🏠 One-tap access from your home screen</li>
           <li>📱 Feels like a regular app</li>
@@ -138,8 +138,8 @@ function Step({
         {number}
       </div>
       <div className="flex-1">
-        <h3 className="mb-1 font-semibold text-gray-900">{title}</h3>
-        <div className="text-sm text-gray-600">{children}</div>
+        <h3 className="mb-1 font-semibold text-content">{title}</h3>
+        <div className="text-sm text-muted">{children}</div>
       </div>
     </div>
   );

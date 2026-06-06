@@ -86,18 +86,18 @@ export function AdminPostsPageClient() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-lg font-semibold text-slate-900">Posts</h1>
-        <p className="text-sm text-slate-600">Review recent swap and line posts. Cancel clears the listing from active trade flows.</p>
+        <h1 className="text-lg font-semibold text-content">Posts</h1>
+        <p className="text-sm text-muted">Review recent swap and line posts. Cancel clears the listing from active trade flows.</p>
       </div>
 
-      <div className="flex gap-2 rounded-xl border border-slate-200 bg-white p-1">
+      <div className="flex gap-2 rounded-xl border border-line bg-surface p-1">
         {(["swap", "line"] as const).map((k) => (
           <button
             key={k}
             type="button"
             onClick={() => setKind(k)}
             className={`rounded-lg px-4 py-2 text-sm font-medium ${
-              kind === k ? "bg-[#1E6FB9] text-white" : "text-slate-600 hover:bg-slate-50"
+              kind === k ? "bg-[#1E6FB9] text-white" : "text-muted hover:bg-surface-2"
             }`}
           >
             {k === "swap" ? "Swap posts" : "Line swaps"}
@@ -112,11 +112,11 @@ export function AdminPostsPageClient() {
       )}
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       ) : kind === "swap" ? (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-xl border border-line bg-surface">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="border-b border-line bg-surface-2 text-xs uppercase text-muted">
               <tr>
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Type</th>
@@ -128,21 +128,21 @@ export function AdminPostsPageClient() {
             </thead>
             <tbody>
               {swapPosts.map((p) => (
-                <tr key={p.id} className="border-b border-slate-100">
+                <tr key={p.id} className="border-b border-line">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900">
+                    <div className="font-medium text-content">
                       {p.user.firstName} {p.user.lastName}
                     </div>
-                    <div className="text-xs text-slate-500">{p.user.email}</div>
+                    <div className="text-xs text-muted">{p.user.email}</div>
                   </td>
-                  <td className="px-4 py-3 text-slate-700">
+                  <td className="px-4 py-3 text-content-soft">
                     {p.postType} · {p.wantType}
                   </td>
                   <td className="px-4 py-3">{p.status}</td>
-                  <td className="px-4 py-3 text-xs text-slate-600">
+                  <td className="px-4 py-3 text-xs text-muted">
                     {p.offeredTrips.map((t) => t.destination).join(", ") || "—"}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{new Date(p.createdAt).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-muted">{new Date(p.createdAt).toLocaleString()}</td>
                   <td className="px-4 py-3">
                     {!terminal.has(p.status) && (
                       <button
@@ -161,9 +161,9 @@ export function AdminPostsPageClient() {
           </table>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-xl border border-line bg-surface">
           <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="border-b border-line bg-surface-2 text-xs uppercase text-muted">
               <tr>
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Line</th>
@@ -175,19 +175,19 @@ export function AdminPostsPageClient() {
             </thead>
             <tbody>
               {linePosts.map((p) => (
-                <tr key={p.id} className="border-b border-slate-100">
+                <tr key={p.id} className="border-b border-line">
                   <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900">
+                    <div className="font-medium text-content">
                       {p.user.firstName} {p.user.lastName}
                     </div>
-                    <div className="text-xs text-slate-500">{p.user.email}</div>
+                    <div className="text-xs text-muted">{p.user.email}</div>
                   </td>
                   <td className="px-4 py-3">{p.lineNumber}</td>
                   <td className="px-4 py-3">
                     {p.month} {p.year}
                   </td>
                   <td className="px-4 py-3">{p.status}</td>
-                  <td className="px-4 py-3 text-slate-600">{new Date(p.createdAt).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-muted">{new Date(p.createdAt).toLocaleString()}</td>
                   <td className="px-4 py-3">
                     {!terminal.has(p.status) && (
                       <button

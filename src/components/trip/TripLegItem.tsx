@@ -93,15 +93,15 @@ export function TripLegItem({ leg, timeMode = "zulu" }: TripLegItemProps) {
 
   return (
     <div className="flex items-start gap-3 py-2">
-      <div className="mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100">
+      <div className="mt-1 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-surface-2">
         <Plane
           size={16}
-          className={`rotate-45 ${leg.isDeadHead ? "text-purple-500" : "text-slate-500"}`}
+          className={`rotate-45 ${leg.isDeadHead ? "text-purple-500" : "text-muted"}`}
         />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center gap-2 text-sm text-gray-500">
-          <span className="font-medium text-gray-700">
+        <div className="mb-1 flex items-center gap-2 text-sm text-muted">
+          <span className="font-medium text-content-soft">
             SV{leg.flightNumber}
             {leg.isDeadHead && (
               <span className="ml-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-semibold">
@@ -113,18 +113,18 @@ export function TripLegItem({ leg, timeMode = "zulu" }: TripLegItemProps) {
           <span>{getAircraftName(leg.aircraftCode)}</span>
         </div>
         <div className="mb-1 flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-500">
+          <span className="text-sm font-medium text-muted">
             {weekday}, {dateStr}
           </span>
-          <span className="text-base font-semibold text-gray-900">
+          <span className="text-base font-semibold text-content">
             {leg.departureAirport}
           </span>
           <div className="flex flex-1 items-center px-2">
             <div className="h-px flex-1 bg-gray-300" />
-            <Plane size={14} className="mx-1 text-gray-400" />
+            <Plane size={14} className="mx-1 text-faint" />
             <div className="h-px flex-1 bg-gray-300" />
           </div>
-          <span className="text-base font-semibold text-gray-900">
+          <span className="text-base font-semibold text-content">
             {leg.arrivalAirport}
           </span>
         </div>
@@ -134,7 +134,7 @@ export function TripLegItem({ leg, timeMode = "zulu" }: TripLegItemProps) {
               Dep: {departurePrimary}
             </p>
           </div>
-          <div className="text-center text-gray-500">
+          <div className="text-center text-muted">
             {decimalHoursToDisplayTime(leg.flyingTimeDecimal)}
           </div>
           <div className="text-right">

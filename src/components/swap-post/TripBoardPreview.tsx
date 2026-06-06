@@ -71,19 +71,19 @@ export function TripBoardPreview({
 
   return (
     <div className={`rounded-lg border p-3 ${typeInfo.bgColor}`}>
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-faint">
         Board preview
       </p>
       <div className="flex flex-wrap items-start gap-2">
         <TripTypeBadge typeInfo={typeInfo} />
-        <span className="text-sm text-gray-500">{dateLabel}</span>
+        <span className="text-sm text-muted">{dateLabel}</span>
         {reportLocal && (
-          <span className="text-sm text-gray-600">
+          <span className="text-sm text-muted">
             Report: <span className="font-medium text-green-600">{reportLocal}</span>
           </span>
         )}
         {blockHours != null && blockHours > 0 && (
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-muted">
             Block: <span className="font-medium">{decimalHoursToDisplayTime(blockHours)}</span>
           </span>
         )}

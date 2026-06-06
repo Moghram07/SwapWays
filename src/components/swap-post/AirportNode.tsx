@@ -40,19 +40,19 @@ export function AirportNode({ code, isLayover, isHighlighted, variant = "green",
             ? `border-2 ${colors.border} ${colors.bg}`
             : isHighlighted
               ? `${colors.border} ${colors.bg}`
-              : "border-gray-200 bg-white"
+              : "border-line bg-surface"
         }`}
       >
         <div
           className={`text-xs font-bold leading-tight ${
-            isColored ? colors.text : "text-gray-900"
+            isColored ? colors.text : "text-content"
           }`}
         >
           {code}
         </div>
         <div
           className={`text-[9px] leading-tight ${
-            isColored ? colors.text : "text-gray-400"
+            isColored ? colors.text : "text-faint"
           }`}
         >
           {city}
@@ -60,7 +60,7 @@ export function AirportNode({ code, isLayover, isHighlighted, variant = "green",
         {time && (
           <div
             className={`mt-0.5 text-[9px] font-medium leading-tight ${
-              timeColor ?? (isColored ? colors.text : "text-gray-500")
+              timeColor ?? (isColored ? colors.text : "text-muted")
             }`}
           >
             {time}

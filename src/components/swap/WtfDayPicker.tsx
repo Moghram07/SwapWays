@@ -105,7 +105,7 @@ export function WtfDayPicker({
     <div>
       {label !== "" && (
         <div className="mb-2 flex items-center justify-between">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-content-soft">
             {label}
           </label>
           <button
@@ -119,7 +119,7 @@ export function WtfDayPicker({
         </div>
       )}
       {label !== "" && (
-        <p className="mb-2 text-xs text-gray-500">
+        <p className="mb-2 text-xs text-muted">
           {minSelectableDay != null
             ? "Select days you are available to fly. Greyed-out days are in the past."
             : "Select your days off when you are available to fly instead. Blue days show flights and green days show off days."}
@@ -134,7 +134,7 @@ export function WtfDayPicker({
           className={`rounded-lg border-2 py-2 text-sm font-medium transition-colors ${
             isOnCurrentMonth
               ? "border-[var(--primary-cta)] bg-[var(--primary-cta)] text-white"
-              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              : "border-line bg-surface text-muted hover:border-line"
           }`}
         >
           {monthLabel(currentMonth, currentYear)}
@@ -145,7 +145,7 @@ export function WtfDayPicker({
           className={`rounded-lg border-2 py-2 text-sm font-medium transition-colors ${
             !isOnCurrentMonth
               ? "border-[var(--primary-cta)] bg-[var(--primary-cta)] text-white"
-              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+              : "border-line bg-surface text-muted hover:border-line"
           }`}
         >
           {monthLabel(nextMonthNum, nextMonthYear)}
@@ -160,11 +160,11 @@ export function WtfDayPicker({
           const isSelected = selectedDays.includes(day);
           const baseClasses =
             "h-9 w-9 rounded-lg text-sm font-medium transition-colors";
-          const disabledClasses = "cursor-not-allowed bg-gray-100 text-gray-400";
+          const disabledClasses = "cursor-not-allowed bg-surface-2 text-faint";
           const selectedClasses =
             "border-2 border-[var(--primary-cta)] bg-[var(--primary-cta)] text-white ring-2 ring-offset-1 ring-[var(--primary-cta)]";
           const neutralClasses =
-            "border border-gray-200 bg-white text-gray-700 hover:border-[var(--primary-cta)]";
+            "border border-line bg-surface text-content-soft hover:border-[var(--primary-cta)]";
           const flightDayClasses =
             "border border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-400";
           const offDayClasses =
@@ -192,7 +192,7 @@ export function WtfDayPicker({
           );
         })}
       </div>
-      <p className="mt-2 text-xs text-gray-500">
+      <p className="mt-2 text-xs text-muted">
         <span className="text-blue-600">Blue = flight day</span>
         <span className="ml-3 text-emerald-600">Green = off day</span>
       </p>

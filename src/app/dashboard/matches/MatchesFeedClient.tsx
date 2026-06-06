@@ -230,14 +230,14 @@ function postToCard(p: MatchPost) {
 
 function HowMatchingWorks({ t }: { t: ReturnType<typeof getTranslator> }) {
   return (
-    <div className="space-y-3 text-sm text-slate-600">
-      <p className="font-semibold text-slate-900">{t("dashboard.matchExplainerHardTitle")}</p>
+    <div className="space-y-3 text-sm text-muted">
+      <p className="font-semibold text-content">{t("dashboard.matchExplainerHardTitle")}</p>
       <ul className="list-disc space-y-1 pl-5">
         <li>{t("dashboard.matchExplainerHardBase")}</li>
         <li>{t("dashboard.matchExplainerHardRank")}</li>
         <li>{t("dashboard.matchExplainerHardAircraft")}</li>
       </ul>
-      <p className="font-semibold text-slate-900">{t("dashboard.matchExplainerScoreTitle")}</p>
+      <p className="font-semibold text-content">{t("dashboard.matchExplainerScoreTitle")}</p>
       <p>{t("dashboard.matchExplainerScoreSummary")}</p>
       <p>{t("dashboard.matchExplainerRanking")}</p>
     </div>
@@ -306,7 +306,7 @@ export function MatchesFeedClient() {
   }
 
   if (isLoading) {
-    return <p className="py-10 text-center text-slate-500">{t("dashboard.matchesLoading")}</p>;
+    return <p className="py-10 text-center text-muted">{t("dashboard.matchesLoading")}</p>;
   }
 
   if (error) {
@@ -320,15 +320,15 @@ export function MatchesFeedClient() {
   if (matches.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 p-8 text-center">
-          <h2 className="text-lg font-semibold text-slate-900">{t("dashboard.matchesEmptyTitle")}</h2>
-          <p className="mt-2 text-sm text-slate-600">{t("dashboard.matchesEmptyBody")}</p>
+        <div className="rounded-2xl border border-dashed border-line bg-surface-2/70 p-8 text-center">
+          <h2 className="text-lg font-semibold text-content">{t("dashboard.matchesEmptyTitle")}</h2>
+          <p className="mt-2 text-sm text-muted">{t("dashboard.matchesEmptyBody")}</p>
           <Link href="/dashboard" className="mt-4 inline-block rounded-lg bg-[#2668B0] px-4 py-2 text-sm font-semibold text-white">
             {t("dashboard.browseTradesTitle")}
           </Link>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6">
-          <h3 className="mb-3 text-base font-semibold text-slate-900">{t("dashboard.matchExplainerTitle")}</h3>
+        <div className="rounded-2xl border border-line bg-surface p-6">
+          <h3 className="mb-3 text-base font-semibold text-content">{t("dashboard.matchExplainerTitle")}</h3>
           <HowMatchingWorks t={t} />
         </div>
       </div>
@@ -337,7 +337,7 @@ export function MatchesFeedClient() {
 
   return (
     <div className="space-y-4">
-      <details className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+      <details className="rounded-2xl border border-line bg-surface-2/60 p-4">
         <summary className="cursor-pointer text-sm font-semibold text-[#2668B0]">
           {t("dashboard.matchExplainerTitle")}
         </summary>
@@ -366,13 +366,13 @@ export function MatchesFeedClient() {
           aria-modal="true"
           aria-labelledby="match-conversation-title"
         >
-          <div className="modal-panel w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
-            <h3 id="match-conversation-title" className="text-lg font-semibold text-slate-900">
+          <div className="modal-panel w-full max-w-md rounded-xl border border-line bg-surface p-6 shadow-lg">
+            <h3 id="match-conversation-title" className="text-lg font-semibold text-content">
               Start conversation
             </h3>
             {selectedPost && (
-              <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-700">
-                <p className="font-medium text-slate-900">Post summary</p>
+              <div className="mt-3 rounded-lg border border-line bg-surface-2/50 px-3 py-2.5 text-sm text-content-soft">
+                <p className="font-medium text-content">Post summary</p>
                 <p className="mt-1">
                   {selectedPost.postType === "VACATION_SWAP" ? (
                     <>
@@ -397,19 +397,19 @@ export function MatchesFeedClient() {
                     For: {wantTypeLabel[selectedPost.wantType] ?? "Open to offers"}
                   </p>
                 )}
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-muted">
                   {selectedPost.user.rank.name} · {selectedPost.user.base.name} Base
                 </p>
               </div>
             )}
-            <label className="mt-4 block text-sm font-medium text-slate-700">
+            <label className="mt-4 block text-sm font-medium text-content-soft">
               Message {selectedPost ? "(optional)" : ""}
             </label>
             <textarea
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               placeholder={messagePlaceholder}
-              className="mt-1 h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+              className="mt-1 h-24 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
               rows={4}
               disabled={sending}
             />
@@ -423,7 +423,7 @@ export function MatchesFeedClient() {
                 type="button"
                 onClick={() => setMessagePostId(null)}
                 disabled={sending}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-content-soft hover:bg-surface-2 disabled:opacity-50"
               >
                 Cancel
               </button>

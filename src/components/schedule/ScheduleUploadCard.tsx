@@ -98,7 +98,7 @@ export function ScheduleUploadCard({ t, onUploadSuccess, onShowScheduleGuide }: 
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-1">
-          <p className="text-xs text-slate-500">{t("dashboard.scheduleUploadFileHint")}</p>
+          <p className="text-xs text-muted">{t("dashboard.scheduleUploadFileHint")}</p>
           {onShowScheduleGuide && (
             <button
               type="button"
@@ -111,11 +111,11 @@ export function ScheduleUploadCard({ t, onUploadSuccess, onShowScheduleGuide }: 
         </div>
         <div className="flex flex-wrap items-end gap-4">
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-slate-600">File</span>
+            <span className="text-xs font-medium text-muted">File</span>
             <input
               type="file"
               accept=".txt,.pdf,text/plain,application/pdf"
-              className="block w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm file:mr-2 file:rounded-lg file:border-0 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white file:bg-[#1E6FB9] file:text-white"
+              className="block w-full text-content bg-surface border border-line rounded-lg px-3 py-2 text-sm file:mr-2 file:rounded-lg file:border-0 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white file:bg-[#1E6FB9] file:text-white"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           </label>

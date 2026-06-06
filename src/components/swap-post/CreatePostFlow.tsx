@@ -181,7 +181,7 @@ export function CreatePostFlow({
           <div
             key={s}
             className={`h-1 flex-1 rounded-full ${
-              i <= currentStepIndex ? "bg-[#2668B0]" : "bg-slate-200"
+              i <= currentStepIndex ? "bg-[#2668B0]" : "bg-surface-2"
             }`}
           />
         ))}
@@ -215,7 +215,7 @@ export function CreatePostFlow({
           )}
           {postType === "VACATION_SWAP" && (
             <div className="space-y-4">
-              <p className="text-sm text-slate-500">{t("dashboard.postFlowVacationHelp")}</p>
+              <p className="text-sm text-muted">{t("dashboard.postFlowVacationHelp")}</p>
               <VacationSwapFields
                 vacationYear={vacationYear}
                 vacationMonth={vacationMonth}
@@ -229,7 +229,7 @@ export function CreatePostFlow({
                 <button
                   type="button"
                   onClick={() => setStep("type")}
-                  className="rounded-lg border border-slate-800 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                  className="rounded-lg border border-slate-800 bg-surface px-4 py-2 text-sm font-medium text-content hover:bg-surface-2"
                 >
                   {t("dashboard.postFlowBack")}
                 </button>
@@ -303,7 +303,7 @@ export function CreatePostFlow({
           <button
             type="button"
             onClick={onClose}
-            className="text-sm text-slate-500 hover:underline"
+            className="text-sm text-muted hover:underline"
           >
             {t("dashboard.postFlowCancel")}
           </button>

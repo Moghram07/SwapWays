@@ -62,8 +62,8 @@ export default async function ProfilePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">{t("dashboard.profileTitle")}</h1>
-        <p className="mt-2 text-slate-600">{t("dashboard.profileSubtitle")}</p>
+        <h1 className="text-3xl font-bold tracking-tight text-content">{t("dashboard.profileTitle")}</h1>
+        <p className="mt-2 text-muted">{t("dashboard.profileSubtitle")}</p>
       </div>
       <div className="max-w-2xl">
         <ProfileForm

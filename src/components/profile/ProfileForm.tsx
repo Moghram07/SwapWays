@@ -134,7 +134,7 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
   }
 
   const selectClass =
-    "form-select w-full h-11 text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1E6FB9] focus:border-[#1E6FB9]";
+    "form-select w-full h-11 text-content bg-surface border border-line rounded-lg px-3 py-2 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-[#1E6FB9] focus:border-[#1E6FB9]";
 
   useEffect(() => {
     let active = true;
@@ -207,7 +207,7 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
           <CardTitle>Personal Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          <p className="text-xs text-slate-500">Email: {user.email} · Crew ID: {user.crewId}</p>
+          <p className="text-xs text-muted">Email: {user.email} · Crew ID: {user.crewId}</p>
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>First name</Label>
@@ -226,26 +226,26 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
             <Label>Rank</Label>
             <select className={selectClass} value={rankId} onChange={(e) => setRankId(e.target.value)}>
               {rankOptions.map((r) => (
-                <option key={r.id} value={r.id} className="bg-white text-slate-900">
+                <option key={r.id} value={r.id} className="bg-surface text-content">
                   {r.name}
                 </option>
               ))}
             </select>
             {optionsLoading && rankOptions.length === 0 && (
-              <p className="text-xs text-slate-500">Loading rank options…</p>
+              <p className="text-xs text-muted">Loading rank options…</p>
             )}
           </div>
           <div className="space-y-2">
             <Label>Base</Label>
             <select className={selectClass} value={baseId} onChange={(e) => setBaseId(e.target.value)}>
               {baseOptions.map((b) => (
-                <option key={b.id} value={b.id} className="bg-white text-slate-900">
+                <option key={b.id} value={b.id} className="bg-surface text-content">
                   {b.name} ({b.airportCode})
                 </option>
               ))}
             </select>
             {optionsLoading && baseOptions.length === 0 && (
-              <p className="text-xs text-slate-500">Loading base options…</p>
+              <p className="text-xs text-muted">Loading base options…</p>
             )}
           </div>
         </CardContent>
@@ -256,7 +256,7 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
           <CardTitle>Aircraft Qualifications</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4 text-xs text-slate-500">Select the aircraft types you are qualified to fly.</p>
+          <p className="mb-4 text-xs text-muted">Select the aircraft types you are qualified to fly.</p>
           <div className="flex flex-wrap gap-2">
             {aircraftTypeOptions.map((at) => {
               const selected = qualificationIds.includes(at.id);
@@ -268,7 +268,7 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
                   className={`rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
                     selected
                       ? "border-transparent text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                      : "border-line bg-surface text-content-soft hover:border-line hover:bg-surface-2"
                   }`}
                   style={selected ? { backgroundColor: PRIMARY } : undefined}
                 >
@@ -279,7 +279,7 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
             })}
           </div>
           {optionsLoading && aircraftTypeOptions.length === 0 && (
-            <p className="mt-3 text-xs text-slate-500">Loading aircraft qualifications…</p>
+            <p className="mt-3 text-xs text-muted">Loading aircraft qualifications…</p>
           )}
         </CardContent>
       </Card>
@@ -289,25 +289,25 @@ export function ProfileForm({ user, ranks, bases, aircraftTypes }: ProfileFormPr
           <CardTitle>Travel Documents</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4 text-xs text-slate-500">
+          <p className="mb-4 text-xs text-muted">
             Some destinations require crew visas. Select the visas you currently hold.
           </p>
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-content-soft">
               <input
                 type="checkbox"
                 checked={hasUsVisa}
                 onChange={(e) => setHasUsVisa(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--primary)]"
+                className="h-4 w-4 rounded border-line text-[var(--primary)] focus:ring-[var(--primary)]"
               />
               United States visa
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-content-soft">
               <input
                 type="checkbox"
                 checked={hasChinaVisa}
                 onChange={(e) => setHasChinaVisa(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--primary)]"
+                className="h-4 w-4 rounded border-line text-[var(--primary)] focus:ring-[var(--primary)]"
               />
               China visa
             </label>

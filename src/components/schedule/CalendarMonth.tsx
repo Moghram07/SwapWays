@@ -58,12 +58,12 @@ export function CalendarMonth({ refreshKey }: CalendarMonthProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-900">{monthLabel}</h2>
+        <h2 className="text-lg font-semibold text-content">{monthLabel}</h2>
         <div className="flex gap-1">
           <button
             type="button"
             onClick={prevMonth}
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
+            className="rounded-lg p-2 text-muted hover:bg-surface-2"
             aria-label="Previous month"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -71,7 +71,7 @@ export function CalendarMonth({ refreshKey }: CalendarMonthProps) {
           <button
             type="button"
             onClick={nextMonth}
-            className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
+            className="rounded-lg p-2 text-muted hover:bg-surface-2"
             aria-label="Next month"
           >
             <ChevronRight className="h-5 w-5" />
@@ -84,7 +84,7 @@ export function CalendarMonth({ refreshKey }: CalendarMonthProps) {
           type="button"
           onClick={() => setMobileView("agenda")}
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium ${
-            mobileView === "agenda" ? "bg-[#2668B0] text-white" : "bg-gray-100 text-gray-600"
+            mobileView === "agenda" ? "bg-[#2668B0] text-white" : "bg-surface-2 text-muted"
           }`}
         >
           <List className="h-4 w-4" />
@@ -94,7 +94,7 @@ export function CalendarMonth({ refreshKey }: CalendarMonthProps) {
           type="button"
           onClick={() => setMobileView("grid")}
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium ${
-            mobileView === "grid" ? "bg-[#2668B0] text-white" : "bg-gray-100 text-gray-600"
+            mobileView === "grid" ? "bg-[#2668B0] text-white" : "bg-surface-2 text-muted"
           }`}
         >
           <CalendarDays className="h-4 w-4" />
@@ -103,7 +103,7 @@ export function CalendarMonth({ refreshKey }: CalendarMonthProps) {
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">
+        <div className="rounded-xl border border-line bg-surface p-8 text-center text-muted">
           Loading…
         </div>
       ) : fetchError ? (
@@ -161,12 +161,12 @@ function CalendarGrid({
   totalCells,
 }: CalendarGridProps) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50">
+    <div className="overflow-hidden rounded-xl border border-line bg-surface">
+      <div className="grid grid-cols-7 border-b border-line bg-surface-2">
         {dayLabels.map((d) => (
           <div
             key={d}
-            className="border-e border-slate-200 py-2 text-center text-xs font-medium text-slate-600 last:border-e-0"
+            className="border-e border-line py-2 text-center text-xs font-medium text-muted last:border-e-0"
           >
             {d}
           </div>
@@ -183,7 +183,7 @@ function CalendarGrid({
             dayData = overflowDays[i - startPad - primaryDays.length];
           }
           if (!dayData) {
-            return <div key={i} className="min-h-[120px] border-e border-b border-slate-100 bg-slate-50/50 last:border-e-0" />;
+            return <div key={i} className="min-h-[120px] border-e border-b border-line bg-surface-2/50 last:border-e-0" />;
           }
           return <CalendarDayCell key={i} day={dayData} />;
         })}

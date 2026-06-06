@@ -65,15 +65,15 @@ function FlightCard({ trip, onSwap, onCancelSwap, onEdit }: FlightCardProps) {
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm border-s-4 ${typeInfo.borderColor}`}
+      className={`overflow-hidden rounded-xl border border-line bg-surface shadow-sm border-s-4 ${typeInfo.borderColor}`}
     >
       {/* Compact header — no route chain / swap card preview */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <TripTypeBadge typeInfo={typeInfo} />
-          <span className="text-sm text-gray-500">{dateLabel}</span>
+          <span className="text-sm text-muted">{dateLabel}</span>
           {reportLabel && (
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-muted">
               Report:{" "}
               <span className={`font-medium ${timeMode === "local" ? "text-green-600" : "text-blue-600"}`}>
                 {reportLabel}
@@ -113,7 +113,7 @@ function FlightCard({ trip, onSwap, onCancelSwap, onEdit }: FlightCardProps) {
             <button
               type="button"
               onClick={onEdit}
-              className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-sm font-medium text-content-soft hover:bg-surface-2"
             >
               <Pencil className="h-3.5 w-3.5" />
               Edit

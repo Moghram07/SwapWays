@@ -37,7 +37,7 @@ export function DesiredDestinations({ selected, onChange, hideLabel }: DesiredDe
   return (
     <div>
       {!hideLabel && (
-        <label className="mb-2 block text-sm font-medium text-gray-700">
+        <label className="mb-2 block text-sm font-medium text-content-soft">
           Desired destinations
         </label>
       )}
@@ -49,7 +49,7 @@ export function DesiredDestinations({ selected, onChange, hideLabel }: DesiredDe
             return (
               <span
                 key={code}
-                className="inline-flex items-center gap-1 rounded-full bg-[#E3EFF9] px-2.5 py-1 text-xs font-medium text-gray-900"
+                className="inline-flex items-center gap-1 rounded-full bg-brand-blue-soft px-2.5 py-1 text-xs font-medium text-content"
               >
                 {code} – {airport?.city ?? code}
                 <button
@@ -68,21 +68,21 @@ export function DesiredDestinations({ selected, onChange, hideLabel }: DesiredDe
       <div className="relative">
         <Search
           size={16}
-          className="pointer-events-none absolute start-3 top-2.5 text-gray-500"
+          className="pointer-events-none absolute start-3 top-2.5 text-muted"
         />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by city or airport code…"
-          className="w-full text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 ps-9 pe-3 text-sm placeholder:text-gray-400"
+          className="w-full text-content bg-surface border border-line rounded-lg px-3 py-2 ps-9 pe-3 text-sm placeholder:text-faint"
         />
       </div>
 
       {search.trim().length > 0 && (
-        <div className="mt-1 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white text-sm shadow-sm">
+        <div className="mt-1 max-h-48 overflow-y-auto rounded-lg border border-line bg-surface text-sm shadow-sm">
           {filtered.length === 0 ? (
-            <div className="px-3 py-2 text-gray-500">No airports found</div>
+            <div className="px-3 py-2 text-muted">No airports found</div>
           ) : (
             filtered.map((airport) => (
               <button
@@ -92,9 +92,9 @@ export function DesiredDestinations({ selected, onChange, hideLabel }: DesiredDe
                   toggle(airport.code);
                   setSearch("");
                 }}
-                className={`flex w-full items-center justify-between px-3 py-2 text-start text-gray-800 hover:bg-gray-100 hover:text-gray-900 ${
+                className={`flex w-full items-center justify-between px-3 py-2 text-start text-content hover:bg-surface-2 hover:text-content ${
                   selected.includes(airport.code)
-                    ? "bg-[#E8F5EA] font-medium text-[#166534]"
+                    ? "bg-brand-green-soft font-medium text-[#166534]"
                     : ""
                 }`}
               >

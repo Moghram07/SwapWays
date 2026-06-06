@@ -69,10 +69,10 @@ export function NotificationsClient({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight text-content">
             Notification History
           </h1>
-          <p className="mt-2 text-slate-600">
+          <p className="mt-2 text-muted">
             {unreadCount === 0
               ? "No unread notifications"
               : `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`}
@@ -102,7 +102,7 @@ export function NotificationsClient({
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-slate-900">{n.title}</span>
+                  <span className="font-semibold text-content">{n.title}</span>
                   {n.unread && (
                     <span
                       className="rounded px-2 py-0.5 text-xs font-medium text-white"
@@ -112,8 +112,8 @@ export function NotificationsClient({
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-sm text-slate-600">{n.detail}</p>
-                <p className="mt-1 text-xs text-slate-500">{n.timeAgo}</p>
+                <p className="mt-0.5 text-sm text-muted">{n.detail}</p>
+                <p className="mt-1 text-xs text-muted">{n.timeAgo}</p>
               </div>
             </div>
           );
@@ -136,8 +136,8 @@ export function NotificationsClient({
           return (
             <li
               key={n.id}
-              className={`flex items-stretch rounded-xl border bg-white shadow-sm transition-shadow ${
-                n.unread ? "border-s-4 border-s-[#1E6FB9]" : "border-slate-200"
+              className={`flex items-stretch rounded-xl border bg-surface shadow-sm transition-shadow ${
+                n.unread ? "border-s-4 border-s-[#1E6FB9]" : "border-line"
               }`}
             >
               {linkContent}
@@ -156,9 +156,9 @@ export function NotificationsClient({
       </ul>
 
       {notifications.length === 0 && (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white py-16 text-center">
-          <Bell className="mx-auto h-12 w-12 text-gray-400" strokeWidth={1.5} />
-          <p className="mt-3 text-slate-600">No notifications yet.</p>
+        <div className="rounded-xl border border-dashed border-line bg-surface py-16 text-center">
+          <Bell className="mx-auto h-12 w-12 text-faint" strokeWidth={1.5} />
+          <p className="mt-3 text-muted">No notifications yet.</p>
         </div>
       )}
     </div>

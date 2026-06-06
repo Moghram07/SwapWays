@@ -20,8 +20,8 @@ export default function DashboardError({
         <AlertCircle className="h-7 w-7" strokeWidth={1.5} />
       </span>
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Something went wrong</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <h2 className="text-lg font-semibold text-content">Something went wrong</h2>
+        <p className="mt-1 text-sm text-muted">
           This page ran into an error. Your data is safe.
         </p>
       </div>

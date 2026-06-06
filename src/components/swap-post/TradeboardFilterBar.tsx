@@ -55,8 +55,8 @@ export function TradeboardFilterBar({
           onClick={toggleFilters}
           className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium ${
             activeFilterCount > 0
-              ? "border-[#2668B0] bg-[#E3EFF9] text-[#2668B0]"
-              : "border-slate-200 text-slate-600 hover:border-slate-300"
+              ? "border-[#2668B0] bg-brand-blue-soft text-[#2668B0]"
+              : "border-line text-muted hover:border-line"
           }`}
           aria-expanded={isExpanded}
         >
@@ -81,7 +81,7 @@ export function TradeboardFilterBar({
             }
             onChange({ ...filters, sortBy: nextSort });
           }}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+          className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content"
         >
           <option value="match" disabled={!canUseMatchSort}>
             Best match{!canUseMatchSort ? " (Premium)" : ""}
@@ -96,14 +96,14 @@ export function TradeboardFilterBar({
       </div>
 
       {isExpanded && (
-        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="space-y-3 rounded-xl border border-line bg-surface-2 p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs text-slate-500">Trip type</label>
+              <label className="mb-1 block text-xs text-muted">Trip type</label>
               <select
                 value={filters.tripType || ""}
                 onChange={(e) => onChange({ ...filters, tripType: e.target.value as SwapBoardFilters["tripType"] })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content"
               >
                 <option value="">All trip types</option>
                 <option value="LAYOVER">Layovers</option>
@@ -113,22 +113,22 @@ export function TradeboardFilterBar({
             </div>
 
             <div>
-              <label className="mb-1 block text-xs text-slate-500">Destination</label>
+              <label className="mb-1 block text-xs text-muted">Destination</label>
               <input
                 type="text"
                 placeholder="e.g. DXB, LHR"
                 value={filters.destination}
                 onChange={(e) => onChange({ ...filters, destination: e.target.value.toUpperCase() })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-xs text-slate-500">Route</label>
+              <label className="mb-1 block text-xs text-muted">Route</label>
               <select
                 value={filters.routeType || ""}
                 onChange={(e) => onChange({ ...filters, routeType: e.target.value as SwapBoardFilters["routeType"] })}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content"
               >
                 <option value="">All routes</option>
                 <option value="domestic">Domestic</option>
@@ -138,17 +138,17 @@ export function TradeboardFilterBar({
           </div>
 
           <div>
-            <label className="mb-1 block text-xs text-slate-500">Search by date</label>
+            <label className="mb-1 block text-xs text-muted">Search by date</label>
             <input
               type="date"
               value={filters.dateFrom || ""}
               onChange={(e) => onChange({ ...filters, dateFrom: e.target.value })}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 sm:w-56"
+              className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content sm:w-56"
             />
           </div>
 
-          <div className="sm:hidden mt-3 border-t border-slate-200 pt-3">
-            <label className="mb-1 block text-xs text-slate-500">Time format</label>
+          <div className="sm:hidden mt-3 border-t border-line pt-3">
+            <label className="mb-1 block text-xs text-muted">Time format</label>
             <TimeFormatToggle />
           </div>
 

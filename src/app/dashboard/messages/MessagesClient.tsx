@@ -82,16 +82,16 @@ export function MessagesClient({
 
   return (
     <div className="space-y-4">
-      <h1 className="dashboard-page-title text-2xl text-slate-900">Messages</h1>
-      <div className="flex h-[calc(100vh-12rem)] max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <h1 className="dashboard-page-title text-2xl text-content">Messages</h1>
+      <div className="flex h-[calc(100vh-12rem)] max-w-full overflow-hidden rounded-xl border border-line bg-surface">
         {/* Left: conversation list */}
         <div
-          className={`w-full min-w-0 md:w-80 md:min-w-[18rem] md:max-w-sm shrink-0 border-r border-slate-200 flex flex-col overflow-hidden ${
+          className={`w-full min-w-0 md:w-80 md:min-w-[18rem] md:max-w-sm shrink-0 border-r border-line flex flex-col overflow-hidden ${
             selectedId ? "hidden md:flex" : "flex"
           }`}
         >
-          <div className="p-3 border-b border-slate-100">
-            <h2 className="text-sm font-semibold text-slate-700">Conversations</h2>
+          <div className="p-3 border-b border-line">
+            <h2 className="text-sm font-semibold text-content-soft">Conversations</h2>
           </div>
           <div className="flex-1 overflow-y-auto">
             {/* Pinned Announcements entry */}
@@ -106,7 +106,7 @@ export function MessagesClient({
                     className={`min-h-[52px] w-full text-left px-4 py-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 ${
                       isAnnouncementsSelected
                         ? "bg-[var(--primary)]/10 text-[var(--primary)]"
-                        : "hover:bg-slate-100"
+                        : "hover:bg-surface-2"
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -115,9 +115,9 @@ export function MessagesClient({
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline justify-between gap-2">
-                          <p className="font-medium text-slate-900 truncate">Announcements</p>
+                          <p className="font-medium text-content truncate">Announcements</p>
                         </div>
-                        <p className="text-sm text-slate-500 truncate mt-0.5">
+                        <p className="text-sm text-muted truncate mt-0.5">
                           {latestAnnouncement?.title ?? "No announcements"}
                         </p>
                       </div>
@@ -129,7 +129,7 @@ export function MessagesClient({
                     </div>
                   </button>
                 </div>
-                <div className="my-2 border-b border-slate-100" />
+                <div className="my-2 border-b border-line" />
               </div>
             )}
 

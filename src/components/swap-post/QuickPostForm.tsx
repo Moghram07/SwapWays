@@ -199,17 +199,17 @@ export function QuickPostForm({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Quick Post</h2>
-        <p className="text-sm text-slate-500">Offer up to {MAX_TRIPS_PER_POST} trips as one package.</p>
+        <h2 className="text-lg font-semibold text-content">Quick Post</h2>
+        <p className="text-sm text-muted">Offer up to {MAX_TRIPS_PER_POST} trips as one package.</p>
       </div>
 
-      <section className="rounded-2xl border border-slate-200 border-s-4 border-s-[#2668B0] bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-line border-s-4 border-s-[#2668B0] bg-surface p-6 shadow-sm">
         <div className="mb-5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl">📤</span>
-            <h3 className="text-base font-bold text-slate-900">WHAT I&apos;M OFFERING</h3>
+            <h3 className="text-base font-bold text-content">WHAT I&apos;M OFFERING</h3>
           </div>
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-muted">
             {offeredTrips.length} / {MAX_TRIPS_PER_POST} trips
           </span>
         </div>
@@ -221,15 +221,15 @@ export function QuickPostForm({
 
             const badgeClass =
               classified.type === "TURNAROUND"
-                ? "bg-[#E3EFF9] text-[#2668B0]"
+                ? "bg-brand-blue-soft text-[#2668B0]"
                 : classified.type === "MULTI_STOP"
                 ? "bg-amber-50 text-amber-700"
-                : "bg-[#E8F5EA] text-[#3BA34A]";
+                : "bg-brand-green-soft text-[#3BA34A]";
 
             return (
-              <div key={trip.id ?? index} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div key={trip.id ?? index} className="rounded-xl border border-line bg-surface-2 p-4">
                 <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted">
                     Trip {index + 1}
                   </span>
                   {offeredTrips.length > MIN_TRIPS_PER_POST && (
@@ -245,7 +245,7 @@ export function QuickPostForm({
 
                 {/* Universal leg builder */}
                 <div className="mb-4">
-                  <p className="mb-3 text-xs text-slate-500">
+                  <p className="mb-3 text-xs text-muted">
                     Add each leg of your trip. Check &ldquo;Layover here&rdquo; on any stop where you have a layover. We&apos;ll determine the trip type automatically.
                   </p>
 
@@ -268,16 +268,16 @@ export function QuickPostForm({
                       return (
                         <div key={legIdx} className="space-y-1.5">
                           <div className="flex items-center gap-2">
-                            <span className="w-14 shrink-0 rounded bg-slate-200 px-2 py-1.5 text-center text-xs font-semibold text-slate-600 truncate">
+                            <span className="w-14 shrink-0 rounded bg-surface-2 px-2 py-1.5 text-center text-xs font-semibold text-muted truncate">
                               {fromCode}
                             </span>
-                            <span className="text-slate-400 text-xs shrink-0">→</span>
+                            <span className="text-faint text-xs shrink-0">→</span>
                             <div className="flex-1 min-w-0">
                               {locked ? (
-                                <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-3 py-2">
-                                  <Lock className="h-3 w-3 shrink-0 text-slate-400" />
-                                  <span className="text-sm font-medium text-slate-700">{leg.to}</span>
-                                  <span className="ml-auto text-xs text-slate-400">Base</span>
+                                <div className="flex items-center gap-1.5 rounded-lg border border-line bg-surface-2 px-3 py-2">
+                                  <Lock className="h-3 w-3 shrink-0 text-faint" />
+                                  <span className="text-sm font-medium text-content-soft">{leg.to}</span>
+                                  <span className="ml-auto text-xs text-faint">Base</span>
                                 </div>
                               ) : (
                                 <AirportSearchInput
@@ -320,7 +320,7 @@ export function QuickPostForm({
                                 />
                                 <label
                                   htmlFor={`leg-${trip.id}-${legIdx}-layover`}
-                                  className="flex cursor-pointer items-center gap-1 text-xs text-slate-600"
+                                  className="flex cursor-pointer items-center gap-1 text-xs text-muted"
                                 >
                                   <Moon className="h-3 w-3" />
                                   Layover here
@@ -337,8 +337,8 @@ export function QuickPostForm({
                                         layoverHours: e.target.value ? Number(e.target.value) : null,
                                       })
                                     }
-                                    className={`w-16 rounded border px-2 py-1 text-xs text-gray-900 placeholder:text-gray-400 bg-white ${
-                                      !leg.layoverHours ? "border-rose-300" : "border-slate-200"
+                                    className={`w-16 rounded border px-2 py-1 text-xs text-content placeholder:text-faint bg-surface ${
+                                      !leg.layoverHours ? "border-rose-300" : "border-line"
                                     }`}
                                   />
                                 )}
@@ -363,7 +363,7 @@ export function QuickPostForm({
                               />
                               <label
                                 htmlFor={`leg-${trip.id}-${legIdx}-dh`}
-                                className="flex cursor-pointer items-center gap-1 text-xs text-slate-600"
+                                className="flex cursor-pointer items-center gap-1 text-xs text-muted"
                               >
                                 <Plane className="h-3 w-3 text-purple-500" />
                                 Dead head (no duty)
@@ -403,7 +403,7 @@ export function QuickPostForm({
                         )}
                       </div>
                     ) : (
-                      <span className="text-xs text-slate-400">Maximum {MAX_LEGS} legs</span>
+                      <span className="text-xs text-faint">Maximum {MAX_LEGS} legs</span>
                     )}
 
                     {/* Live classification badge */}
@@ -434,8 +434,8 @@ export function QuickPostForm({
                   });
                   if (nodes.length < 2) return null;
                   return (
-                    <div className="mb-4 rounded-lg border border-slate-100 bg-white p-3">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Route preview</p>
+                    <div className="mb-4 rounded-lg border border-line bg-surface p-3">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-faint">Route preview</p>
                       <RouteChain nodes={nodes} tripType={classified.type} />
                       <p className="mt-1.5 text-xs font-medium text-[#2668B0]">{classified.label}</p>
                     </div>
@@ -445,16 +445,16 @@ export function QuickPostForm({
                 {/* Date + report time */}
                 <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">Date</label>
+                    <label className="mb-2 block text-sm font-medium text-content-soft">Date</label>
                     <input
                       type="date"
                       value={trip.date}
                       onChange={(e) => updateTrip(trip.id, { date: e.target.value })}
-                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900"
+                      className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                    <label className="mb-2 block text-sm font-medium text-content-soft">
                       Report time <span className="text-rose-600">*</span>
                     </label>
                     <input
@@ -464,15 +464,15 @@ export function QuickPostForm({
                       value={normalizeTimeValue(trip.reportTime ?? "")}
                       onChange={(e) => updateTrip(trip.id, { reportTime: sanitizeTimeInput(e.target.value) })}
                       placeholder="20:15"
-                      className={`w-full rounded-lg border px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 bg-white ${
+                      className={`w-full rounded-lg border px-3 py-2 text-sm text-content placeholder:text-faint bg-surface ${
                         trip.reportTime && !isValidTimeValue(trip.reportTime)
                           ? "border-rose-400 bg-rose-50"
                           : !trip.reportTime
                           ? "border-rose-300"
-                          : "border-slate-200"
+                          : "border-line"
                       }`}
                     />
-                    <p className="mt-1 text-xs text-slate-500">24-hour format HH:MM · Local time</p>
+                    <p className="mt-1 text-xs text-muted">24-hour format HH:MM · Local time</p>
                   </div>
                 </div>
 
@@ -482,17 +482,17 @@ export function QuickPostForm({
                   </summary>
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     <div>
-                      <label className="mb-1 block text-xs text-slate-500">Aircraft type</label>
+                      <label className="mb-1 block text-xs text-muted">Aircraft type</label>
                       <input
                         type="text"
                         value={trip.aircraftTypeCode ?? ""}
                         onChange={(e) => updateTrip(trip.id, { aircraftTypeCode: e.target.value })}
                         placeholder="32N"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                        className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs text-slate-500">Block hours</label>
+                      <label className="mb-1 block text-xs text-muted">Block hours</label>
                       <input
                         type="number"
                         step={0.1}
@@ -502,13 +502,13 @@ export function QuickPostForm({
                           updateTrip(trip.id, { blockHours: e.target.value ? Number(e.target.value) : null })
                         }
                         placeholder="9.5"
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+                        className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs text-slate-500">Flight number</label>
+                      <label className="mb-1 block text-xs text-muted">Flight number</label>
                       <div className="flex items-center gap-1.5">
-                        <span className="shrink-0 text-sm font-medium text-slate-500">SV</span>
+                        <span className="shrink-0 text-sm font-medium text-muted">SV</span>
                         <input
                           type="text"
                           inputMode="numeric"
@@ -519,10 +519,10 @@ export function QuickPostForm({
                             updateTrip(trip.id, { flightNumber: normalizeFlightNumberInput(e.target.value) })
                           }
                           placeholder="738"
-                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                          className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content"
                         />
                       </div>
-                      <p className="mt-1 text-xs text-slate-400">Optional — digits only</p>
+                      <p className="mt-1 text-xs text-faint">Optional — digits only</p>
                     </div>
                   </div>
                 </details>
@@ -535,30 +535,30 @@ export function QuickPostForm({
           <button
             type="button"
             onClick={addTrip}
-            className="mt-4 w-full rounded-xl border-2 border-dashed border-slate-300 py-2.5 text-sm text-slate-500 hover:border-[#2668B0] hover:text-[#2668B0]"
+            className="mt-4 w-full rounded-xl border-2 border-dashed border-line py-2.5 text-sm text-muted hover:border-[#2668B0] hover:text-[#2668B0]"
           >
             + Add another trip
           </button>
         ) : (
-          <div className="mt-4 w-full rounded-xl border-2 border-dashed border-slate-200 py-2.5 text-center text-sm text-gray-500">
+          <div className="mt-4 w-full rounded-xl border-2 border-dashed border-line py-2.5 text-center text-sm text-muted">
             Maximum {MAX_TRIPS_PER_POST} trips per post
           </div>
         )}
 
-        <div className="mt-3 text-center text-xs text-slate-500">
+        <div className="mt-3 text-center text-xs text-muted">
           {offeredTrips.length} trip{offeredTrips.length > 1 ? "s" : ""}
           {totalBlockHours > 0 ? ` · Total block: ${formatHours(totalBlockHours)}` : ""}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 border-s-4 border-s-[#3BA34A] bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-line border-s-4 border-s-[#3BA34A] bg-surface p-6 shadow-sm">
         <div className="mb-5 flex items-center gap-2">
           <span className="text-xl">📥</span>
-          <h3 className="text-base font-bold text-slate-900">WHAT I WANT IN RETURN</h3>
+          <h3 className="text-base font-bold text-content">WHAT I WANT IN RETURN</h3>
         </div>
 
         <div className="mb-4">
-          <label className="mb-2 block text-sm font-medium text-slate-700">What do you want back?</label>
+          <label className="mb-2 block text-sm font-medium text-content-soft">What do you want back?</label>
           <div className="flex flex-wrap gap-2">
             {returnTripTypeOptions.map((opt) => (
               <button
@@ -574,8 +574,8 @@ export function QuickPostForm({
                 }}
                 className={`rounded-lg border-2 px-3 py-2 text-sm ${
                   wantCriteria.wantType === opt.value
-                    ? "border-[#3BA34A] bg-[#E8F5EA] text-[#3BA34A]"
-                    : "border-slate-200 text-slate-600"
+                    ? "border-[#3BA34A] bg-brand-green-soft text-[#3BA34A]"
+                    : "border-line text-muted"
                 }`}
               >
                 {opt.label}
@@ -607,7 +607,7 @@ export function QuickPostForm({
             </div>
           </>
         ) : (
-          <div className="mb-4 rounded-lg border border-slate-200 p-3">
+          <div className="mb-4 rounded-lg border border-line p-3">
             <WtfDayPicker
               label={
                 <>
@@ -624,7 +624,7 @@ export function QuickPostForm({
           </div>
         )}
 
-        <div className="mb-4 rounded-lg border border-slate-200 p-3">
+        <div className="mb-4 rounded-lg border border-line p-3">
           <WtfDayPicker
             label={
               <>
@@ -640,21 +640,21 @@ export function QuickPostForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Notes (optional)</label>
+          <label className="mb-1 block text-sm font-medium text-content-soft">Notes (optional)</label>
           <textarea
             value={wantCriteria.notes}
             onChange={(e) => onWantCriteriaChange({ ...wantCriteria, notes: e.target.value })}
             placeholder="Any extra note..."
             rows={3}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
           />
         </div>
       </section>
 
       {missingItems.length > 0 && (
-        <ul className="rounded-lg bg-slate-50 px-3 py-2.5 space-y-1">
+        <ul className="rounded-lg bg-surface-2 px-3 py-2.5 space-y-1">
           {missingItems.map((item) => (
-            <li key={item} className="flex items-center gap-1.5 text-xs text-slate-500">
+            <li key={item} className="flex items-center gap-1.5 text-xs text-muted">
               <span className="text-rose-400">·</span>
               {item}
             </li>
@@ -663,7 +663,7 @@ export function QuickPostForm({
       )}
 
       <div className="flex justify-between pt-2">
-        <button type="button" onClick={onBack} className="rounded-lg border border-slate-800 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50">
+        <button type="button" onClick={onBack} className="rounded-lg border border-slate-800 bg-surface px-4 py-2 text-sm font-medium text-content hover:bg-surface-2">
           ← Back
         </button>
         <button

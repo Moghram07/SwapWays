@@ -28,13 +28,13 @@ export function MessageBubble({
         className={`max-w-[70%] rounded-2xl px-4 py-2.5 ${
           isOwn
             ? "bg-[#1E6FB9] text-white rounded-br-md"
-            : "bg-slate-100 text-slate-900 rounded-bl-md"
+            : "bg-surface-2 text-content rounded-bl-md"
         }`}
       >
         <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
         <p
           className={`text-xs mt-1 ${
-            isOwn ? "text-blue-200" : "text-slate-400"
+            isOwn ? "text-blue-200" : "text-faint"
           }`}
         >
           {formatMessageTime(message.createdAt)}

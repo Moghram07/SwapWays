@@ -148,7 +148,7 @@ function asDate(value: Date | string | null | undefined): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-const CARD_SECTION_LABEL = "mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500";
+const CARD_SECTION_LABEL = "mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted";
 
 function OfferingTripRow({ trip }: { trip: TripRow }) {
   const { format: timeMode } = useTimeFormat();
@@ -265,15 +265,15 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
   });
 
   return (
-    <div className={`w-full rounded-md bg-slate-50/80 p-2.5 sm:p-3 border-s-4 ${typeInfo.borderColor}`}>
+    <div className={`w-full rounded-md bg-surface-2/80 p-2.5 sm:p-3 border-s-4 ${typeInfo.borderColor}`}>
       <div className="mb-2 sm:mb-3">
         <div className="mb-1 flex flex-wrap items-center justify-between gap-1.5">
           <TripTypeBadge typeInfo={typeInfo} />
-          <span className="text-sm font-medium text-gray-500">{dateRange}</span>
+          <span className="text-sm font-medium text-muted">{dateRange}</span>
         </div>
         <div className="min-w-0 leading-snug">
           {flightNum && (
-            <span className="mb-0.5 block text-xs font-medium text-gray-500">{flightNum}</span>
+            <span className="mb-0.5 block text-xs font-medium text-muted">{flightNum}</span>
           )}
           <RouteChain nodes={routeChain} nodeTimes={nodeTimes} tripType={trip.tripType} timeColor={timeColor} legDeadheads={legDeadheads} />
         </div>
@@ -282,14 +282,14 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
 
 
       {(reportTime || blockLabel) && (
-        <div className="mt-2 flex items-center justify-between border-t border-gray-100 pt-2 text-sm text-gray-500">
+        <div className="mt-2 flex items-center justify-between border-t border-line pt-2 text-sm text-muted">
           <span className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5 shrink-0" />
-            <span>Report: <span className="font-medium text-gray-700">{reportTime ?? "—"}</span></span>
+            <span>Report: <span className="font-medium text-content-soft">{reportTime ?? "—"}</span></span>
           </span>
           <span className="flex items-center gap-1">
             <Timer className="h-3.5 w-3.5 shrink-0" />
-            <span>Block: <span className="font-medium text-gray-700">{blockLabel ?? "—"}</span></span>
+            <span>Block: <span className="font-medium text-content-soft">{blockLabel ?? "—"}</span></span>
           </span>
         </div>
       )}
@@ -304,7 +304,7 @@ const cityPillColors: Record<CityPillVariant, { border: string; bg: string; text
   blue:    { border: "border-[#2668B0]", bg: "bg-blue-50",   text: "text-[#2668B0]",  sub: "text-[#2668B0]/70" },
   orange:  { border: "border-amber-500", bg: "bg-amber-50",  text: "text-amber-700",  sub: "text-amber-600/70" },
   red:     { border: "border-rose-400",  bg: "bg-rose-50",   text: "text-rose-700",   sub: "text-rose-500/70"  },
-  default: { border: "border-gray-200",  bg: "bg-white",     text: "text-gray-900",   sub: "text-gray-400"     },
+  default: { border: "border-line",  bg: "bg-surface",     text: "text-content",   sub: "text-faint"     },
 };
 
 function wantTypeToVariant(wantType: WantType): CityPillVariant {
@@ -393,10 +393,10 @@ function ForDisplay({
   const pillVariant = wantTypeToVariant(wantType);
 
   return (
-    <div className="space-y-2.5 text-sm text-slate-700">
+    <div className="space-y-2.5 text-sm text-content-soft">
       {/* Main sentence — no "For:" prefix, the section header already says "For" */}
       <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5">
-        <span className="font-medium text-slate-800">{prefix}</span>
+        <span className="font-medium text-content">{prefix}</span>
         {showCities &&
           cities.map((code, i) => (
             <Fragment key={code}>
@@ -411,19 +411,19 @@ function ForDisplay({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
           {wantExclude && wantExclude.length > 0 && (
             <>
-              <span className="text-xs font-medium text-slate-500">No</span>
+              <span className="text-xs font-medium text-muted">No</span>
               {wantExclude.map((d) => (
                 <CityPill key={d} code={d} variant="red" />
               ))}
             </>
           )}
           {wantEqualHours && (
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-content-soft">
               Equal hours
             </span>
           )}
           {wantSameDate && (
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-medium text-content-soft">
               Same date
             </span>
           )}
@@ -431,11 +431,11 @@ function ForDisplay({
       )}
 
       {wantAcceptanceOptions && wantAcceptanceOptions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-sm text-slate-700">
-          <span className="font-semibold text-slate-600">Accept:</span>
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-sm text-content-soft">
+          <span className="font-semibold text-muted">Accept:</span>
           {wantAcceptanceOptions.map((opt, i) => (
             <Fragment key={i}>
-              {i > 0 && <span className="text-slate-400">· or ·</span>}
+              {i > 0 && <span className="text-faint">· or ·</span>}
               <span className="rounded-md bg-violet-50 px-2.5 py-1 font-medium text-violet-900">
                 {formatAcceptance(opt)}
               </span>
@@ -445,13 +445,13 @@ function ForDisplay({
       )}
 
       {wtfDays && wtfDays.length > 0 && (
-        <p className="text-sm leading-snug text-slate-700">
+        <p className="text-sm leading-snug text-content-soft">
           <span className="font-semibold text-indigo-800">Willing to fly:</span>{" "}
           {formatPreferenceDays(wtfDays)}
         </p>
       )}
       {wantType === "DAYS_OFF" && offeredDaysOff && offeredDaysOff.length > 0 && (
-        <p className="text-sm leading-snug text-slate-700">
+        <p className="text-sm leading-snug text-content-soft">
           <span className="font-semibold text-amber-800">For days off:</span>{" "}
           {formatPreferenceDays(offeredDaysOff)}
         </p>
@@ -544,7 +544,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill,
   const totalHours = offeringTrips.reduce((s, t) => s + (t.blockHours ?? t.creditHours ?? 0), 0);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+    <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm transition-shadow hover:shadow-md">
       {isOwn && !statusPill && (
         <div className="border-b border-[#2668B0]/20 bg-blue-50/60 px-2.5 py-1.5 sm:px-3 sm:py-2">
           <span className="inline-block rounded-full bg-[#2668B0] px-3 py-1 text-xs font-semibold text-white">
@@ -553,7 +553,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill,
         </div>
       )}
       {statusPill && (
-        <div className="border-b border-slate-100 bg-slate-50/50 px-2.5 py-1.5 sm:px-3 sm:py-2">
+        <div className="border-b border-line bg-surface-2/50 px-2.5 py-1.5 sm:px-3 sm:py-2">
           <span
             className="inline-block rounded-full px-3 py-1 text-xs font-semibold text-white"
             style={getPillStyle(statusPill)}
@@ -562,7 +562,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill,
           </span>
         </div>
       )}
-      <div className="border-b border-slate-100">
+      <div className="border-b border-line">
         <div className="flex flex-col gap-2 px-2.5 py-2 sm:flex-row sm:items-center sm:justify-between sm:px-3 sm:py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <div
@@ -573,12 +573,12 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill,
             </span>
           </div>
           <div>
-            <span className="text-sm font-medium text-slate-900">{post.user.rank.name}</span>
-            <span className="ms-1 text-xs text-slate-500">· {post.user.base.name} Base</span>
+            <span className="text-sm font-medium text-content">{post.user.rank.name}</span>
+            <span className="ms-1 text-xs text-muted">· {post.user.base.name} Base</span>
             {(() => {
               const d = post.createdAt ? new Date(post.createdAt) : null;
               const valid = d && !Number.isNaN(d.getTime());
-              return valid ? <span className="ms-1.5 text-xs text-slate-400">{formatTimeAgo(d)}</span> : null;
+              return valid ? <span className="ms-1.5 text-xs text-faint">{formatTimeAgo(d)}</span> : null;
             })()}
           </div>
         </div>
@@ -633,8 +633,8 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill,
       </div>
 
       {post.postType === "VACATION_SWAP" ? (
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-3 sm:px-4">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Offering</span>
+        <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-3 sm:px-4">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-faint">Offering</span>
           <span className="text-base leading-none">🏖️</span>
           {post.vacationYear != null && post.vacationMonth != null && post.vacationMonth >= 1 && post.vacationMonth <= 12 ? (
             <span className="rounded-full bg-violet-100 px-3 py-0.5 text-sm font-bold text-violet-700">
@@ -642,7 +642,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill,
             </span>
           ) : null}
           {post.desiredVacationMonths && post.desiredVacationMonths.length > 0 ? (
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">For</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-faint">For</span>
           ) : null}
           {(post.desiredVacationMonths ?? []).slice().sort((a, b) => a - b).map((m) => (
             <span key={m} className="rounded-full bg-emerald-100 px-3 py-0.5 text-sm font-bold text-emerald-700">
@@ -651,7 +651,7 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill,
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 border-b border-slate-100 lg:grid-cols-2 lg:items-stretch lg:divide-x lg:divide-slate-100">
+        <div className="grid grid-cols-1 border-b border-line lg:grid-cols-2 lg:items-stretch lg:divide-x lg:divide-slate-100">
           <div className="flex min-h-0 min-w-0 flex-col">
             <p className={`${CARD_SECTION_LABEL} px-2.5 pt-2 sm:px-3 sm:pt-2.5`}>
               {offeringTrips.length > 1
@@ -682,21 +682,21 @@ export function SwapPostTradeBoardCard({ post, isPreview, onMessage, statusPill,
                   </div>
                 ) : null}
                 {offeringTrips.length > 1 && (
-                  <div className="px-2.5 pb-2 text-center text-sm text-slate-500 sm:px-3">
+                  <div className="px-2.5 pb-2 text-center text-sm text-muted sm:px-3">
                     📦 Package deal — swap all {offeringTrips.length} trips together
                   </div>
                 )}
                 {post.offeringDaysOff && post.offeredDaysOff && post.offeredDaysOff.length > 0 && (
-                  <div className="px-2.5 pb-2 flex flex-wrap items-center gap-1 text-sm text-slate-700 sm:px-3">
+                  <div className="px-2.5 pb-2 flex flex-wrap items-center gap-1 text-sm text-content-soft sm:px-3">
                     <span>Days off: {post.offeredDaysOff.join(", ")}</span>
                   </div>
                 )}
               </div>
             ) : null}
           </div>
-          <div className="flex min-h-0 min-w-0 flex-col border-t border-slate-100 px-2.5 py-2 sm:px-3 sm:py-2.5 lg:border-t-0">
+          <div className="flex min-h-0 min-w-0 flex-col border-t border-line px-2.5 py-2 sm:px-3 sm:py-2.5 lg:border-t-0">
             <p className={CARD_SECTION_LABEL}>For</p>
-            <div className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white p-2.5 sm:p-3">
+            <div className="min-w-0 flex-1 rounded-lg border border-line bg-surface p-2.5 sm:p-3">
               <ForDisplay
                 wantType={post.wantType}
                 wantMinLayover={post.wantMinLayover}

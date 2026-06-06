@@ -275,8 +275,8 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-slate-900">{t("dashboard.tripSelectTitle")}</h2>
-      <p className="text-sm text-slate-500">{t("dashboard.tripSelectSubtitle")}</p>
+      <h2 className="text-lg font-semibold text-content">{t("dashboard.tripSelectTitle")}</h2>
+      <p className="text-sm text-muted">{t("dashboard.tripSelectSubtitle")}</p>
 
       <div className="space-y-2">
         {trips.map((trip) => {
@@ -301,7 +301,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
             <div
               key={trip.id}
               className={`overflow-hidden rounded-xl border-2 transition-colors ${
-                isSelected ? "border-[#2668B0]" : "border-slate-200"
+                isSelected ? "border-[#2668B0]" : "border-line"
               }`}
             >
               {/* Clickable card row */}
@@ -314,7 +314,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div
                       className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${
-                        isSelected ? "border-[#2668B0] bg-[#2668B0]" : "border-slate-300"
+                        isSelected ? "border-[#2668B0] bg-[#2668B0]" : "border-line"
                       }`}
                     >
                       {isSelected && <Check size={14} className="text-white" />}
@@ -323,19 +323,19 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                       {typeLabel}
                     </span>
                     <div className="min-w-0">
-                      <span className="font-semibold text-slate-900">
+                      <span className="font-semibold text-content">
                         SV{displayFlightNumber(trip.legs[0]?.flightNumber) || "—"}
                       </span>
                       {trip.legs.some((l) => (l.flightNumber ?? "").toUpperCase().startsWith("DH")) && (
-                        <span className="ms-2 rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                        <span className="ms-2 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-muted">
                           {t("dashboard.tripDeadHeadBadge")}
                         </span>
                       )}
-                      <span className="mx-1 text-slate-400">·</span>
-                      <span className="text-sm text-slate-600">{destinationLabel}</span>
+                      <span className="mx-1 text-faint">·</span>
+                      <span className="text-sm text-muted">{destinationLabel}</span>
                     </div>
                   </div>
-                  <div className="shrink-0 text-end text-sm text-slate-500">
+                  <div className="shrink-0 text-end text-sm text-muted">
                     <div>{formatDisplayDate(trip.startDate)}</div>
                     <div>{t("dashboard.tripRowCreditLabel")} {decimalHoursToDisplayTime(trip.creditHours)}</div>
                   </div>
@@ -344,17 +344,17 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
 
               {/* Inline edit panel */}
               {isExpanded && (
-                <div className="border-t border-slate-200 bg-slate-50 p-4 space-y-4">
+                <div className="border-t border-line bg-surface-2 p-4 space-y-4">
                   {/* Time mode toggle */}
                   <div className="flex items-center justify-end gap-1">
-                    <span className="text-xs text-slate-500">Time:</span>
+                    <span className="text-xs text-muted">Time:</span>
                     <button
                       type="button"
                       onClick={() => setTimeMode("local")}
                       className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                         timeMode === "local"
                           ? "bg-green-100 text-green-700"
-                          : "text-slate-400 hover:text-slate-600"
+                          : "text-faint hover:text-muted"
                       }`}
                     >
                       Local
@@ -366,7 +366,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                       className={`rounded px-2 py-0.5 text-xs font-medium transition-colors ${
                         timeMode === "zulu"
                           ? "bg-blue-100 text-blue-700"
-                          : "text-slate-400 hover:text-slate-600"
+                          : "text-faint hover:text-muted"
                       }`}
                     >
                       Zulu
@@ -374,7 +374,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                   </div>
 
                   {!edit?.loaded ? (
-                    <p className="text-sm text-slate-400">Loading trip details…</p>
+                    <p className="text-sm text-faint">Loading trip details…</p>
                   ) : (
                     <>
                       {/* Live board preview */}
@@ -394,7 +394,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
 
                       {/* Trip type */}
                       <div>
-                        <p className="mb-2 text-xs font-medium text-slate-600">Trip type</p>
+                        <p className="mb-2 text-xs font-medium text-muted">Trip type</p>
                         <div className="grid grid-cols-3 gap-2">
                           {(["LAYOVER", "TURNAROUND", "MULTI_STOP"] as const).map((type) => {
                             const info = getTripTypeInfo(type);
@@ -407,7 +407,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                                 className={`rounded-lg border-2 py-2 text-xs font-medium transition-colors ${
                                   active
                                     ? "border-slate-700 bg-slate-800 text-white"
-                                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                                    : "border-line bg-surface text-muted hover:border-line"
                                 }`}
                               >
                                 {info.label}
@@ -423,11 +423,11 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                         return (
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs font-medium text-slate-600">Layover city</label>
+                              <label className="block text-xs font-medium text-muted">Layover city</label>
                               <select
                                 value={edit.layoverAirport}
                                 onChange={(e) => updateLayover(trip.id, e.target.value, edit.layoverHours)}
-                                className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900"
+                                className="mt-1 block w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-content"
                               >
                                 {!edit.layoverAirport && <option value="">Select city</option>}
                                 {possibleAirports.map((apt) => (
@@ -436,7 +436,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                               </select>
                             </div>
                             <div>
-                              <label className="block text-xs font-medium text-slate-600">Layover hours</label>
+                              <label className="block text-xs font-medium text-muted">Layover hours</label>
                               <input
                                 type="number"
                                 min={0}
@@ -450,7 +450,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                                     e.target.value ? parseFloat(e.target.value) : null
                                   )
                                 }
-                                className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900"
+                                className="mt-1 block w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-content"
                               />
                             </div>
                           </div>
@@ -459,7 +459,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
 
                       {/* Report time */}
                       <div>
-                        <label className="block text-xs font-medium text-slate-600">
+                        <label className="block text-xs font-medium text-muted">
                           Report time {timeMode === "local" && firstDepAirport ? `(${firstDepAirport} local)` : "(Zulu)"}
                         </label>
                         <input
@@ -471,15 +471,15 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                               reportTime: fromInput(e.target.value, firstDepAirport, timeMode),
                             })
                           }
-                          className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-900"
+                          className="mt-1 block w-full rounded-lg border border-line bg-surface px-3 py-1.5 text-sm text-content"
                         />
                       </div>
 
                       {/* Leg times + DH toggle */}
                       {edit.legs.map((leg, i) => (
-                        <div key={leg.id} className="rounded-lg border border-slate-100 bg-white p-3">
+                        <div key={leg.id} className="rounded-lg border border-line bg-surface p-3">
                           <div className="mb-2 flex items-center justify-between">
-                            <p className="text-xs font-medium text-slate-600">
+                            <p className="text-xs font-medium text-muted">
                               {leg.departureAirport} → {leg.arrivalAirport}
                             </p>
                             <label className="flex cursor-pointer items-center gap-1.5">
@@ -494,7 +494,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                           </div>
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs text-slate-500">
+                              <label className="block text-xs text-muted">
                                 Dep {timeMode === "local" && leg.departureAirport ? `(${leg.departureAirport})` : "(Z)"}
                               </label>
                               <input
@@ -506,11 +506,11 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                                     dep: fromInput(e.target.value, leg.departureAirport, timeMode),
                                   })
                                 }
-                                className="mt-0.5 block w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-900"
+                                className="mt-0.5 block w-full rounded border border-line px-2 py-1.5 text-sm text-content"
                               />
                             </div>
                             <div>
-                              <label className="block text-xs text-slate-500">
+                              <label className="block text-xs text-muted">
                                 Arr {timeMode === "local" && leg.arrivalAirport ? `(${leg.arrivalAirport})` : "(Z)"}
                               </label>
                               <input
@@ -522,7 +522,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                                     arr: fromInput(e.target.value, leg.arrivalAirport, timeMode),
                                   })
                                 }
-                                className="mt-0.5 block w-full rounded border border-slate-200 px-2 py-1.5 text-sm text-slate-900"
+                                className="mt-0.5 block w-full rounded border border-line px-2 py-1.5 text-sm text-content"
                               />
                             </div>
                           </div>
@@ -557,7 +557,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
         <button
           type="button"
           onClick={onBack}
-          className="rounded-lg border border-slate-800 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+          className="rounded-lg border border-slate-800 bg-surface px-4 py-2 text-sm font-medium text-content hover:bg-surface-2"
         >
           <span className="inline-flex items-center gap-1">
             <span className="rtl:rotate-180" aria-hidden>←</span>

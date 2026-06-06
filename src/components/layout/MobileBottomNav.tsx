@@ -52,14 +52,14 @@ export function MobileBottomNav({
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-1 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-1.5 backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 px-1 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-1.5 backdrop-blur md:hidden"
       aria-label={t("dashboard.navPrimary")}
     >
       <ul className="mx-auto flex w-full max-w-xl items-end justify-between gap-1">
         {tabs.map((tab) => {
           const active = isTabActive(pathname, tab.href);
           const Icon = tab.icon;
-          const color = active ? PRIMARY : "#64748b";
+          const color = active ? PRIMARY : "var(--muted)";
 
           const badgeEl =
             tab.href === "/dashboard/messages"
@@ -82,7 +82,7 @@ export function MobileBottomNav({
                     tab.isPrimary
                       ? "h-11 w-11 border border-[#1e5a96] bg-[#2668B0] text-white shadow-lg"
                       : active
-                        ? "h-8 w-8 bg-[#E3EFF9]"
+                        ? "h-8 w-8 bg-brand-blue-soft"
                         : "h-8 w-8"
                   }`}
                 >

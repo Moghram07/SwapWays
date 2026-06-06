@@ -416,9 +416,9 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
         </div>
       ) : null}
       {loading ? (
-        <p className="py-8 text-center text-slate-600">Loading…</p>
+        <p className="py-8 text-center text-muted">Loading…</p>
       ) : filtered.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50/50 py-12 text-center text-slate-600">
+        <p className="rounded-lg border border-dashed border-line bg-surface-2/50 py-12 text-center text-muted">
           No posts to show.
         </p>
       ) : (
@@ -454,14 +454,14 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
           aria-modal="true"
           aria-labelledby="start-conversation-title"
         >
-          <div className="modal-panel w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-lg">
-            <h3 id="start-conversation-title" className="text-lg font-semibold text-slate-900">
+          <div className="modal-panel w-full max-w-md rounded-xl border border-line bg-surface p-6 shadow-lg">
+            <h3 id="start-conversation-title" className="text-lg font-semibold text-content">
               Start conversation
             </h3>
             {selectedPost && (
               <>
-                <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5 text-sm text-slate-700">
-                  <p className="font-medium text-slate-900">Post summary</p>
+                <div className="mt-3 rounded-lg border border-line bg-surface-2/50 px-3 py-2.5 text-sm text-content-soft">
+                  <p className="font-medium text-content">Post summary</p>
                   <p className="mt-1">
                     {selectedPost.postType === "VACATION_SWAP" ? (
                       <>
@@ -495,21 +495,21 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
                       For: {wantTypeLabel[selectedPost.wantType] ?? "Open to offers"}
                     </p>
                   )}
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-muted">
                     {selectedPost.user.rank.name} · {selectedPost.user.base.name} Base
                   </p>
                 </div>
                 {/* When user's trips are loaded for this conversation, show: Which of your trips would you offer? + select */}
               </>
             )}
-            <label className="mt-4 block text-sm font-medium text-slate-700">
+            <label className="mt-4 block text-sm font-medium text-content-soft">
               Message {selectedPost ? "(optional)" : ""}
             </label>
             <textarea
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               placeholder={selectedPost ? messagePlaceholder : "Hi, I'm interested in your post…"}
-              className="mt-1 h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+              className="mt-1 h-24 w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-content placeholder:text-faint"
               rows={4}
               disabled={sending}
             />
@@ -523,7 +523,7 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
                 type="button"
                 onClick={() => setMessagePostId(null)}
                 disabled={sending}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-content-soft hover:bg-surface-2 disabled:opacity-50"
               >
                 Cancel
               </button>

@@ -30,31 +30,31 @@ export function TradeFilters({
   const airportOptions = useMemo(() => getAllAirports(), []);
 
   return (
-    <div className="flex flex-wrap items-end gap-4 rounded-lg border border-slate-200 bg-slate-50/50 p-4">
+    <div className="flex flex-wrap items-end gap-4 rounded-lg border border-line bg-surface-2/50 p-4">
       <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-600">From</label>
+        <label className="text-xs font-medium text-muted">From</label>
         <input
           type="date"
           value={dateFrom}
           onChange={(e) => onDateFromChange(e.target.value)}
-          className="text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
+          className="text-content bg-surface border border-line rounded-lg px-3 py-2 text-sm placeholder:text-faint"
         />
       </div>
       <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-600">To</label>
+        <label className="text-xs font-medium text-muted">To</label>
         <input
           type="date"
           value={dateTo}
           onChange={(e) => onDateToChange(e.target.value)}
-          className="text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
+          className="text-content bg-surface border border-line rounded-lg px-3 py-2 text-sm placeholder:text-faint"
         />
       </div>
       <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-600">Destination</label>
+        <label className="text-xs font-medium text-muted">Destination</label>
         <select
           value={destination}
           onChange={(e) => onDestinationChange(e.target.value)}
-          className="text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
+          className="text-content bg-surface border border-line rounded-lg px-3 py-2 text-sm placeholder:text-faint"
         >
           <option value="">All</option>
           {airportOptions.map((a) => (
@@ -63,11 +63,11 @@ export function TradeFilters({
         </select>
       </div>
       <div className="space-y-1">
-        <label className="text-xs font-medium text-slate-600">Type</label>
+        <label className="text-xs font-medium text-muted">Type</label>
         <select
           value={tradeType}
           onChange={(e) => onTradeTypeChange(e.target.value)}
-          className="text-gray-900 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm placeholder:text-gray-400"
+          className="text-content bg-surface border border-line rounded-lg px-3 py-2 text-sm placeholder:text-faint"
         >
           <option value="">All</option>
           <option value="FLIGHT_SWAP">Flight swap</option>

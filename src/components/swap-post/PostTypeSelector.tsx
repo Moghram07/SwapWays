@@ -48,7 +48,7 @@ export function PostTypeSelector({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-slate-900">{t("dashboard.postTypeChooserTitle")}</h2>
+      <h2 className="text-lg font-semibold text-content">{t("dashboard.postTypeChooserTitle")}</h2>
       <div className="grid gap-3 sm:grid-cols-2">
         {optionTypes.map((type) => {
           const Icon = optionIcons[type];
@@ -64,7 +64,7 @@ export function PostTypeSelector({
                 }
                 onSelect(type);
               }}
-              className="flex items-start gap-4 rounded-xl border-2 border-slate-200 bg-white p-4 text-start transition-colors hover:border-[#2668B0] hover:bg-slate-50/50"
+              className="flex items-start gap-4 rounded-xl border-2 border-line bg-surface p-4 text-start transition-colors hover:border-[#2668B0] hover:bg-surface-2/50"
             >
               <div
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
@@ -73,8 +73,8 @@ export function PostTypeSelector({
                 <Icon className="h-5 w-5" style={{ color: PRIMARY }} />
               </div>
               <div>
-                <p className="font-medium text-slate-900">{t(copy.labelKey)}</p>
-                <p className="mt-0.5 text-sm text-slate-500">{t(copy.descKey)}</p>
+                <p className="font-medium text-content">{t(copy.labelKey)}</p>
+                <p className="mt-0.5 text-sm text-muted">{t(copy.descKey)}</p>
                 {type === "VACATION_SWAP" && !canPostVacationSwap ? (
                   <p className="mt-1 text-xs font-semibold text-[#2668B0]">{t("dashboard.postTypePremiumOnly")}</p>
                 ) : null}
@@ -86,7 +86,7 @@ export function PostTypeSelector({
           <button
             type="button"
             onClick={onSelectLineSwap}
-            className="flex items-start gap-4 rounded-xl border-2 border-slate-200 bg-white p-4 text-start transition-colors hover:border-[#2668B0] hover:bg-slate-50/50"
+            className="flex items-start gap-4 rounded-xl border-2 border-line bg-surface p-4 text-start transition-colors hover:border-[#2668B0] hover:bg-surface-2/50"
           >
             <div
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
@@ -95,8 +95,8 @@ export function PostTypeSelector({
               <CalendarDays className="h-5 w-5" style={{ color: PRIMARY }} />
             </div>
             <div>
-              <p className="font-medium text-slate-900">{t("dashboard.postTypeLineSwapCardTitle")}</p>
-              <p className="mt-0.5 text-sm text-slate-500">{t("dashboard.postTypeLineSwapCardDesc")}</p>
+              <p className="font-medium text-content">{t("dashboard.postTypeLineSwapCardTitle")}</p>
+              <p className="mt-0.5 text-sm text-muted">{t("dashboard.postTypeLineSwapCardDesc")}</p>
             </div>
           </button>
         )}
@@ -104,7 +104,7 @@ export function PostTypeSelector({
           <button
             type="button"
             onClick={onSelectManualEntry}
-            className="flex items-start gap-4 rounded-xl border-2 border-slate-200 bg-white p-4 text-start transition-colors hover:border-[#2668B0] hover:bg-slate-50/50"
+            className="flex items-start gap-4 rounded-xl border-2 border-line bg-surface p-4 text-start transition-colors hover:border-[#2668B0] hover:bg-surface-2/50"
           >
             <div
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
@@ -113,8 +113,8 @@ export function PostTypeSelector({
               <PenLine className="h-5 w-5" style={{ color: PRIMARY }} />
             </div>
             <div>
-              <p className="font-medium text-slate-900">Manual entry</p>
-              <p className="mt-0.5 text-sm text-slate-500">Enter trip details without uploading a schedule</p>
+              <p className="font-medium text-content">Manual entry</p>
+              <p className="mt-0.5 text-sm text-muted">Enter trip details without uploading a schedule</p>
             </div>
           </button>
         )}

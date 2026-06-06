@@ -41,22 +41,22 @@ export function WantDestinationsField({
       ? "text-emerald-600 font-medium"
       : required
         ? "text-emerald-600 font-medium"
-        : "text-slate-400";
+        : "text-faint";
 
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">
+      <label className="mb-1 block text-sm font-medium text-content-soft">
         {label}
         {required ? <span className="text-rose-600"> *</span> : null}
       </label>
-      {description ? <p className="mb-2 text-xs text-slate-500">{description}</p> : null}
+      {description ? <p className="mb-2 text-xs text-muted">{description}</p> : null}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm text-slate-800 hover:border-slate-300"
+        className="flex w-full items-center justify-between rounded-xl border border-line bg-surface px-3 py-2.5 text-left text-sm text-content hover:border-line"
       >
         <span className={summaryClass}>{summaryText}</span>
-        <ChevronRight size={18} className="shrink-0 text-slate-400" />
+        <ChevronRight size={18} className="shrink-0 text-faint" />
       </button>
       <AirportMultiSelectModal
         open={open}
@@ -100,14 +100,14 @@ export function ExcludeDestinationsField({
 
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
+      <label className="mb-1 block text-sm font-medium text-content-soft">{label}</label>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm text-slate-800 hover:border-slate-300"
+        className="flex w-full items-center justify-between rounded-xl border border-line bg-surface px-3 py-2.5 text-left text-sm text-content hover:border-line"
       >
         <span className="text-red-700 font-medium">{summaryText}</span>
-        <ChevronRight size={18} className="shrink-0 text-slate-400" />
+        <ChevronRight size={18} className="shrink-0 text-faint" />
       </button>
       <AirportMultiSelectModal
         open={open}

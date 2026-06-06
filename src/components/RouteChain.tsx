@@ -90,7 +90,7 @@ export function RouteChain({
               {!isLast && (
                 <div className="shrink-0 flex flex-col items-center pt-4 gap-0.5">
                   <Plane
-                    className={`h-3 w-3 ${legDeadheads?.[i] ? "text-purple-500" : "text-gray-400"}`}
+                    className={`h-3 w-3 ${legDeadheads?.[i] ? "text-purple-500" : "text-faint"}`}
                     aria-hidden
                   />
                 </div>

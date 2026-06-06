@@ -16,7 +16,7 @@ export function TripSummaryFooter({
   creditHours,
 }: TripSummaryFooterProps) {
   return (
-    <div className="flex flex-wrap items-center gap-6 border-t border-gray-100 bg-gray-50 px-5 py-3 text-sm text-gray-500">
+    <div className="flex flex-wrap items-center gap-6 border-t border-line bg-surface-2 px-5 py-3 text-sm text-muted">
       <div className="flex items-center gap-1.5">
         <Timer size={14} />
         <span>

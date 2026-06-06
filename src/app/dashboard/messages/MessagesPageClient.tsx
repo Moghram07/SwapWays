@@ -109,8 +109,8 @@ export function MessagesPageClient() {
   if (isLoading && conversations.length === 0) {
     return (
       <div className="space-y-4">
-        <h1 className="dashboard-page-title text-2xl text-slate-900">Messages</h1>
-        <div className="h-[calc(100vh-12rem)] animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
+        <h1 className="dashboard-page-title text-2xl text-content">Messages</h1>
+        <div className="h-[calc(100vh-12rem)] animate-pulse rounded-xl border border-line bg-surface-2" />
       </div>
     );
   }

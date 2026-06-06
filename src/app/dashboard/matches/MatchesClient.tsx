@@ -494,10 +494,10 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
     "You haven't posted any swaps yet. Go to My Flights to offer trips, or browse Swaps.";
   const historyEmptyMessage = "No past swaps yet. Cancelled, completed, and expired listings appear here.";
   const emptyState = (message: string, showCta: boolean) => (
-    <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 py-12 px-4 shadow-sm">
+    <div className="rounded-xl border border-dashed border-line bg-surface-2/50 py-12 px-4 shadow-sm">
       <div className="flex flex-col items-center justify-center gap-5 text-center max-w-sm mx-auto">
-        <Inbox className="h-12 w-12 text-slate-400" aria-hidden />
-        <p className="text-slate-600 text-sm leading-relaxed">{message}</p>
+        <Inbox className="h-12 w-12 text-faint" aria-hidden />
+        <p className="text-muted text-sm leading-relaxed">{message}</p>
         {showCta && (
           <Link href="/dashboard/add-trade">
             <Button
@@ -517,7 +517,7 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
     <div className="space-y-5">
       {!embeddedMySwapsOnly && (
         <div
-          className="inline-flex rounded-lg border border-slate-200 bg-slate-50/80 p-1"
+          className="inline-flex rounded-lg border border-line bg-surface-2/80 p-1"
           role="tablist"
           aria-label="Swaps sections"
         >
@@ -535,8 +535,8 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
               }}
               className={`rounded-md px-4 py-2 text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 ${
                 activeTab === id
-                  ? "bg-white text-[var(--primary-cta)] shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "bg-surface text-[var(--primary-cta)] shadow-sm"
+                  : "text-muted hover:text-content"
               }`}
             >
               {label}
@@ -560,8 +560,8 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
               onClick={() => setMySwapsSubTab("active")}
               className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 ${
                 mySwapsSubTab === "active"
-                  ? "border-[var(--primary)] bg-white text-[var(--primary-cta)] shadow-sm"
-                  : "border-slate-200 bg-slate-50/80 text-slate-600 hover:text-slate-900"
+                  ? "border-[var(--primary)] bg-surface text-[var(--primary-cta)] shadow-sm"
+                  : "border-line bg-surface-2/80 text-muted hover:text-content"
               }`}
             >
               Active ({mySwapsActiveRows.length + myLineSwapPosts.length})
@@ -573,8 +573,8 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
               onClick={() => setMySwapsSubTab("history")}
               className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 ${
                 mySwapsSubTab === "history"
-                  ? "border-[var(--primary)] bg-white text-[var(--primary-cta)] shadow-sm"
-                  : "border-slate-200 bg-slate-50/80 text-slate-600 hover:text-slate-900"
+                  ? "border-[var(--primary)] bg-surface text-[var(--primary-cta)] shadow-sm"
+                  : "border-line bg-surface-2/80 text-muted hover:text-content"
               }`}
             >
               History
@@ -582,10 +582,10 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
           </div>
           {mySwapsSubTab === "active" && myLineSwapPosts.length > 0 && (
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Line Swaps</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Line Swaps</p>
               <ul className="space-y-3">
                 {myLineSwapPosts.map((post) => (
-                  <li key={post.id} className="rounded-xl border border-s-4 border-s-[var(--primary)] border-slate-200 bg-white shadow-sm overflow-hidden">
+                  <li key={post.id} className="rounded-xl border border-s-4 border-s-[var(--primary)] border-line bg-surface shadow-sm overflow-hidden">
                     <LineSwapCard
                       post={post}
                       isOwner
@@ -607,14 +607,14 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
               {displayedMySwaps.map((item) => (
                 <li key={`${item.source}-${item.id}`}>
                   <div
-                    className={`rounded-xl border bg-white shadow-sm overflow-hidden ${
+                    className={`rounded-xl border bg-surface shadow-sm overflow-hidden ${
                       item.statusPill === "active"
-                        ? "border-s-4 border-s-[var(--primary)] border-slate-200"
+                        ? "border-s-4 border-s-[var(--primary)] border-line"
                         : item.statusPill === "pending"
-                          ? "border-s-4 border-s-amber-500 border-slate-200"
+                          ? "border-s-4 border-s-amber-500 border-line"
                           : item.statusPill === "expired" || item.statusPill === "cancelled"
-                            ? "border-s-4 border-s-slate-400 border-slate-200"
-                            : "border-s-4 border-s-[var(--accent)] border-slate-200"
+                            ? "border-s-4 border-s-slate-400 border-line"
+                            : "border-s-4 border-s-[var(--accent)] border-line"
                     }`}
                   >
                     <SwapPostTradeBoardCard
@@ -623,7 +623,7 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
                       statusPill={item.statusPill}
                     />
                     {mySwapsSubTab === "active" && item.recordStatus === "OPEN" && item.statusPill === "active" && (
-                      <div className="border-t border-slate-100 px-4 py-2.5 flex justify-end gap-3 bg-slate-50/50">
+                      <div className="border-t border-line px-4 py-2.5 flex justify-end gap-3 bg-surface-2/50">
                         {item.source === "swapPost" && (
                           <Link
                             href={
@@ -631,7 +631,7 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
                                 ? `/dashboard/add-trade?type=manual&edit=${item.id}`
                                 : `/dashboard/add-trade?edit=${item.id}`
                             }
-                            className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 rounded"
+                            className="inline-flex items-center gap-1.5 text-sm font-medium text-content-soft hover:text-content focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-1 rounded"
                           >
                             <Pencil size={14} />
                             Edit
@@ -659,9 +659,9 @@ export function MatchesClient({ initialMatches, currentUserId, embeddedMySwapsOn
       {activeTab === "vacationSwap" && <TradeBoardSection mode="vacationSwap" />}
 
       {activeTab === "lineSwap" && (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-base font-semibold text-slate-900">Line Swap</h3>
-          <p className="mt-2 text-sm text-slate-600">
+        <div className="rounded-xl border border-line bg-surface p-6 shadow-sm">
+          <h3 className="text-base font-semibold text-content">Line Swap</h3>
+          <p className="mt-2 text-sm text-muted">
             Trade complete monthly lines with other crew members.
           </p>
           <div className="mt-4 flex flex-wrap items-center gap-3">

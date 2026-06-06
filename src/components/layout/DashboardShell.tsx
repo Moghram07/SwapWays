@@ -46,7 +46,7 @@ export function DashboardShell({
       <div
         lang={locale}
         dir={getDirection(locale)}
-        className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-[#F7F9FC]"
+        className="flex min-h-screen w-full max-w-full overflow-x-hidden bg-app"
       >
         <Sidebar
           unreadMessages={unreadMessages}

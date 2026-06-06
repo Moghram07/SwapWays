@@ -52,7 +52,7 @@ export function ConversationList({
   if (conversations.length === 0) {
     return (
       <div className="p-4 flex flex-col items-center justify-center gap-4 text-center">
-        <p className="text-slate-500 text-sm">
+        <p className="text-muted text-sm">
           No conversations yet. Start one from Swaps.
         </p>
         <Link

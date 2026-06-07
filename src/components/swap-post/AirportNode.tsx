@@ -10,7 +10,7 @@ export type AirportNodeVariant = "green" | "blue" | "orange" | "purple";
 const variantColors: Record<AirportNodeVariant, { border: string; text: string }> = {
   green:  { border: "border-[#3BA34A]",            text: "text-[#3BA34A]" },
   blue:   { border: "border-[var(--node-blue)]",   text: "text-[var(--node-blue)]" },
-  orange: { border: "border-[var(--node-amber)]",  text: "text-[var(--node-amber)]" },
+  orange: { border: "border-amber-500",            text: "text-[var(--node-amber)]" },
   purple: { border: "border-[var(--node-purple)]", text: "text-[var(--node-purple)]" },
 };
 
@@ -39,7 +39,7 @@ export function AirportNode({ code, isLayover, isHighlighted, variant = "green",
       <div
         className={`w-full rounded-lg border px-2 py-1 text-center ${
           isLayover || isHighlighted
-            ? `border-2 ${colors.border}`
+            ? `border-2 ${colors.border} bg-surface`
             : "border-line bg-surface"
         }`}
       >

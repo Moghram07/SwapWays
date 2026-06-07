@@ -299,12 +299,14 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
 
 type CityPillVariant = "green" | "blue" | "orange" | "red" | "default";
 
+// Subtext (city name) uses a solid color, not a faint /70 opacity — opacity was hard to read
+// on the tinted fill and didn't adapt in dark. Blue routes through the adaptive node token.
 const cityPillColors: Record<CityPillVariant, { border: string; bg: string; text: string; sub: string }> = {
-  green:   { border: "border-[#3BA34A]", bg: "bg-green-50",  text: "text-[#3BA34A]",  sub: "text-[#3BA34A]/70" },
-  blue:    { border: "border-[#2668B0]", bg: "bg-blue-50",   text: "text-[#2668B0]",  sub: "text-[#2668B0]/70" },
-  orange:  { border: "border-amber-500", bg: "bg-amber-50",  text: "text-amber-700",  sub: "text-amber-600/70" },
-  red:     { border: "border-rose-400",  bg: "bg-rose-50",   text: "text-rose-700",   sub: "text-rose-500/70"  },
-  default: { border: "border-line",  bg: "bg-surface",     text: "text-content",   sub: "text-faint"     },
+  green:   { border: "border-[#3BA34A]",          bg: "bg-green-50",  text: "text-[#3BA34A]",          sub: "text-[#3BA34A]" },
+  blue:    { border: "border-[var(--node-blue)]", bg: "bg-blue-50",   text: "text-[var(--node-blue)]", sub: "text-[var(--node-blue)]" },
+  orange:  { border: "border-amber-500",          bg: "bg-amber-50",  text: "text-amber-700",          sub: "text-amber-700" },
+  red:     { border: "border-rose-400",           bg: "bg-rose-50",   text: "text-rose-700",           sub: "text-rose-700" },
+  default: { border: "border-line",               bg: "bg-surface",   text: "text-content",            sub: "text-muted" },
 };
 
 function wantTypeToVariant(wantType: WantType): CityPillVariant {

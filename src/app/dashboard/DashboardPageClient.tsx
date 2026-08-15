@@ -6,6 +6,7 @@ import { useState } from "react";
 import { CalendarDays, ArrowLeftRight, Bell, MessageCircle, ChevronRight } from "lucide-react";
 import { getTranslator } from "@/i18n/getTranslator";
 import { type Locale } from "@/i18n/config";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 
 const PRIMARY = "#1E6FB9";
 const ACCENT = "#2DAF66";
@@ -60,6 +61,7 @@ function StatCardSkeleton() {
 
 export function DashboardPageClient({ locale }: { locale: Locale }) {
   const t = getTranslator(locale);
+  const airlineCode = useAirlineCode();
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const { data: overviewJson, isLoading } = useSWR<OverviewResponse>("/api/dashboard/overview", fetcher, {
     revalidateOnFocus: false,
@@ -264,7 +266,7 @@ export function DashboardPageClient({ locale }: { locale: Locale }) {
           ) : (
             <ul className="space-y-2">
               {topMatches.map((match) => {
-                const flightLabel = match.flightNumber ? `SV${match.flightNumber}` : "Flight";
+                const flightLabel = match.flightNumber ? `${airlineCode}${match.flightNumber}` : "Flight";
                 const destination = match.destination ?? "—";
                 const tripLabel = match.tripType ? match.tripType.toLowerCase() : "trip";
                 return (

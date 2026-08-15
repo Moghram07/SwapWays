@@ -35,6 +35,9 @@ export const saudiaConfig: AirlineConfig = {
     { name: "Madinah", airportCode: "MED" },
   ],
 
+  // Saudia crew can only sign up out of JED or RUH for now.
+  registrationBaseCodes: ["JED", "RUH"],
+
   scheduleFormat: {
     // Trip: "#259 REPORT AT 01.55Z" or "Trip #259 Report: 01:55Z"
     tripPattern: /#(\d{3})\s+REPORT\s*(?:AT)?\s*[:\s]*(\d{2}[.:]\d{2}Z?)/i,

@@ -65,7 +65,7 @@ export function ForgotPasswordForm({ locale }: Props) {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@saudia.com"
+          placeholder="you@example.com"
           required
         />
       </div>

@@ -82,16 +82,6 @@ export function Hero({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
             </Button>
           </motion.div>
 
-          <motion.div
-            className="mt-12 flex items-center gap-6 text-sm text-white/60"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-          >
-            <span className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-amber-300" /> {t("landing.privateBeta")}
-            </span>
-          </motion.div>
         </div>
       </div>
     </section>

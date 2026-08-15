@@ -25,6 +25,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: `${user.firstName} ${user.lastName}`,
           isAdmin: user.isAdmin,
+          airlineCode: user.airline?.code,
         };
       },
     }),
@@ -35,6 +36,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.isAdmin = !!(user as { isAdmin?: boolean }).isAdmin;
+        token.airlineCode = (user as { airlineCode?: string }).airlineCode;
       }
       return token;
     },
@@ -42,6 +44,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as { id?: string }).id = token.id as string;
         (session.user as { isAdmin?: boolean }).isAdmin = !!token.isAdmin;
+        // Undefined on JWTs issued before this claim existed; consumers fall back to SV.
+        (session.user as { airlineCode?: string }).airlineCode = token.airlineCode;
       }
       return session;
     },

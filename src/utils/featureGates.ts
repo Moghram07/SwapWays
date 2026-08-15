@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { SCHEDULE_UPLOAD_AIRLINE_CODE } from "@/constants/schedule";
 
 export type AccessTier = "FREE" | "PREMIUM";
 
@@ -42,6 +43,7 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
       trialEndsAt: true,
       subscriptionStatus: true,
       isVerified: true,
+      airline: { select: { code: true } },
       _count: { select: { schedules: true } },
     },
   });
@@ -52,7 +54,8 @@ export async function getUserAccess(userId: string): Promise<UserAccess> {
 
   const isTrialing = false;
   const trialDaysRemaining = 0;
-  const canUploadSchedule = true;
+  // Schedule parsing only understands the Saudia crew-portal format for now.
+  const canUploadSchedule = user.airline?.code === SCHEDULE_UPLOAD_AIRLINE_CODE;
   const canStartNewConversation = true;
   const freeConversationDailyLimit = Number.POSITIVE_INFINITY;
   const freeConversationStartsRemaining = Number.POSITIVE_INFINITY;

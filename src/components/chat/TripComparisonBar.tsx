@@ -6,6 +6,7 @@ import Link from "next/link";
 import { classifyTrip, getTripTypeInfo } from "@/utils/tripClassifier";
 import { zuluToLocal } from "@/utils/airportTimezones";
 import { formatFlightNumber } from "@/utils/flightNumber";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 import { AirportCode } from "@/components/AirportCode";
 
 interface Leg {
@@ -67,9 +68,9 @@ interface ScheduleTripApiItem {
   legs: { flightNumber: string; departureAirport: string; arrivalAirport: string }[];
 }
 
-function scheduleOptionLabel(t: ScheduleTripApiItem): string {
+function scheduleOptionLabel(t: ScheduleTripApiItem, airlineCode: string): string {
   const firstLeg = t.legs?.[0];
-  const fn = formatFlightNumber(firstLeg?.flightNumber) ?? "—";
+  const fn = formatFlightNumber(firstLeg?.flightNumber, airlineCode) ?? "—";
   const dest = firstLeg?.arrivalAirport ?? "—";
   const d = new Date(t.startDate);
   const dateStr = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -85,8 +86,8 @@ interface SwapPostTripApiItem {
   departureDate: string;
 }
 
-function swapTripOptionLabel(t: SwapPostTripApiItem): string {
-  const fn = formatFlightNumber(t.flightNumber);
+function swapTripOptionLabel(t: SwapPostTripApiItem, airlineCode: string): string {
+  const fn = formatFlightNumber(t.flightNumber, airlineCode);
   const dest = (t.destinations && t.destinations[0]) || t.destination || "—";
   const d = new Date(t.departureDate);
   const dateStr = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -303,6 +304,7 @@ export const TripComparisonBar = memo(function TripComparisonBar({
   const [myTrips, setMyTrips] = useState<MyTripOption[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(false);
   const [saving, setSaving] = useState(false);
+  const airlineCode = useAirlineCode();
   const canChangeOffer = isInitiator && conversationId && onOfferChanged;
 
   const fetchMyTrips = useCallback(() => {
@@ -317,21 +319,21 @@ export const TripComparisonBar = memo(function TripComparisonBar({
         // Uploaded schedule trips (unchanged behavior for schedule users).
         const schedTrips: ScheduleTripApiItem[] = Array.isArray(schedJson?.data) ? schedJson.data : [];
         for (const t of schedTrips) {
-          options.push({ id: t.id, kind: "schedule", label: scheduleOptionLabel(t) });
+          options.push({ id: t.id, kind: "schedule", label: scheduleOptionLabel(t, airlineCode) });
         }
         // Posted swap trips from My Swaps — add the MANUAL ones (schedule-backed are already above).
         const posts: { offeredTrips?: SwapPostTripApiItem[] }[] = Array.isArray(swapJson?.data) ? swapJson.data : [];
         for (const p of posts) {
           for (const ot of p.offeredTrips ?? []) {
             if (ot.scheduleTripId) continue;
-            options.push({ id: ot.id, kind: "swapPostTrip", label: swapTripOptionLabel(ot) });
+            options.push({ id: ot.id, kind: "swapPostTrip", label: swapTripOptionLabel(ot, airlineCode) });
           }
         }
         setMyTrips(options);
       })
       .catch(() => setMyTrips([]))
       .finally(() => setLoadingTrips(false));
-  }, [canChangeOffer]);
+  }, [canChangeOffer, airlineCode]);
 
   const handleSelectTrip = useCallback(
     async (option: MyTripOption | null) => {
@@ -382,6 +384,7 @@ export const TripComparisonBar = memo(function TripComparisonBar({
 });
 
 function TripMiniSummary({ trip }: { trip: TripLike }) {
+  const airlineCode = useAirlineCode();
   const firstLeg = trip.legs?.[0];
   const lastLeg = trip.legs?.length ? trip.legs[trip.legs.length - 1] : null;
   if (!firstLeg) return <p className="text-sm text-muted">—</p>;
@@ -419,8 +422,10 @@ function TripMiniSummary({ trip }: { trip: TripLike }) {
         >
           {typeInfo.label}
         </span>
-        {formatFlightNumber(firstLeg.flightNumber) && (
-          <span className="font-semibold text-content">{formatFlightNumber(firstLeg.flightNumber)}</span>
+        {formatFlightNumber(firstLeg.flightNumber, airlineCode) && (
+          <span className="font-semibold text-content">
+            {formatFlightNumber(firstLeg.flightNumber, airlineCode)}
+          </span>
         )}
         <span className="flex items-center gap-1 text-muted">
           {destStr.split(" → ").map((code, i, arr) => (

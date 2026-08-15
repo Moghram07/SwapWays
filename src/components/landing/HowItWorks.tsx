@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { UserCircle, Upload, CheckCircle2 } from "lucide-react";
+import { UserCircle, ArrowLeftRight, MessagesSquare } from "lucide-react";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/getTranslator";
 
@@ -18,13 +18,13 @@ export function HowItWorks({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
       color: PRIMARY,
     },
     {
-      icon: Upload,
+      icon: ArrowLeftRight,
       title: t("howItWorks.step2Title"),
       description: t("howItWorks.step2Description"),
       color: GREEN,
     },
     {
-      icon: CheckCircle2,
+      icon: MessagesSquare,
       title: t("howItWorks.step3Title"),
       description: t("howItWorks.step3Description"),
       color: PRIMARY,

@@ -12,6 +12,7 @@ import * as scheduleRepo from "@/repositories/scheduleRepository";
 import { trackEventServer } from "@/lib/analytics/server";
 import { prisma } from "@/lib/prisma";
 import { withTiming } from "@/lib/apiTimer";
+import { SCHEDULE_UPLOAD_AIRLINE_CODE } from "@/constants/schedule";
 import { invalidateMatchCacheForViewer } from "@/services/matching/matchEngine";
 import type { ParsedSchedule } from "@/types/schedule";
 
@@ -121,6 +122,15 @@ export async function POST(request: Request) {
   const user = await findUserById(session.user.id);
   if (!user?.airline?.code) {
     return timer.end(NextResponse.json({ error: "Forbidden", message: "User airline not found" }, { status: 403 }));
+  }
+  // The parser only understands the Saudia crew-portal format; reject others up front
+  // rather than failing later with a misleading "unrecognized schedule" error.
+  if (user.airline.code !== SCHEDULE_UPLOAD_AIRLINE_CODE) {
+    return timer.end(
+      jsonUnsupported(
+        `Schedule upload is not available for ${user.airline.name} yet. You can still post swaps manually.`
+      )
+    );
   }
 
   let parsed: ParsedSchedule;

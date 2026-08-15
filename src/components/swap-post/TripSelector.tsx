@@ -11,6 +11,7 @@ import { getTranslator } from "@/i18n/getTranslator";
 import { TripBoardPreview } from "@/components/swap-post/TripBoardPreview";
 import type { TripBoardPreviewLayover } from "@/components/swap-post/TripBoardPreview";
 import { zuluToLocal, getAirportUtcOffset } from "@/utils/airportTimezones";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 
 const PRIMARY = "#1E6FB9";
 
@@ -134,6 +135,7 @@ interface TripSelectorProps {
 export function TripSelector({ trips, selected, onChange, onNext, onBack, allowEmpty }: TripSelectorProps) {
   const locale = useDashboardLocale();
   const t = getTranslator(locale);
+  const airlineCode = useAirlineCode();
 
   const [expandedTripId, setExpandedTripId] = useState<string | null>(null);
   const [tripEdits, setTripEdits] = useState<Record<string, TripEdit>>({});
@@ -324,7 +326,7 @@ export function TripSelector({ trips, selected, onChange, onNext, onBack, allowE
                     </span>
                     <div className="min-w-0">
                       <span className="font-semibold text-content">
-                        SV{displayFlightNumber(trip.legs[0]?.flightNumber) || "—"}
+                        {airlineCode}{displayFlightNumber(trip.legs[0]?.flightNumber) || "—"}
                       </span>
                       {trip.legs.some((l) => (l.flightNumber ?? "").toUpperCase().startsWith("DH")) && (
                         <span className="ms-2 rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-muted">

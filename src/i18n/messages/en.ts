@@ -24,9 +24,9 @@ const en = {
     titleAccent: "Own Your Schedule.",
     subtitle:
       "SwapWays helps airline crew upload schedules, post trades, and review compatible matches in one place.",
+    supportedAirlines: "Supported airlines",
     startSwapping: "Start Swapping",
     seeHow: "See How It Works",
-    privateBeta: "Free Beta (Early Access)",
     featuresTitle: "Features",
     featuresBody:
       "Schedule upload, swap posting, match discovery, and in-app messaging for all users during free beta.",
@@ -37,10 +37,12 @@ const en = {
     subheading: "The real workflow crew use inside the app.",
     step1Title: "Create account",
     step1Description: "Sign up, complete your profile, and access your dashboard tools.",
-    step2Title: "Upload PDF line schedule",
-    step2Description: "Upload your monthly PDF schedule so trips can be parsed and prepared for posting.",
-    step3Title: "Post, match, and message",
-    step3Description: "Create swap posts, review matches, and chat with crew before confirming a swap.",
+    step2Title: "Post a swap",
+    step2Description:
+      "Add the trip you want to give away and what you'd take instead. Enter it manually in a few taps, or pick it straight from an uploaded schedule.",
+    step3Title: "Match and message",
+    step3Description:
+      "SwapWays surfaces crew at your base whose trips fit what you asked for. Review each match, then message them in the app before confirming.",
   },
   cta: {
     title: "Ready to Try SwapWays?",
@@ -64,7 +66,7 @@ const en = {
     logIn: "Log in",
     registrationFailed: "Registration failed.",
     selectAirline: "Select airline",
-    phaseOne: "Phase 1: Saudia only.",
+    phaseOne: "Saudia, flynas, flyadeal, and Riyadh Air.",
     chooseAirline: "Choose airline",
     next: "Next",
     firstName: "First name",
@@ -217,6 +219,9 @@ const en = {
     scheduleTutorialShowHow: "Show me how (screenshots)",
     scheduleTutorialFootnote:
       "Only Saudia line schedules from the crew portal are supported (not CrewTool calendar exports).",
+    scheduleUploadUnavailableTitle: "Schedule upload is coming soon for your airline",
+    scheduleUploadUnavailableBody:
+      "We can only read Saudia crew-portal schedules right now. You can still post and swap trips by entering them manually.",
     scheduleUploadCardTitle: "Upload schedule",
     scheduleUploadWherePdfLink: "Where do I get this PDF?",
     scheduleUploadFileHint: "Saudia line schedule PDF or .txt from the crew portal.",

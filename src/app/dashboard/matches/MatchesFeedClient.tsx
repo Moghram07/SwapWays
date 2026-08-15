@@ -10,6 +10,7 @@ import { SwapPostTradeBoardCard } from "@/components/swap-post/TradeBoardCard";
 import { parseWantAcceptanceOptions } from "@/lib/wantAcceptanceOptions";
 import { getAirportCity, normalizeAirportCode } from "@/utils/airportNames";
 import { collapseConsecutiveAirports } from "@/utils/multiStopRouteDisplay";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 function getMatchTier(percent: number): "low" | "medium" | "high" | "none" {
   if (percent >= 70) return "high";
   if (percent >= 40) return "medium";
@@ -248,6 +249,7 @@ export function MatchesFeedClient() {
   const locale = useDashboardLocale();
   const t = getTranslator(locale);
   const router = useRouter();
+  const airlineCode = useAirlineCode();
 
   const [messagePostId, setMessagePostId] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
@@ -386,7 +388,7 @@ export function MatchesFeedClient() {
                       Offering:{" "}
                       {selectedPost.offeredTrips
                         .slice(0, 2)
-                        .map((trip) => `SV${trip.flightNumber} ${getAirportCity(trip.destination)} (${trip.destination})`)
+                        .map((trip) => `${airlineCode}${trip.flightNumber} ${getAirportCity(trip.destination)} (${trip.destination})`)
                         .join(", ")}
                       {selectedPost.offeredTrips.length > 2 && " …"}
                     </>

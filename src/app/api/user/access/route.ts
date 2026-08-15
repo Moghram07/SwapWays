@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { getUserAccess } from "@/utils/featureGates";
+import { SCHEDULE_UPLOAD_AIRLINE_CODE } from "@/constants/schedule";
 import { withTimeout } from "@/lib/withTimeout";
 
 export async function GET() {
@@ -30,7 +31,10 @@ export async function GET() {
       canSeeFullNotes: true,
       canStartNewConversation: true,
       canViewConversationHistory: true,
-      canUploadSchedule: true,
+      // DB is down, so fall back to the session claim rather than showing the
+      // Saudia-only uploader to crew whose schedules we cannot parse.
+      canUploadSchedule:
+        (session.user.airlineCode ?? SCHEDULE_UPLOAD_AIRLINE_CODE) === SCHEDULE_UPLOAD_AIRLINE_CODE,
       hasUploadedSchedule: false,
       postExpirationDays: 365,
       hasPriorityPlacement: true,

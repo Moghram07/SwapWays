@@ -7,6 +7,7 @@ import { SwapStatusBadge } from "./SwapStatusBadge";
 import { buildTripRouteChainNodes } from "@/utils/multiStopRouteDisplay";
 import { RouteChain } from "@/components/RouteChain";
 import { formatFlightNumber } from "@/utils/flightNumber";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 import { formatZuluTime } from "@/utils/timeUtils";
 import { zuluToLocal, getLocalDateFromZulu } from "@/utils/airportTimezones";
 import { formatLocalDate } from "@/utils/dateUtils";
@@ -150,8 +151,9 @@ export function TripCardHeader({
   baseAirportCode,
   onEdit,
 }: TripCardHeaderProps) {
+  const airlineCode = useAirlineCode();
   const firstLeg = trip.legs[0];
-  const primaryFlightNumber = firstLeg ? formatFlightNumber(firstLeg.flightNumber) : null;
+  const primaryFlightNumber = firstLeg ? formatFlightNumber(firstLeg.flightNumber, airlineCode) : null;
   const routeChain = buildTripRouteChainNodes({
     destination: trip.destinations[trip.destinations.length - 1] ?? "",
     destinations: trip.destinations,

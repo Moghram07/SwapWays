@@ -1,25 +1,49 @@
+// Load .env first, then .env.local (override) so the seed hits the same DB as Next.js.
+import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local", override: true });
+
 import { PrismaClient } from "../src/generated/prisma";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { hash } from "bcryptjs";
-import { saudiaConfig } from "../src/config/airlines/saudia";
+import { getAllAirlineConfigs, saudiaConfig } from "../src/config/airlines";
+import { ensurePgbouncerParamForPooler } from "../src/lib/prismaDatabaseUrl";
+import type { AirlineConfig } from "../src/types/airline";
 
-const prisma = new PrismaClient();
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error("DATABASE_URL is not set");
 
-async function main() {
+// Prisma 7 requires a driver adapter — mirror src/lib/prisma.ts.
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: ensurePgbouncerParamForPooler(databaseUrl) }),
+});
+
+// Saudia-only history: rank codes that were renamed after users had already picked them.
+const SAUDIA_LEGACY_RANK_CODES: Record<string, string> = {
+  HST: "YC",
+  STW: "YC",
+  CHF: "CHEF",
+  BTL: "BULTER",
+  FO: "FRIST OFFICER",
+  CPT: "CAPTAIN",
+};
+
+async function seedAirline(config: AirlineConfig) {
   const airline = await prisma.airline.upsert({
-    where: { code: "SV" },
+    where: { code: config.code },
     create: {
-      name: saudiaConfig.name,
-      code: saudiaConfig.code,
-      emailDomain: saudiaConfig.emailDomain,
+      name: config.name,
+      code: config.code,
+      emailDomain: config.emailDomain,
     },
     update: {},
   });
 
-  const desiredCabinRanks = saudiaConfig.ranks.cabin.map((r) => ({
+  const desiredCabinRanks = config.ranks.cabin.map((r) => ({
     ...r,
     category: "CABIN" as const,
   }));
-  const desiredFlightDeckRanks = saudiaConfig.ranks.flightDeck.map((r) => ({
+  const desiredFlightDeckRanks = config.ranks.flightDeck.map((r) => ({
     ...r,
     category: "FLIGHT_DECK" as const,
   }));
@@ -41,14 +65,7 @@ async function main() {
   const rankIdByCode = new Map(ranksAfterUpsert.map((r) => [r.code, r.id]));
 
   // Migrate users off deprecated rank codes before removing those rank rows.
-  const legacyToNewCode: Record<string, string> = {
-    HST: "YC",
-    STW: "YC",
-    CHF: "CHEF",
-    BTL: "BULTER",
-    FO: "FRIST OFFICER",
-    CPT: "CAPTAIN",
-  };
+  const legacyToNewCode = config.code === "SV" ? SAUDIA_LEGACY_RANK_CODES : {};
   for (const [legacyCode, newCode] of Object.entries(legacyToNewCode)) {
     const oldId = rankIdByCode.get(legacyCode);
     const newId = rankIdByCode.get(newCode);
@@ -59,12 +76,9 @@ async function main() {
     });
   }
 
-  const fallbackRankId =
-    rankIdByCode.get("YC") ??
-    rankIdByCode.get("PC") ??
-    desiredRanks
-      .map((r) => rankIdByCode.get(r.code))
-      .find((id): id is string => typeof id === "string");
+  const fallbackRankId = desiredRanks
+    .map((r) => rankIdByCode.get(r.code))
+    .find((id): id is string => typeof id === "string");
 
   const obsoleteRanks = await prisma.rank.findMany({
     where: {
@@ -88,7 +102,7 @@ async function main() {
     },
   });
 
-  for (const at of saudiaConfig.aircraftTypes) {
+  for (const at of config.aircraftTypes) {
     await prisma.aircraftType.upsert({
       where: { airlineId_code: { airlineId: airline.id, code: at.code } },
       create: { airlineId: airline.id, name: at.name, code: at.code, scheduleCode: at.scheduleCode },
@@ -96,7 +110,7 @@ async function main() {
     });
   }
 
-  for (const b of saudiaConfig.bases) {
+  for (const b of config.bases) {
     await prisma.base.upsert({
       where: { airlineId_airportCode: { airlineId: airline.id, airportCode: b.airportCode } },
       create: { airlineId: airline.id, name: b.name, airportCode: b.airportCode },
@@ -104,10 +118,29 @@ async function main() {
     });
   }
 
+  console.log(`Seeded ${config.name} (${config.code}).`);
+  return airline;
+}
+
+async function main() {
+  for (const config of getAllAirlineConfigs()) {
+    await seedAirline(config);
+  }
+
+  if (process.env.SEED_TEST_USER !== "true") {
+    console.log("Seed complete.");
+    return;
+  }
+
+  const airline = await prisma.airline.findUnique({ where: { code: saudiaConfig.code } });
+  if (!airline) {
+    console.log("Seed complete.");
+    return;
+  }
   const rank = await prisma.rank.findFirst({ where: { airlineId: airline.id, code: "SNF" } });
   const base = await prisma.base.findFirst({ where: { airlineId: airline.id, airportCode: "JED" } });
   const aircraft = await prisma.aircraftType.findFirst({ where: { airlineId: airline.id, code: "A330" } });
-  if (rank && base && aircraft && process.env.SEED_TEST_USER === "true") {
+  if (rank && base && aircraft) {
     const passwordHash = await hash("Test123!", 10);
     await prisma.user.upsert({
       where: { email: "test@saudia.com" },

@@ -5,7 +5,8 @@ import { findAirlineByCode } from "@/repositories/airlineRepository";
 import { findUserByEmail } from "@/repositories/userRepository";
 import { createUser } from "@/repositories/userRepository";
 import { isValidEmail } from "@/utils/validation";
-import { ensureSaudiaExists } from "@/lib/ensureSaudia";
+import { ensureAirlineExists } from "@/lib/ensureAirline";
+import { getAirlineConfig } from "@/config/airlines";
 import { trackEventServer } from "@/lib/analytics/server";
 import { requireSameOrigin } from "@/lib/csrf";
 import { sendResendTransactionalEmail } from "@/lib/resendTransactionalEmail";
@@ -91,9 +92,13 @@ export async function POST(request: Request) {
     );
   }
   let airline = await findAirlineByCode(airlineCode);
-  if (!airline && airlineCode === "SV") {
-    await ensureSaudiaExists();
-    airline = await findAirlineByCode(airlineCode);
+  if (!airline) {
+    // DB was never seeded for this airline — provision it from config on first signup.
+    const config = getAirlineConfig(airlineCode);
+    if (config) {
+      await ensureAirlineExists(config);
+      airline = await findAirlineByCode(airlineCode);
+    }
   }
   if (!airline) {
     return NextResponse.json(

@@ -7,7 +7,7 @@ import { signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getAllAirlineConfigs } from "@/config/airlines";
+import { getAllAirlineConfigs, getRegistrationBases } from "@/config/airlines";
 import { DEFAULT_LOCALE, getLocaleFromPathname, localizePath, type Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/getTranslator";
 
@@ -44,11 +44,10 @@ export function RegisterForm({
     () => [...(selectedConfig?.ranks.cabin ?? []), ...(selectedConfig?.ranks.flightDeck ?? [])],
     [selectedConfig]
   );
-  const bases = useMemo(() => {
-    const allBases = selectedConfig?.bases ?? [];
-    if (selectedConfig?.code !== "SV") return allBases;
-    return allBases.filter((b) => b.airportCode === "JED" || b.airportCode === "RUH");
-  }, [selectedConfig]);
+  const bases = useMemo(
+    () => (selectedConfig ? getRegistrationBases(selectedConfig) : []),
+    [selectedConfig]
+  );
   const aircraftTypes = selectedConfig?.aircraftTypes ?? [];
 
   useEffect(() => {

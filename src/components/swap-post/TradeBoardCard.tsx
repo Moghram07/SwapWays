@@ -11,6 +11,7 @@ import { buildTripRouteChainNodes } from "@/utils/multiStopRouteDisplay";
 import { getAirportCity } from "@/utils/airportNames";
 import { RouteChain } from "@/components/RouteChain";
 import { formatFlightNumber } from "@/utils/flightNumber";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 import { useTimeFormat } from "@/hooks/useTimeFormat";
 import { TripTypeBadge } from "@/components/trip/TripTypeBadge";
 import { MatchBadge } from "@/components/swap-post/MatchBadge";
@@ -152,6 +153,7 @@ const CARD_SECTION_LABEL = "mb-1.5 text-xs font-semibold uppercase tracking-wide
 
 function OfferingTripRow({ trip }: { trip: TripRow }) {
   const { format: timeMode } = useTimeFormat();
+  const airlineCode = useAirlineCode();
 
   const legs = trip.legs ?? [];
   const firstLeg = legs[0];
@@ -175,7 +177,7 @@ function OfferingTripRow({ trip }: { trip: TripRow }) {
   const typeInfo = getTripTypeInfo(trip.tripType, {
     legCount: trip.tripType === "MULTI_STOP" ? routeChain.length - 1 : undefined,
   });
-  const flightNum = formatFlightNumber(firstLeg?.flightNumber ?? trip.flightNumber);
+  const flightNum = formatFlightNumber(firstLeg?.flightNumber ?? trip.flightNumber, airlineCode);
 
   const dateRange = (() => {
     const departureDate = asDate(trip.departureDate);

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { withTimeout } from "@/lib/withTimeout";
+import { getAirlineConfig } from "@/config/airlines";
 
 function normalizeSaudiaAircraftFamily(code: string): "A320" | "A321" | "A330" | "B777" | "B787" | null {
   const c = code.toUpperCase();
@@ -44,7 +45,7 @@ export async function GET() {
           select: { id: true, code: true, name: true },
         }),
         prisma.base.findMany({
-          where: { airlineId: user.airlineId, airportCode: { in: ["JED", "RUH"] } },
+          where: { airlineId: user.airlineId },
           orderBy: { airportCode: "asc" },
           select: { id: true, name: true, airportCode: true },
         }),
@@ -57,6 +58,12 @@ export async function GET() {
       1400,
       "profile options metadata query"
     );
+
+    // Signup-eligible bases are per-airline (Saudia is limited to JED/RUH; others use all bases).
+    const allowedBaseCodes = getAirlineConfig(user.airline.code)?.registrationBaseCodes;
+    const selectableBases = allowedBaseCodes
+      ? bases.filter((b) => allowedBaseCodes.includes(b.airportCode))
+      : bases;
 
     const fleetAircraftTypes =
       user.airline.code === "SV"
@@ -79,7 +86,7 @@ export async function GET() {
     return NextResponse.json({
       data: {
         ranks,
-        bases,
+        bases: selectableBases,
         aircraftTypes: fleetAircraftTypes,
       },
       error: null,

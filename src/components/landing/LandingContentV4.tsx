@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { Hero } from "./Hero";
+import { SupportedAirlines } from "./SupportedAirlines";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/getTranslator";
 
@@ -36,6 +37,8 @@ export function LandingContentV4({
   return (
     <>
       <Hero locale={locale} />
+
+      <SupportedAirlines locale={locale} />
 
       <HowItWorks locale={locale} />
 

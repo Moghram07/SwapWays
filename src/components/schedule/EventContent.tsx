@@ -2,6 +2,7 @@
 
 import { Moon } from "lucide-react";
 import type { CalendarTripEvent } from "@/types/calendar";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 
 interface EventContentProps {
   event: CalendarTripEvent;
@@ -35,6 +36,7 @@ export function EventContent({ event, variant = "grid" }: EventContentProps) {
 }
 
 function SameDayContent({ event, variant }: { event: CalendarTripEvent; variant: "grid" | "agenda" }) {
+  const airlineCode = useAirlineCode();
   const outbound = event.legs[0];
   const returnLeg = event.legs[1];
   const line = lineClass(variant);
@@ -44,7 +46,7 @@ function SameDayContent({ event, variant }: { event: CalendarTripEvent; variant:
       <div className={`font-semibold ${line}`}>{event.destinationCity}</div>
       {outbound && (
         <div className={line}>
-          {outbound.departureLocal} SV{outbound.flightNumber} →
+          {outbound.departureLocal} {airlineCode}{outbound.flightNumber} →
         </div>
       )}
       {returnLeg && (
@@ -61,6 +63,7 @@ function formatZulu(timeZ: string): string {
 }
 
 function DepartContent({ event, variant }: { event: CalendarTripEvent; variant: "grid" | "agenda" }) {
+  const airlineCode = useAirlineCode();
   const leg = event.legs[0];
   if (!leg) return null;
   const zuluStr = formatZulu(leg.departureTimeZ);
@@ -79,7 +82,7 @@ function DepartContent({ event, variant }: { event: CalendarTripEvent; variant: 
         ) : (
           leg.departureLocal
         )}{" "}
-        SV{leg.flightNumber}
+        {airlineCode}{leg.flightNumber}
       </div>
       <div className={`${line} opacity-75`}>
         {leg.departureAirport} → {leg.arrivalAirport}
@@ -93,6 +96,7 @@ function DepartContent({ event, variant }: { event: CalendarTripEvent; variant: 
 }
 
 function ReturnContent({ event, variant }: { event: CalendarTripEvent; variant: "grid" | "agenda" }) {
+  const airlineCode = useAirlineCode();
   const leg = event.legs[0];
   if (!leg) return null;
   const line = lineClass(variant);
@@ -103,7 +107,7 @@ function ReturnContent({ event, variant }: { event: CalendarTripEvent; variant: 
         ← {event.destinationCity}
       </div>
       <div className={line}>
-        {leg.departureLocal} SV{leg.flightNumber}
+        {leg.departureLocal} {airlineCode}{leg.flightNumber}
       </div>
       <div className={line}>
         {leg.departureAirport} → {leg.arrivalAirport}
@@ -146,13 +150,14 @@ function LayoverContent({ event, variant }: { event: CalendarTripEvent; variant:
 }
 
 function MultiStopContent({ event, variant }: { event: CalendarTripEvent; variant: "grid" | "agenda" }) {
+  const airlineCode = useAirlineCode();
   const line = lineClass(variant);
   return (
     <div>
       <div className={`font-semibold ${line}`}>{event.destinationCity}</div>
       {event.legs.slice(0, 3).map((leg, i) => (
         <div key={i} className={line}>
-          {leg.departureLocal} SV{leg.flightNumber} {leg.departureAirport}→
+          {leg.departureLocal} {airlineCode}{leg.flightNumber} {leg.departureAirport}→
           {leg.arrivalAirport}
         </div>
       ))}

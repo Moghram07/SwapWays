@@ -10,6 +10,7 @@ import { zuluToLocal, getLocalDateFromZulu } from "@/utils/airportTimezones";
 import { formatLocalDate } from "@/utils/dateUtils";
 import type { TripCardLeg } from "@/types/tripCard";
 import { useTimeFormat } from "@/hooks/useTimeFormat";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 
 const WEEKDAY_NAMES: Record<string, string> = {
   MO: "Mon",
@@ -41,6 +42,7 @@ interface TripLegItemProps {
 
 export function TripLegItem({ leg, timeMode = "zulu" }: TripLegItemProps) {
   const { format: globalFormat } = useTimeFormat();
+  const airlineCode = useAirlineCode();
   const format = timeMode ?? globalFormat;
   const depLocal = zuluToLocal(leg.departureTime, leg.departureAirport);
   const arrLocal = zuluToLocal(leg.arrivalTime, leg.arrivalAirport);
@@ -102,7 +104,7 @@ export function TripLegItem({ leg, timeMode = "zulu" }: TripLegItemProps) {
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex items-center gap-2 text-sm text-muted">
           <span className="font-medium text-content-soft">
-            SV{leg.flightNumber}
+            {airlineCode}{leg.flightNumber}
             {leg.isDeadHead && (
               <span className="ml-2 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-semibold">
                 DH (No Duty)

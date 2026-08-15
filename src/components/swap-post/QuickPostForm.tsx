@@ -12,6 +12,7 @@ import { WtfDayPicker } from "@/components/swap/WtfDayPicker";
 import { WantDestinationsField, ExcludeDestinationsField } from "@/components/swap/WantDestinationsField";
 import { AirportSearchInput } from "@/components/swap/AirportSearchInput";
 import { MAX_TRIPS_PER_POST, MIN_TRIPS_PER_POST } from "@/constants/swapPost";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 
 interface QuickPostFormProps {
   offeredTrips: QuickPostOfferedTripData[];
@@ -125,6 +126,7 @@ export function QuickPostForm({
   onNext,
 }: QuickPostFormProps) {
   const airports = useMemo(() => getAllAirports(), []);
+  const airlineCode = useAirlineCode();
   const totalBlockHours = offeredTrips.reduce((sum, trip) => sum + (trip.blockHours ?? 0), 0);
   const canAddMore = offeredTrips.length < MAX_TRIPS_PER_POST;
 
@@ -508,7 +510,7 @@ export function QuickPostForm({
                     <div>
                       <label className="mb-1 block text-xs text-muted">Flight number</label>
                       <div className="flex items-center gap-1.5">
-                        <span className="shrink-0 text-sm font-medium text-muted">SV</span>
+                        <span className="shrink-0 text-sm font-medium text-muted">{airlineCode}</span>
                         <input
                           type="text"
                           inputMode="numeric"

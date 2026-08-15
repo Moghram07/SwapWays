@@ -8,6 +8,8 @@ export interface AirlineConfig {
   };
   aircraftTypes: AircraftTypeConfig[];
   bases: BaseConfig[];
+  /** Airport codes open for signup/profile. Omit to allow every base in `bases`. */
+  registrationBaseCodes?: string[];
   scheduleFormat?: ScheduleFormatConfig;
 }
 

@@ -12,6 +12,7 @@ import { UpgradeModal } from "@/components/subscription/UpgradeModal";
 import { useUserAccess } from "@/hooks/useUserAccess";
 import { useDashboardLocale } from "@/contexts/DashboardLocaleContext";
 import { getTranslator } from "@/i18n/getTranslator";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 
 const defaultFilters: SwapBoardFilters = {
   tripType: "",
@@ -129,6 +130,7 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
   const router = useRouter();
   const locale = useDashboardLocale();
   const t = getTranslator(locale);
+  const airlineCode = useAirlineCode();
   const [filters, setFilters] = useState<SwapBoardFilters>(defaultFilters);
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -484,7 +486,7 @@ export function TradeBoardSection({ mode = "tradeBoard" }: { mode?: "tradeBoard"
                         Offering:{" "}
                         {selectedPost.offeredTrips
                           .slice(0, 2)
-                          .map((t) => `SV${t.flightNumber} ${getAirportCity(t.destination)} (${t.destination})`)
+                          .map((t) => `${airlineCode}${t.flightNumber} ${getAirportCity(t.destination)} (${t.destination})`)
                           .join(", ")}
                         {selectedPost.offeredTrips.length > 2 && " …"}
                       </>

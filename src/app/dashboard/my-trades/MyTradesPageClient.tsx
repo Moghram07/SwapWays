@@ -8,6 +8,7 @@ import { TimeFormatToggle } from "@/components/trip/TimeFormatToggle";
 import { MyFlightsTripCards } from "./MyFlightsTripCards";
 import { tripToCardData } from "@/utils/tripCardData";
 import { getSwapStatusByScheduleTripId } from "@/utils/tripSwapStatus";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 
 const PRIMARY = "#1E6FB9";
 
@@ -19,7 +20,6 @@ const fetcher = async (url: string) => {
 
 type ProfileResponse = {
   data?: {
-    airline?: { code?: string };
     base?: { airportCode?: string };
   };
 };
@@ -68,7 +68,7 @@ export function MyTradesPageClient() {
   const { data: tripsJson, isLoading: tripsLoading } = useSWR<MyTripsResponse>("/api/schedule/my-trips", fetcher);
   const { data: tradesJson } = useSWR<MyTradesResponse>("/api/trades?mine=1&compact=1", fetcher);
 
-  const airlineCode = profileJson?.data?.airline?.code ?? "SV";
+  const airlineCode = useAirlineCode();
   const baseAirportCode = profileJson?.data?.base?.airportCode ?? null;
 
   const flightTrades = (tradesJson?.data?.items ?? []).filter((t) => t.tradeType === "FLIGHT_SWAP");

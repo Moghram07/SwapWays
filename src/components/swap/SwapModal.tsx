@@ -7,6 +7,7 @@ import { getAirportCity } from "@/utils/airportNames";
 import { buildTripRouteChainNodes } from "@/utils/multiStopRouteDisplay";
 import { RouteChain } from "@/components/RouteChain";
 import { formatFlightNumber } from "@/utils/flightNumber";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 import { decimalHoursToDisplayTime, formatZuluTime } from "@/utils/timeUtils";
 import type { TripCardData } from "@/types/tripCard";
 import { DesiredDestinations } from "./DesiredDestinations";
@@ -149,6 +150,7 @@ function TripSummaryReadOnly({
   trip: TripCardData;
   typeInfo: ReturnType<typeof getTripTypeInfo>;
 }) {
+  const airlineCode = useAirlineCode();
   const firstLeg = trip.legs[0];
   const routeChain = buildTripRouteChainNodes({
     destination: trip.destinations[trip.destinations.length - 1] ?? "",
@@ -165,8 +167,8 @@ function TripSummaryReadOnly({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <TripTypeBadge typeInfo={typeInfo} />
-        {firstLeg && formatFlightNumber(firstLeg.flightNumber) && (
-          <span className="font-semibold">{formatFlightNumber(firstLeg.flightNumber)}</span>
+        {firstLeg && formatFlightNumber(firstLeg.flightNumber, airlineCode) && (
+          <span className="font-semibold">{formatFlightNumber(firstLeg.flightNumber, airlineCode)}</span>
         )}
         <RouteChain nodes={routeChain} className="text-sm text-content-soft" />
       </div>

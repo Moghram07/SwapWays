@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { getAirportCity } from "@/utils/airportNames";
 import { classifyTrip, getTripTypeInfo } from "@/utils/tripClassifier";
+import { useAirlineCode } from "@/hooks/useAirlineCode";
 
 interface Leg {
   flightNumber: string;
@@ -42,6 +43,7 @@ interface StartChatModalProps {
 }
 
 function TripMiniCard({ trip }: { trip: TripLike }) {
+  const airlineCode = useAirlineCode();
   const firstLeg = trip.legs?.[0];
   if (!firstLeg) return <span className="text-sm text-muted">—</span>;
   const tripType = classifyTrip({ legs: trip.legs ?? [], layovers: trip.layovers ?? [] });
@@ -52,7 +54,7 @@ function TripMiniCard({ trip }: { trip: TripLike }) {
       <span className={`text-xs px-2 py-0.5 rounded-full ${typeInfo.bgColor} ${typeInfo.textColor}`}>
         {typeInfo.label}
       </span>
-      <span className="text-sm font-semibold">SV{firstLeg.flightNumber}</span>
+      <span className="text-sm font-semibold">{airlineCode}{firstLeg.flightNumber}</span>
       <span className="text-sm text-muted">
         {getAirportCity(firstLeg.departureAirport)} → {getAirportCity(firstLeg.arrivalAirport)}
       </span>
@@ -66,6 +68,7 @@ function TripMiniCard({ trip }: { trip: TripLike }) {
 export function StartChatModal({ trade, myTrips, isOpen, onClose, onStart }: StartChatModalProps) {
   const [selectedTripId, setSelectedTripId] = useState<string>("");
   const [message, setMessage] = useState("");
+  const airlineCode = useAirlineCode();
 
   if (!isOpen) return null;
   if (!trade) return null;
@@ -112,7 +115,8 @@ export function StartChatModal({ trade, myTrips, isOpen, onClose, onStart }: Sta
               const typeLabel = trip.tripType === "LAYOVER" ? " (Layover)" : "";
               return (
                 <option key={trip.id} value={trip.id}>
-                  SV{firstLeg?.flightNumber ?? "—"} · {firstLeg ? getAirportCity(firstLeg.arrivalAirport) : "—"} ·{" "}
+                  {airlineCode}{firstLeg?.flightNumber ?? "—"} ·{" "}
+                  {firstLeg ? getAirportCity(firstLeg.arrivalAirport) : "—"} ·{" "}
                   {new Date(trip.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                   {typeLabel}
                 </option>
